@@ -1,0 +1,65 @@
+.sceneContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.canvasContainer {
+  width: 100%;
+  height: 100%;
+}
+
+.controlsInfo {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  padding: 10px 15px;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border-radius: 5px;
+  font-size: 14px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.loadingOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #120807;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  z-index: 1000;
+}
+
+.loadingSpinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* For mobile devices */
+@media (max-width: 768px) {
+  .controlsInfo {
+    font-size: 12px;
+    bottom: 150px; /* Position above touch joystick */
+  }
+} 

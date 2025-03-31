@@ -1,0 +1,294 @@
+/* ProductionDomeWindow.module.css */
+/* Based on ResearchWindow.module.css */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5); /* Darker overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center; /* Center the window */
+    z-index: 1100; /* Above dialogue popup */
+    padding: 20px;
+    box-sizing: border-box;
+    pointer-events: auto;
+}
+
+.windowContainer {
+    background-color: rgba(25, 15, 10, 0.9); /* Darker base than dialogue */
+    color: #e0d8d0;
+    border: 1px solid rgba(217, 119, 93, 0.6);
+    border-radius: 10px;
+    padding: 0; /* Remove padding, header image handles top */
+    width: 100%;
+    max-width: 900px; /* Wider than dialogue */
+    max-height: 80vh; /* Limit height */
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    overflow: hidden; /* Needed for border-radius with image */
+    animation: scaleIn 0.3s ease-out;
+    position: relative; /* For absolute close button */
+    pointer-events: auto;
+}
+
+.closeButton {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: rgba(40, 20, 15, 0.8);
+    border: 1px solid rgba(217, 119, 93, 0.5);
+    color: #e0d8d0;
+    font-size: 1rem;
+    font-weight: bold;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    line-height: 1;
+    padding: 0;
+    z-index: 1; /* Above header image potentially */
+}
+
+.closeButton:hover {
+    background: rgba(217, 119, 93, 0.8);
+    color: #111;
+}
+
+.headerImageContainer {
+    width: 100%;
+    height: 150px; /* Adjust as needed */
+    background-color: #332211; /* Placeholder color */
+    overflow: hidden;
+}
+
+.headerImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Cover the area */
+    display: block;
+}
+
+.title {
+    text-align: center;
+    margin: 15px 0;
+    color: #FFA500; /* Orange accent */
+    font-size: 1.5rem;
+    font-weight: normal;
+    letter-spacing: 1px;
+}
+
+.projectList {
+    padding: 0 20px 20px;
+    overflow-y: auto; /* Enable scrolling for long content */
+    flex-grow: 1; /* Take remaining space */
+    list-style: none;
+    margin: 0;
+}
+
+.projectItem {
+    background-color: rgba(40, 20, 15, 0.6);
+    border: 1px solid rgba(217, 119, 93, 0.3);
+    border-radius: 5px;
+    margin-bottom: 15px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.projectDetails {
+    flex-grow: 1;
+}
+
+.projectName {
+    margin: 0 0 10px 0;
+    color: #FFA500; /* Orange accent */
+    font-size: 1.2rem;
+}
+
+.projectDescription {
+    margin: 0 0 5px 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.projectCost {
+    margin: 5px 0;
+    font-size: 0.85rem;
+    color: #bbb;
+}
+
+.effectDescription {
+    margin: 5px 0;
+    font-size: 0.9rem;
+    color: #a0e1ff; /* Light blue for effect text */
+    line-height: 1.4;
+}
+
+.startButton {
+    background-color: #4A7B4A; /* Green button */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    min-width: 120px;
+    transition: background-color 0.2s ease;
+}
+
+.startButton:hover {
+    background-color: #5A8C5A; /* Lighter green on hover */
+}
+
+.startButton:disabled {
+    background-color: #555;
+    color: #999;
+    cursor: not-allowed;
+}
+
+/* Active Project Styles */
+.activeProjectSection {
+    background-color: rgba(55, 30, 15, 0.7);
+    border: 1px solid rgba(217, 119, 93, 0.5);
+    border-radius: 5px;
+    margin: 0 20px 15px;
+    padding: 15px;
+}
+
+.activeProjectSection h3 {
+    margin: 0 0 10px 0;
+    color: #FFA500;
+    font-size: 1.2rem;
+}
+
+.progressBar {
+    width: 100%;
+    height: 15px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 7px;
+    overflow: hidden;
+    margin: 10px 0;
+}
+
+.progressFill {
+    height: 100%;
+    background-color: #4A7B4A; /* Green progress */
+    transition: width 0.3s ease;
+}
+
+/* Completed Projects Styles */
+.completedProjectsSection {
+    padding: 0 20px 20px;
+}
+
+.completedProjectsSection h3 {
+    margin: 0 0 10px 0;
+    color: #FFA500;
+    font-size: 1.2rem;
+}
+
+.completedList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.completedItem {
+    background-color: rgba(30, 40, 55, 0.5); /* Slightly blueish background */
+    border: 1px solid rgba(100, 150, 200, 0.3); /* Blue tint border */
+    border-radius: 5px;
+    margin-bottom: 15px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.completedButton {
+    background-color: #3A70A0; /* Blue button */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    min-width: 120px;
+    cursor: default; /* Not clickable */
+}
+
+/* Animation */
+@keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Regular mobile portrait adjustments */
+@media (max-width: 768px) {
+    .windowContainer {
+        max-width: 95vw;
+        max-height: 85vh;
+    }
+    .headerImageContainer {
+        height: 100px; /* Smaller header on mobile */
+    }
+    .title {
+        font-size: 1.3rem;
+        margin: 10px 0;
+    }
+    .projectList {
+        padding: 0 10px 10px;
+    }
+    .activeProjectSection {
+        margin: 0 10px 15px;
+    }
+}
+
+/* Mobile landscape specific adjustments */
+@media (orientation: landscape) and (max-height: 500px) { 
+    .overlay {
+        padding: 10px; /* Reduce padding to maximize usable space */
+    }
+    
+    .windowContainer {
+        max-height: 90vh; /* Allow a bit more height */
+        flex-direction: row; /* Convert to horizontal layout */
+        max-width: 95vw;
+    }
+    
+    /* Left side with header and title */
+    .headerSection {
+        flex: 0 0 30%; /* Fixed width for left section */
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid rgba(217, 119, 93, 0.4);
+    }
+    
+    .headerImageContainer {
+        height: 100px; /* Reduced height */
+        min-height: 80px;
+    }
+    
+    .title {
+        font-size: 1.2rem;
+        margin: 8px 0;
+        padding: 0 10px;
+    }
+    
+    /* Right side with content */
+    .projectList {
+        padding: 10px;
+        width: 70%; /* Take remaining width */
+    }
+    
+    .closeButton {
+        top: 5px;
+        right: 5px;
+        width: 25px;
+        height: 25px;
+        font-size: 0.9rem;
+    }
+} 

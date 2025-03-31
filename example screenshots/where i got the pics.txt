@@ -1,0 +1,3 @@
+hexgrid pics:
+https://www.reddit.com/r/Unity2D/comments/ol5a00/isometric_hexagonal_tilemap/
+reddit, u/Glass_wizard asking for assistance on a unity2d project in r/Unity2d, 2021

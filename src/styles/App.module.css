@@ -1,0 +1,96 @@
+/* Use a container for positioning */
+.appContainer {
+  width: 100%;
+  height: 100%;
+  position: relative; /* Needed for absolute positioning of children */
+  background-color: #111; /* Fallback background */
+  overflow: hidden; /* Prevent scrollbars */
+}
+
+/* Canvas container sits behind the UI */
+.canvasContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1; /* Lower z-index */
+}
+
+/* Remove old styles if no longer applicable */
+/* .content { ... } */
+/* .stats { ... } */
+/* .card { ... } */
+/* .toggleButton { ... } */
+
+/* Keep any relevant base styles */
+
+.app {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  padding: 2rem;
+  position: absolute;
+  z-index: 10;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.card {
+  margin-top: 2rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.card button {
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+.card button:hover {
+  border-color: #646cff;
+}
+
+.stats {
+  margin-top: 1rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+}
+
+.toggleButton {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.6em 1.2em;
+  font-size: 0.8em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  color: white;
+  cursor: pointer;
+  transition: border-color 0.25s;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  z-index: 100;
+} 
