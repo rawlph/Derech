@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
+    "build:ts": "tsc && vite build",
+    "postbuild": "cp public/* dist/ || true",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
@@ -21,7 +23,7 @@
     "zustand": "^4.5.1"
   },
   "devDependencies": {
-    "@types/node": "^22.13.14",
+    "@types/node": "^20.12.12",
     "@types/react": "^18.2.56",
     "@types/react-dom": "^18.2.19",
     "@types/three": "^0.162.0",
