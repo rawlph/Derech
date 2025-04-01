@@ -3,69 +3,377 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Derech App</title>
+    <title>Derech - Mars Colony Simulation</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             background-color: #301010;
             color: #fff;
             margin: 0;
-            padding: 20px;
-            text-align: center;
+            padding: 0;
+            overflow: hidden;
         }
-        .app-container {
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 30px;
-            background-color: #1a0808;
-            border-radius: 8px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
         }
-        h1 {
-            color: #ff6a45;
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
         }
-        .loading {
-            margin: 40px 0;
+        .button-container {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            pointer-events: auto;
+        }
+        .button {
+            background-color: rgba(255, 106, 69, 0.8);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: rgba(255, 106, 69, 1);
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #301010;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            transition: opacity 0.5s ease;
         }
         .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid rgba(255, 106, 69, 0.3);
+            width: 60px;
+            height: 60px;
+            border: 6px solid rgba(255, 106, 69, 0.3);
             border-radius: 50%;
             border-top-color: #ff6a45;
             animation: spin 1s ease-in-out infinite;
-            margin: 0 auto 20px;
+            margin-bottom: 30px;
+        }
+        .loading-text {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .loading-subtext {
+            font-size: 16px;
+            opacity: 0.7;
+            max-width: 400px;
+            text-align: center;
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        .back {
-            display: inline-block;
-            background-color: #333;
-            color: #fff;
-            padding: 10px 20px;
-            text-decoration: none;
-            border-radius: 4px;
-            margin-top: 20px;
+        .portal-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 300px;
+            pointer-events: auto;
         }
-        .back:hover {
-            background-color: #444;
+        .portal-title {
+            color: #ff6a45;
+            margin-top: 0;
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <h1>Derech Mars Colony Simulation</h1>
-        <p>The main application is currently being deployed to GitHub Pages.</p>
-        
-        <div class="loading">
-            <div class="spinner"></div>
-            <p>Loading application...</p>
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Preparing Mars Colony</div>
+        <div class="loading-subtext">Building environment and establishing communication with colony base...</div>
+    </div>
+
+    <div id="canvas-container">
+        <!-- Canvas will be inserted here by three.js -->
+    </div>
+    
+    <div class="ui-overlay">
+        <div class="button-container">
+            <button class="button" id="start-colony-btn">Start Colony Mission</button>
+            <button class="button" id="about-btn">About</button>
+            <button class="button" id="return-btn">Return to Home</button>
         </div>
         
-        <p>While we're working on this, you can check out the <a href="index.html" style="color: #ff6a45;">landing page</a> for more information about the project.</p>
-        
-        <a href="index.html" class="back">Back to Home</a>
+        <div id="portal-info" class="portal-info" style="display: none;">
+            <h3 class="portal-title">Portal Information</h3>
+            <div id="portal-info-content"></div>
+        </div>
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.159.0/three.min.js"></script>
+    <script>
+        // Parse URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const portalParam = urlParams.get('portal');
+        const refParam = urlParams.get('ref');
+        const usernameParam = urlParams.get('username') || 'Colonist';
+        const colorParam = urlParams.get('color') || 'red';
+        const speedParam = urlParams.get('speed') || '5';
+        
+        // Show portal info if coming from a portal
+        if (portalParam === 'true' && refParam) {
+            document.getElementById('portal-info').style.display = 'block';
+            document.getElementById('portal-info-content').innerHTML = `
+                <p>You've arrived from <strong>${refParam}</strong></p>
+                <p>Find the <span style="color: #ff0000;">red return portal</span> to go back.</p>
+                <p>Username: ${usernameParam}</p>
+            `;
+        }
+        
+        // Add button event listeners
+        document.getElementById('start-colony-btn').addEventListener('click', function() {
+            // Show loading overlay
+            document.getElementById('loading-overlay').style.opacity = '1';
+            
+            // Redirect to the actual React app with necessary parameters
+            const baseUrl = window.location.pathname.replace('app.html', '');
+            let appUrl = baseUrl + 'index.html';
+            
+            // Add portal parameters if they exist
+            if (portalParam === 'true') {
+                appUrl += `?portal=true`;
+                if (refParam) appUrl += `&ref=${encodeURIComponent(refParam)}`;
+                if (usernameParam) appUrl += `&username=${encodeURIComponent(usernameParam)}`;
+                if (colorParam) appUrl += `&color=${encodeURIComponent(colorParam)}`;
+                if (speedParam) appUrl += `&speed=${encodeURIComponent(speedParam)}`;
+            }
+            
+            // Redirect after short delay to show loading
+            setTimeout(function() {
+                window.location.href = appUrl;
+            }, 1500);
+        });
+        
+        document.getElementById('about-btn').addEventListener('click', function() {
+            alert("Derech is a Mars Colony Simulation Game. Build your colony, manage resources, and explore the red planet!");
+        });
+        
+        document.getElementById('return-btn').addEventListener('click', function() {
+            window.location.href = '/Derech/index.html';
+        });
+        
+        // THREE.js implementation
+        let scene, camera, renderer;
+        let exitPortalGroup, startPortalGroup;
+        
+        function initThreeJS() {
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x120807);
+            scene.fog = new THREE.Fog(0x240f0c, 30, 100);
+            
+            // Create camera
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 10);
+            
+            // Create renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
+            // Add lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(10, 10, 5);
+            scene.add(directionalLight);
+            
+            // Create ground
+            const groundGeometry = new THREE.PlaneGeometry(100, 100);
+            const groundMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xa85c32,
+                roughness: 0.9,
+                metalness: 0.1
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = -1;
+            scene.add(ground);
+            
+            // Create environment
+            createEnvironment();
+            
+            // Create portals
+            createExitPortal();
+            
+            if (portalParam === 'true' && refParam) {
+                createStartPortal();
+            }
+            
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize);
+            
+            // Start animation loop
+            animate();
+        }
+        
+        function createEnvironment() {
+            // Create some mountains
+            for (let i = 0; i < 10; i++) {
+                const angle = i / 10 * Math.PI * 2;
+                const radius = 30;
+                const x = Math.sin(angle) * radius;
+                const z = Math.cos(angle) * radius;
+                const height = 5 + Math.random() * 10;
+                
+                const geometry = new THREE.ConeGeometry(5, height, 4);
+                const material = new THREE.MeshStandardMaterial({
+                    color: 0xa85c32,
+                    roughness: 0.9,
+                    flatShading: true
+                });
+                
+                const mountain = new THREE.Mesh(geometry, material);
+                mountain.position.set(x, height/2 - 1, z);
+                scene.add(mountain);
+            }
+            
+            // Add some rocks
+            for (let i = 0; i < 30; i++) {
+                const x = (Math.random() - 0.5) * 40;
+                const z = (Math.random() - 0.5) * 40;
+                const scale = 0.5 + Math.random() * 1;
+                
+                const geometry = new THREE.DodecahedronGeometry(1, 0);
+                const material = new THREE.MeshStandardMaterial({
+                    color: 0x8B4513,
+                    roughness: 0.9,
+                    flatShading: true
+                });
+                
+                const rock = new THREE.Mesh(geometry, material);
+                rock.position.set(x, -0.5, z);
+                rock.scale.set(scale, scale, scale);
+                scene.add(rock);
+            }
+        }
+        
+        function createExitPortal() {
+            // Create portal group
+            exitPortalGroup = new THREE.Group();
+            exitPortalGroup.position.set(-10, 0, -15);
+            
+            // Create portal ring
+            const ringGeometry = new THREE.TorusGeometry(3, 0.5, 16, 32);
+            const ringMaterial = new THREE.MeshStandardMaterial({
+                color: 0x00ff00,
+                emissive: 0x00ff00,
+                emissiveIntensity: 0.5
+            });
+            
+            const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+            exitPortalGroup.add(ring);
+            
+            // Create portal center
+            const centerGeometry = new THREE.CircleGeometry(2.5, 32);
+            const centerMaterial = new THREE.MeshBasicMaterial({
+                color: 0x00ff00,
+                transparent: true,
+                opacity: 0.5,
+                side: THREE.DoubleSide
+            });
+            
+            const center = new THREE.Mesh(centerGeometry, centerMaterial);
+            exitPortalGroup.add(center);
+            
+            // Add to scene
+            scene.add(exitPortalGroup);
+        }
+        
+        function createStartPortal() {
+            // Create portal group
+            startPortalGroup = new THREE.Group();
+            startPortalGroup.position.set(10, 0, -15);
+            
+            // Create portal ring
+            const ringGeometry = new THREE.TorusGeometry(3, 0.5, 16, 32);
+            const ringMaterial = new THREE.MeshStandardMaterial({
+                color: 0xff0000,
+                emissive: 0xff0000,
+                emissiveIntensity: 0.5
+            });
+            
+            const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+            startPortalGroup.add(ring);
+            
+            // Create portal center
+            const centerGeometry = new THREE.CircleGeometry(2.5, 32);
+            const centerMaterial = new THREE.MeshBasicMaterial({
+                color: 0xff0000,
+                transparent: true,
+                opacity: 0.5,
+                side: THREE.DoubleSide
+            });
+            
+            const center = new THREE.Mesh(centerGeometry, centerMaterial);
+            startPortalGroup.add(center);
+            
+            // Add to scene
+            scene.add(startPortalGroup);
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Animate portals
+            if (exitPortalGroup) {
+                exitPortalGroup.rotation.y += 0.01;
+            }
+            
+            if (startPortalGroup) {
+                startPortalGroup.rotation.y += 0.01;
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Hide loading overlay after delay
+        setTimeout(function() {
+            document.getElementById('loading-overlay').style.opacity = '0';
+            setTimeout(function() {
+                document.getElementById('loading-overlay').style.display = 'none';
+            }, 500);
+        }, 2000);
+        
+        // Initialize ThreeJS scene when page loads
+        window.addEventListener('load', initThreeJS);
+    </script>
 </body>
 </html> 

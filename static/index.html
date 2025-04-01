@@ -60,16 +60,64 @@
         .feature h2 {
             color: #ff6a45;
         }
+        .portal-info {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #1a0808;
+            border-radius: 4px;
+            border-left: 4px solid #00ff00;
+        }
+        .portal-info.red-portal {
+            border-left: 4px solid #ff0000;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+        .loading-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 106, 69, 0.3);
+            border-radius: 50%;
+            border-top-color: #ff6a45;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <h2>Entering Colony...</h2>
+        <p>Please wait while we prepare your Mars mission</p>
+    </div>
+
     <header>
         <h1>Derech - Mars Colony Simulation</h1>
     </header>
     <main>
         <p>Welcome to Derech, a web-based 3D Mars colony simulation game. Build and manage your Mars colony, solve puzzles, and explore the red planet.</p>
         
-        <a href="app.html" class="btn">Launch Application</a>
+        <a href="#" class="btn" id="enter-colony-btn">Enter Colony Management</a>
         
         <div class="feature">
             <h2>Management Mode</h2>
@@ -86,6 +134,8 @@
             <p>Connect with other games via the Vibeverse portal network. Experience a connected universe of web-based games.</p>
         </div>
         
+        <div id="portal-info-container"></div>
+        
         <div class="feature">
             <h2>Low-Poly 3D</h2>
             <p>Enjoy lightweight, fast-loading 3D environments optimized for web browsers.</p>
@@ -94,5 +144,67 @@
     <footer>
         &copy; 2023 Derech Project
     </footer>
+
+    <script>
+        // Check if the user came through a portal
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const portalParam = urlParams.get('portal');
+            const refParam = urlParams.get('ref');
+            const usernameParam = urlParams.get('username');
+            const colorParam = urlParams.get('color');
+            const speedParam = urlParams.get('speed');
+            
+            const portalInfoContainer = document.getElementById('portal-info-container');
+            
+            // If the user came through a portal, show portal info
+            if (portalParam === 'true' && refParam) {
+                const portalInfoDiv = document.createElement('div');
+                portalInfoDiv.className = 'portal-info red-portal';
+                portalInfoDiv.innerHTML = `
+                    <h2>Welcome from ${refParam}!</h2>
+                    <p>You've traveled through the Vibeverse portal network to reach Derech.</p>
+                    <p>A return portal will be available in the game to take you back.</p>
+                    ${usernameParam ? `<p>Username: ${usernameParam}</p>` : ''}
+                `;
+                portalInfoContainer.appendChild(portalInfoDiv);
+            } else {
+                // If user didn't come through a portal, show the Vibeverse portal info
+                const portalInfoDiv = document.createElement('div');
+                portalInfoDiv.className = 'portal-info';
+                portalInfoDiv.innerHTML = `
+                    <h2>Vibeverse Portal</h2>
+                    <p>Derech is part of the Vibeverse portal network. In-game, you'll find a green portal that allows you to visit other connected games.</p>
+                `;
+                portalInfoContainer.appendChild(portalInfoDiv);
+            }
+            
+            // Handle the Enter Colony button
+            const enterColonyBtn = document.getElementById('enter-colony-btn');
+            enterColonyBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Show loading overlay
+                document.getElementById('loading-overlay').classList.add('show');
+                
+                // Prepare query parameters for the main app
+                let appUrl = '/Derech/app.html';
+                
+                // If we have portal parameters, pass them along
+                if (portalParam === 'true') {
+                    appUrl += `?portal=true`;
+                    if (refParam) appUrl += `&ref=${encodeURIComponent(refParam)}`;
+                    if (usernameParam) appUrl += `&username=${encodeURIComponent(usernameParam)}`;
+                    if (colorParam) appUrl += `&color=${encodeURIComponent(colorParam)}`;
+                    if (speedParam) appUrl += `&speed=${encodeURIComponent(speedParam)}`;
+                }
+                
+                // Redirect to app after a short delay (simulating loading)
+                setTimeout(function() {
+                    window.location.href = appUrl;
+                }, 1500);
+            });
+        });
+    </script>
 </body>
 </html> 
