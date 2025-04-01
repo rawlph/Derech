@@ -22,11 +22,11 @@ export const taskConfigs: Record<string, TaskConfig> = {
     name: 'Deploy Mining Operation',
     description: 'Establish a mining site to extract raw minerals.',
     targetTileType: ['Mountain'], // Can only be built on Mountains
-    cost: { power: 20, colonyGoods: 10 }, // Cost to deploy
+    cost: { power: 15, colonyGoods: 10 }, // Updated power cost from 20 to 15
     workforceRequired: 3, // Number of workers needed
     duration: 2, // Takes 2 rounds to set up
     operationalModelPath: '/Derech/models/mars_workforce_mining.glb', // Model to show when running
-    resourceYield: { resource: 'minerals', baseAmount: 5 }, // Yields 5 minerals per round base
+    resourceYield: { resource: 'minerals', baseAmount: 8 }, // Updated from 5 to 8 minerals per round
     scale: [0.06, 0.06, 0.06], // Updated scale to match starter buildings
     yOffset: 0.2, // Updated to match starter buildings
   },
@@ -40,7 +40,7 @@ export const taskConfigs: Record<string, TaskConfig> = {
     workforceRequired: 1,
     duration: 1,
     operationalModelPath: '/Derech/models/mars_building_scout.glb',
-    resourceYield: { resource: 'researchPoints', baseAmount: 2 }, // Increased from 1 to 2
+    resourceYield: { resource: 'researchPoints', baseAmount: 4 }, // Updated from 2 to 4
     scale: [0.04, 0.04, 0.04], // Scout outpost scale
     yOffset: 0.2, // Base position, will be adjusted in TaskVisuals
   },
@@ -49,11 +49,11 @@ export const taskConfigs: Record<string, TaskConfig> = {
     name: 'Construct Solar Panel',
     description: 'Builds a solar panel array to generate Power.',
     targetTileType: ['Plains'], // Typically built on flat ground
-    cost: { minerals: 15, colonyGoods: 5 },
+    cost: { minerals: 20, colonyGoods: 5 }, // Updated minerals cost from 15 to 20
     workforceRequired: 2,
-    duration: 3,
+    duration: 2, // Reduced from 3 to 2 rounds
     operationalModelPath: '/Derech/models/mars_solar.glb',
-    resourceYield: { resource: 'power', baseAmount: 10 }, // Example: Generates power
+    resourceYield: { resource: 'power', baseAmount: 15 }, // Updated from 10 to 15
     scale: [0.15, 0.15, 0.15], // Solar panel scale
     yOffset: 0.01, // Lowered from 0.2 to sit closer to the tile
   },
@@ -62,11 +62,11 @@ export const taskConfigs: Record<string, TaskConfig> = {
     name: 'Construct Geothermal Plant',
     description: 'Constructs a high-output geothermal power plant, tapping into Mars\' thermal energy.',
     targetTileType: ['Plains'], // Can only be built on Plains
-    cost: { minerals: 25, colonyGoods: 10 }, // Higher cost than solar
+    cost: { minerals: 30, colonyGoods: 15 }, // Updated from 25/10 to 30/15
     workforceRequired: 5, // Takes 5 workforce as requested
-    duration: 4, // Longer build time than solar
+    duration: 3, // Reduced from 4 to 3 rounds
     operationalModelPath: '/Derech/models/mars_thermal.glb', // New model
-    resourceYield: { resource: 'power', baseAmount: 25 }, // Generates more power than solar
+    resourceYield: { resource: 'power', baseAmount: 30 }, // Updated from 25 to 30
     scale: [0.08, 0.08, 0.08], // Reduced by 20% from original 0.1
     yOffset: 0.05, // Moderate position above tile
   },
@@ -77,9 +77,9 @@ export const taskConfigs: Record<string, TaskConfig> = {
     targetTileType: ['Ice Deposit'], // Can only be built on Ice Deposit tiles
     cost: { power: 15, minerals: 20 }, // Cost to build
     workforceRequired: 3, // Medium workforce requirement
-    duration: 3, // Takes 3 rounds to set up
+    duration: 2, // Reduced from 3 to 2 rounds
     operationalModelPath: '/Derech/models/mars_waterwell.glb', // Water well model
-    resourceYield: { resource: 'water', baseAmount: 15 }, // Generates water resource
+    resourceYield: { resource: 'water', baseAmount: 12 }, // Reduced from 15 to 12
     scale: [0.08, 0.08, 0.08], // Similar scale to geothermal
     yOffset: 0.15, // Slightly lower than geothermal
   },

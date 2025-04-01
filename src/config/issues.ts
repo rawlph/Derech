@@ -61,8 +61,8 @@ export const issues: Issue[] = [
                     shutdown: true, // This choice shuts down the facility temporarily
                     effects: {
                         // Loss of resources due to downtime
-                        power: -5,
-                        minerals: -3,
+                        power: -4, // Reduced loss from -5 to -4
+                        minerals: -2, // Reduced loss from -3 to -2
                     }
                 }
             },
@@ -70,28 +70,30 @@ export const issues: Issue[] = [
                 id: 'dust-shields',
                 text: 'Deploy emergency dust shields and keep operating',
                 cost: {
-                    power: 10, // Costs power to run the shields
+                    power: 8, // Reduced cost from 10 to 8
                 },
                 outcomes: {
                     text: 'The emergency shields consume additional power but allow operations to continue at reduced capacity. Some dust still manages to infiltrate sensitive systems.',
                     shutdown: false, // Facility keeps operating
                     effects: {
-                        power: -5, // Additional power consumed by shields
+                        power: -3, // Reduced loss from -5 to -3
                         minerals: -1, // Minor loss due to reduced efficiency
                     }
                 }
             },
             {
                 id: 'dust-research',
-                text: 'Apply experimental dust-repelling coating (Requires 15 Research Points)',
+                text: 'Apply experimental nanotechnology coating (Costs 8 Power, 5 Minerals)',
                 cost: {
-                    researchPoints: 15,
+                    power: 8,
+                    minerals: 5
                 },
                 outcomes: {
-                    text: 'The experimental coating works better than expected! Not only does it protect against the current storm, but it also improves future resilience. Your research team gains valuable data from the field test.',
+                    text: 'The nanomaterial-based coating works better than expected! Not only does it protect against the current storm, but it also yields valuable research data (+12 RP). Your facility continues to operate efficiently despite the dust storm.',
                     shutdown: false, // Facility keeps operating and is actually enhanced
                     effects: {
-                        researchPoints: 5, // Gain from field testing
+                        researchPoints: 12, // Gain research points from the experiment
+                        minerals: 3, // Added small minerals bonus
                     }
                 }
             }
@@ -111,11 +113,12 @@ export const issues: Issue[] = [
                 id: 'radiation-shutdown',
                 text: 'Evacuate personnel and power down sensitive systems',
                 outcomes: {
-                    text: 'You order an immediate evacuation and activate radiation-hardened backup systems. The facility suffers downtime, but critical equipment is preserved and workforce remains safe.',
+                    text: 'You order an immediate evacuation and activate radiation-hardened backup systems. The facility suffers downtime, but critical equipment is preserved and workforce remains safe. Scientists analyze the radiation data afterward (+2 RP).',
                     shutdown: true,
                     effects: {
-                        power: -8,
-                        colonyGoods: -5,
+                        power: -6, // Reduced loss from -8 to -6
+                        colonyGoods: -4, // Reduced loss from -5 to -4
+                        researchPoints: 2, // Added small research bonus for learning from the event
                     }
                 }
             },
@@ -123,30 +126,33 @@ export const issues: Issue[] = [
                 id: 'radiation-shield',
                 text: 'Divert power to emergency radiation shielding',
                 cost: {
-                    power: 15,
-                    water: 5, // Water provides additional radiation shielding
+                    power: 12, // Reduced cost from 15 to 12
+                    water: 4, // Reduced cost from 5 to 4
                 },
                 outcomes: {
                     text: 'You boost power to the facility\'s radiation shields and use water reserves to create additional protection layers. Operations continue at reduced capacity, but the facility remains online through the radiation storm.',
                     shutdown: false,
                     effects: {
-                        power: -5,
-                        colonyGoods: -2,
+                        power: -3, // Reduced loss from -5 to -3
+                        colonyGoods: -1, // Reduced loss from -2 to -1
+                        minerals: 2, // Added small minerals bonus
                     }
                 }
             },
             {
                 id: 'radiation-research',
-                text: 'Deploy experimental ionospheric deflector (Requires 20 Research Points)',
+                text: 'Deploy experimental ionospheric deflector (Costs 15 Power, 10 Colony Goods)',
                 cost: {
-                    researchPoints: 20,
-                    power: 5,
+                    power: 15,
+                    colonyGoods: 10
                 },
                 outcomes: {
-                    text: 'The experimental deflector technology creates a localized magnetic field that mimics Earth\'s natural protection. The radiation is successfully diverted, and your research team collects invaluable data on the technology\'s performance.',
+                    text: 'The experimental deflector technology creates a localized magnetic field that mimics Earth\'s natural protection. The radiation is successfully diverted, and your research team collects invaluable scientific data on the technology\'s performance (+25 RP).',
                     shutdown: false,
                     effects: {
-                        researchPoints: 8, // Gain research points from the experiment
+                        researchPoints: 25, // Significant research gain from the experiment
+                        power: 5, // Added power bonus
+                        colonyGoods: 5, // Added colony goods bonus
                     }
                 }
             }
@@ -169,7 +175,8 @@ export const issues: Issue[] = [
                     text: 'You decide to play it safe, maintaining normal power levels while benefiting from a moderate but stable boost in efficiency.',
                     shutdown: false,
                     effects: {
-                        power: 10, // Modest power increase
+                        power: 15, // Increased from 10 to 15
+                        colonyGoods: 2, // Added small colony goods bonus
                     }
                 }
             },
@@ -177,11 +184,12 @@ export const issues: Issue[] = [
                 id: 'phobos-overclock',
                 text: 'Temporarily overclock power systems for maximum gain',
                 outcomes: {
-                    text: 'Engineers push the systems to their limits, capturing the gravitational resonance at its peak. Power output surges dramatically, though the strain on equipment is significant.',
+                    text: 'Engineers push the systems to their limits, capturing the gravitational resonance at its peak. Power output surges dramatically, though the strain on equipment is significant. The unusual conditions yield some research benefits (+3 RP).',
                     shutdown: false,
                     effects: {
-                        power: 25, // Significant power increase
-                        minerals: -2, // Minor wear and tear cost
+                        power: 30, // Increased from 25 to 30
+                        minerals: -3, // Increased cost from -2 to -3, more wear and tear
+                        researchPoints: 3, // Added small research bonus
                     }
                 }
             },
@@ -192,11 +200,12 @@ export const issues: Issue[] = [
                     researchPoints: 5,
                 },
                 outcomes: {
-                    text: 'Your research team captures detailed data on the alignment effect. Not only do you gain a power boost, but the collected data significantly advances your understanding of efficient power generation on Mars.',
+                    text: 'Your research team captures detailed data on the alignment effect. Not only do you gain a power boost, but the collected data significantly advances your understanding of efficient power generation on Mars (+18 RP).',
                     shutdown: false,
                     effects: {
-                        power: 15, // Moderate power increase
-                        researchPoints: 15, // Significant research gain
+                        power: 20, // Increased from 15 to 20
+                        researchPoints: 18, // Increased from 15 to 18
+                        colonyGoods: 3, // Added colony goods bonus
                     }
                 }
             }
@@ -216,11 +225,12 @@ export const issues: Issue[] = [
                 id: 'discovery-study',
                 text: 'Dedicate staff to carefully study the find',
                 outcomes: {
-                    text: 'The careful, methodical approach yields valuable scientific insights. The discovery boosts morale and generates significant research data, though production is temporarily slowed as workers are distracted by excitement.',
+                    text: 'The careful, methodical approach yields valuable scientific insights. The discovery boosts morale and generates significant research data (+25 RP), though production is temporarily slowed as workers are distracted by excitement.',
                     shutdown: false,
                     effects: {
-                        researchPoints: 20, // Major research boost
-                        minerals: -2, // Minor production loss due to distraction
+                        researchPoints: 25, // Increased from 20 to 25
+                        minerals: -1, // Reduced from -2 to -1
+                        colonyGoods: 3, // Added colony goods bonus
                     }
                 }
             },
@@ -231,24 +241,27 @@ export const issues: Issue[] = [
                     text: 'News of the discovery spreads rapidly, becoming a symbol of hope and purpose for the entire colony. Workforce efficiency increases across all sectors as colonists feel they\'re part of something truly historic.',
                     shutdown: false,
                     effects: {
-                        colonyGoods: 10, // Productivity boost from improved morale
-                        minerals: 5, // Mining productivity increase
+                        colonyGoods: 15, // Increased from 10 to 15
+                        minerals: 8, // Increased from 5 to 8
+                        water: 5, // Added water bonus
                     }
                 }
             },
             {
                 id: 'discovery-catalog',
-                text: 'Catalog the site with research equipment (Costs 10 Research Points)',
+                text: 'Deploy advanced analysis equipment (Costs 12 Power, 10 Colony Goods)',
                 cost: {
-                    researchPoints: 10,
+                    power: 12,
+                    colonyGoods: 10
                 },
                 outcomes: {
-                    text: 'Your thorough scientific documentation creates a treasure trove of data. The site becomes a nexus of inspiration, with teams working extra shifts voluntarily. The discovery may be the breakthrough that transforms our understanding of Martian history.',
+                    text: 'Your thorough scientific documentation creates a treasure trove of data. The site becomes a nexus of inspiration, with teams working extra shifts voluntarily. The discovery may be the breakthrough that transforms our understanding of Martian history (+40 RP).',
                     shutdown: false,
                     effects: {
-                        researchPoints: 30, // Major research breakthrough
-                        colonyGoods: 5, // Productivity boost
-                        minerals: 5, // Inspired workers extract more resources
+                        researchPoints: 40, // Increased from 35 to 40
+                        colonyGoods: 8, // Increased from 5 to 8
+                        minerals: 10, // Increased from 8 to 10
+                        power: 5, // Added power bonus
                     }
                 }
             }
@@ -271,33 +284,34 @@ export const issues: Issue[] = [
                 id: 'dispatch-expedition',
                 text: 'Dispatch a manned expedition team to investigate',
                 cost: {
-                    power: 10,
-                    water: 5,
-                    colonyGoods: 5
+                    power: 8,  // Reduced from 10 to 8
+                    water: 4,  // Reduced from 5 to 4
+                    colonyGoods: 4  // Reduced from 5 to 4
                 },
                 outcomes: {
-                    text: 'Your expedition team successfully reaches the anomaly, discovering it to be remnants of a failed Chinese mission from the 2030s. The team recovers valuable equipment, mineral samples, and data drives containing research that was presumed lost.',
+                    text: 'Your expedition team successfully reaches the anomaly, discovering it to be remnants of a failed Chinese mission from the 2030s. The team recovers valuable equipment, mineral samples, and data drives containing research that was presumed lost (+20 RP).',
                     shutdown: false,
                     effects: {
-                        minerals: 20, // Substantial material recovery
-                        researchPoints: 15, // Valuable research data
-                        colonyGoods: 10 // Salvaged equipment
+                        minerals: 25, // Increased from 20 to 25
+                        researchPoints: 20, // Increased from 15 to 20
+                        colonyGoods: 15 // Increased from 10 to 15
                     }
                 }
             },
             {
                 id: 'remote-survey',
-                text: 'Deploy autonomous rover for detailed scanning',
+                text: 'Deploy autonomous rover with scanning equipment (Costs 10 Power, 5 Colony Goods)',
                 cost: {
-                    researchPoints: 10,
-                    power: 5
+                    power: 10,
+                    colonyGoods: 5
                 },
                 outcomes: {
-                    text: 'The autonomous rover completes a thorough survey using advanced imaging and sampling techniques. While the physical materials remain at the site, the scientific data gathered provides significant insights and coordinates for future recovery missions.',
+                    text: 'The autonomous rover completes a thorough survey using advanced imaging and sampling techniques. While the physical materials remain at the site, the scientific data gathered provides significant insights and coordinates for future recovery missions (+30 RP).',
                     shutdown: false,
                     effects: {
-                        researchPoints: 25, // Major research gain without physical retrieval
-                        minerals: 5 // Small sample return via drone
+                        researchPoints: 30, // Increased from 25 to 30
+                        minerals: 8, // Increased from 5 to 8
+                        power: 5 // Added power bonus
                     }
                 }
             },
@@ -305,10 +319,11 @@ export const issues: Issue[] = [
                 id: 'mark-coordinates',
                 text: 'Mark coordinates in database for future investigation',
                 outcomes: {
-                    text: 'You log the coordinates for later exploration when resources permit. The scouting team continues their regular patrol pattern, focusing on more immediate priorities. The data remains valuable for future reference.',
+                    text: 'You log the coordinates for later exploration when resources permit. The scouting team continues their regular patrol pattern, focusing on more immediate priorities. The data remains valuable for future reference (+8 RP).',
                     shutdown: false,
                     effects: {
-                        researchPoints: 5 // Small gain from the preliminary data
+                        researchPoints: 8, // Increased from 5 to 8
+                        colonyGoods: 3  // Added colony goods bonus
                     }
                 }
             }
@@ -329,15 +344,16 @@ export const issues: Issue[] = [
                 id: 'comprehensive-excavation',
                 text: 'Launch comprehensive excavation project',
                 cost: {
-                    power: 20,
-                    colonyGoods: 15
+                    power: 18, // Reduced from 20 to 18
+                    colonyGoods: 12 // Reduced from 15 to 12
                 },
                 outcomes: {
-                    text: 'Your team executes a carefully planned excavation, revealing a substantial deposit of high-grade minerals. The extraction is labor-intensive but extremely productive, yielding materials that will benefit the colony for months to come.',
+                    text: 'Your team executes a carefully planned excavation, revealing a substantial deposit of high-grade minerals. The extraction is labor-intensive but extremely productive, yielding materials that will benefit the colony for months to come. The unique mineral composition provides some research value (+5 RP).',
                     shutdown: false,
                     effects: {
-                        minerals: 50, // Major mineral gain
-                        power: -5 // Ongoing power consumption
+                        minerals: 60, // Increased from 50 to 60
+                        power: -4, // Reduced from -5 to -4
+                        researchPoints: 5 // Added research bonus
                     }
                 }
             },
@@ -345,31 +361,34 @@ export const issues: Issue[] = [
                 id: 'targeted-drilling',
                 text: 'Implement targeted drilling at key points',
                 cost: {
-                    power: 10,
-                    colonyGoods: 5
+                    power: 8, // Reduced from 10 to 8
+                    colonyGoods: 4 // Reduced from 5 to 4
                 },
                 outcomes: {
-                    text: 'Using precision drilling techniques, your team extracts the most accessible portions of the mineral vein. This balanced approach yields good results while minimizing disruption to regular operations.',
+                    text: 'Using precision drilling techniques, your team extracts the most accessible portions of the mineral vein. This balanced approach yields good results while minimizing disruption to regular operations. The discovered geological patterns offer scientific interest (+8 RP).',
                     shutdown: false,
                     effects: {
-                        minerals: 30, // Moderate mineral gain
-                        researchPoints: 5 // Some research value from analysis
+                        minerals: 35, // Increased from 30 to 35
+                        researchPoints: 8, // Increased from 5 to 8
+                        water: 5 // Added water bonus
                     }
                 }
             },
             {
                 id: 'train-specialized-team',
-                text: 'Train a specialized extraction team (Costs 15 Research Points)',
+                text: 'Implement research-driven extraction protocol (Costs 10 Power, 8 Colony Goods)',
                 cost: {
-                    researchPoints: 15
+                    power: 10,
+                    colonyGoods: 8
                 },
                 outcomes: {
-                    text: 'You invest time in specially training a dedicated team with advanced extraction techniques. This pays off substantially as they develop novel methods that not only maximize yield from this vein but improve the efficiency of all mining operations.',
+                    text: 'By applying the latest research techniques, your specialized team develops novel extraction methods that maximize both mineral yield and scientific data. This approach not only delivers exceptional resources but also generates valuable research insights (+20 RP).',
                     shutdown: false,
                     effects: {
-                        minerals: 35, // Good mineral gain
-                        researchPoints: 10, // Knowledge gained from new techniques
-                        colonyGoods: 5 // Improved mining tools
+                        minerals: 45, // Increased from 40
+                        researchPoints: 20, // Higher research gain
+                        colonyGoods: 5, 
+                        power: 5 // Added power bonus
                     }
                 }
             }
@@ -388,16 +407,18 @@ export const issues: Issue[] = [
         choices: [
             {
                 id: 'scientific-preservation',
-                text: 'Preserve most of the ice for scientific study',
+                text: 'Preserve most of the ice for scientific study (Costs 8 Power, 5 Colony Goods)',
                 cost: {
-                    researchPoints: 10
+                    power: 8,
+                    colonyGoods: 5
                 },
                 outcomes: {
-                    text: 'Your research team carefully documents and preserves the ice chamber, extracting cores for detailed analysis. The preserved gases and sediment layers provide unprecedented insights into Mars\' climate history, while still allowing for measured water extraction.',
+                    text: 'Your research team carefully documents and preserves the ice chamber, extracting cores for detailed analysis. The preserved gases and sediment layers provide unprecedented insights into Mars\' climate history (+30 RP), while still allowing for measured water extraction.',
                     shutdown: false,
                     effects: {
-                        water: 15, // Moderate water gain
-                        researchPoints: 25 // Major scientific breakthrough
+                        water: 18, // Increased from 15 to 18
+                        researchPoints: 30, // Increased from 25 to 30
+                        colonyGoods: 5 // Added colony goods bonus
                     }
                 }
             },
@@ -408,8 +429,9 @@ export const issues: Issue[] = [
                     text: 'You authorize a special water ration for the entire colony. The modest luxury of additional fresh water for personal use creates a tangible boost to morale. Colonists report improved well-being and renewed commitment to the Mars mission.',
                     shutdown: false,
                     effects: {
-                        water: 25, // Significant water extraction
-                        colonyGoods: 15 // Major morale and productivity boost
+                        water: 30, // Increased from 25 to 30
+                        colonyGoods: 20, // Increased from 15 to 20
+                        minerals: 5 // Added minerals bonus
                     }
                 }
             },
@@ -417,16 +439,17 @@ export const issues: Issue[] = [
                 id: 'hydroponic-expansion',
                 text: 'Direct water to expanded hydroponic systems',
                 cost: {
-                    colonyGoods: 10,
-                    power: 5
+                    colonyGoods: 8, // Reduced from 10 to 8
+                    power: 4 // Reduced from 5 to 4
                 },
                 outcomes: {
-                    text: 'The pure ice is carefully melted and integrated into an expanded hydroponic growing system. The increased crop yield substantially improves food variety and nutrition for all colonists, creating lasting health benefits and resource diversity.',
+                    text: 'The pure ice is carefully melted and integrated into an expanded hydroponic growing system. The increased crop yield substantially improves food variety and nutrition for all colonists, creating lasting health benefits and resource diversity. Agricultural experiments yield modest research findings (+8 RP).',
                     shutdown: false,
                     effects: {
-                        water: 20, // Good water gain
-                        colonyGoods: 20, // Major food production boost
-                        researchPoints: 5 // Agricultural research insights
+                        water: 25, // Increased from 20 to 25
+                        colonyGoods: 25, // Increased from 20 to 25
+                        researchPoints: 8, // Increased from 5 to 8
+                        power: 5 // Added power bonus
                     }
                 }
             }
