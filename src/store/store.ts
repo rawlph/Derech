@@ -130,7 +130,8 @@ interface GameState {
 
   // View Management
   setGameView: (view: 'management' | 'puzzle' | 'menu' | 'welcome') => void;
-
+  resetColony: () => void; // NEW: Reset colony state but keep grid
+  
   // Task Management Actions (NEW)
   assignWorkforceToTask: (taskType: TaskState['type'], targetTile: TileData, workforce: number) => boolean;
   updateTaskProgress: () => boolean;
@@ -509,6 +510,44 @@ export const useGameStore = create<GameState>((set, get) => ({
     gameView: view, 
     previousGameView: state.gameView 
   })),
+
+  resetColony: () => {
+    set({
+      power: 100,
+      water: 100,
+      population: 10,
+      researchPoints: 0,
+      colonyGoods: 50,
+      minerals: 20,
+      totalWorkforce: 8,
+      availableWorkforce: 8,
+      currentRound: 1,
+      gridTiles: {}, // Will be replaced by initializeGrid call
+      selectedTile: null,
+      gameView: 'management', // Changed from 'welcome' to 'management' to go directly to new colony
+      previousGameView: 'welcome',
+      activeTasks: {},
+      dialogueMessage: null,
+      lastFlavourRound: 0,
+      isResearchWindowVisible: false,
+      activeResearch: null,
+      completedResearch: [],
+      isLivingDomeWindowVisible: false,
+      activeLivingProject: null,
+      completedLivingProjects: [],
+      isProductionDomeWindowVisible: false,
+      activeProductionProject: null,
+      completedProductionProjects: [],
+      buildingIssues: {},
+      activeIssueId: null,
+      lastIssueRounds: {},
+      isIssueWindowVisible: false,
+    });
+    
+    // Initialize a fresh grid with radius 5
+    useGameStore.getState().initializeGrid(5);
+    console.log("Colony reset. Game state initialized with fresh grid.");
+  },
 
   // --- Task Management Actions Implementation ---
   assignWorkforceToTask: (taskType, targetTile, workforce) => {

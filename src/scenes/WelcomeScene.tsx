@@ -566,6 +566,8 @@ const SceneContent = forwardRef<
 >((props, ref) => {
     const setGameView = useGameStore(state => state.setGameView);
     const previousGameView = useGameStore(state => state.previousGameView);
+    const currentRound = useGameStore(state => state.currentRound);
+    const activeTasks = useGameStore(state => state.activeTasks);
     const playerGroupRef = useRef<THREE.Group | null>(null);
     const playerHandleRef = useRef<PlayerHandle | null>(null);
     const exitPortalBoxRef = useRef(new THREE.Box3());
@@ -577,6 +579,7 @@ const SceneContent = forwardRef<
     const [refUrl, setRefUrl] = useState('');
     const [showInstructions, setShowInstructions] = useState(false);
     const [showAbout, setShowAbout] = useState(false);
+    const [showConfirmation, setShowConfirmation] = useState(false);
 
     // Handler for MOVE input
     const handleMobileInputInternal = (data: { x: number; y: number }) => {
@@ -592,6 +595,39 @@ const SceneContent = forwardRef<
         handleMobileInput: handleMobileInputInternal,
         handleMobileLook: handleMobileLookInternal, // Expose the look handler
     }), [handleMobileInputInternal, handleMobileLookInternal]); // Add new handler to dependencies
+
+    const handleReturnToColony = () => {
+        setGameView('management');
+    };
+
+    // Check if a colony exists (round > 1 or active tasks exist)
+    const colonyExists = () => {
+        return currentRound > 1 || Object.keys(activeTasks).length > 0;
+    };
+
+    // Handle Start Colony button click
+    const handleStartColony = () => {
+        // If a colony already exists, show confirmation dialog
+        if (colonyExists()) {
+            setShowConfirmation(true);
+        } else {
+            // No existing colony, start a new one directly
+            setGameView('management');
+        }
+    };
+
+    // Handle confirmation to start a new colony
+    const handleConfirmNewColony = () => {
+        // Reset game state
+        const { resetColony } = useGameStore.getState();
+        resetColony(); // This will reset state and set gameView to 'management'
+        setShowConfirmation(false);
+    };
+
+    // Cancel new colony creation
+    const handleCancelNewColony = () => {
+        setShowConfirmation(false);
+    };
 
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -634,6 +670,7 @@ const SceneContent = forwardRef<
              controlsRef.current.update(); // Necessary after manual target change
         }
 
+
         if (!exitPortalRef.current && !startPortalRef.current) return;
         if (playerGroupRef.current instanceof THREE.Object3D) {
             const playerBox = new THREE.Box3().setFromObject(playerGroupRef.current);
@@ -663,10 +700,6 @@ const SceneContent = forwardRef<
 1. START COLONY MISSION: Enter Management Mode.
 2. RETURN TO 3D AREA: Use the Research Center in Management Mode.`;
 
-    const handleReturnToColony = () => {
-        setGameView('management');
-    };
-
     return (
         <>
             <ambientLight intensity={0.6} color="#d0d0e0" />
@@ -680,7 +713,7 @@ const SceneContent = forwardRef<
             <MuseumEnvironment />
             <Player ref={playerGroupRef} handleRef={playerHandleRef} key="player-component" />
 
-            <InteractiveButton position={[0, 1.5, 0]} text="Start Colony Mission" onClick={() => setGameView('management')} color="#4CAF50"/>
+            <InteractiveButton position={[0, 1.5, 0]} text="Start Colony Mission" onClick={handleStartColony} color="#4CAF50"/>
             <InteractiveButton position={[8, 1.5, 0]} text="About" onClick={() => { setShowAbout(!showAbout); setShowInstructions(false); }} color="#2196F3"/>
             <InteractiveButton
                 position={[-8, 1.5, 0]}
@@ -700,6 +733,71 @@ const SceneContent = forwardRef<
                     onClick={handleReturnToColony}
                     color="#FF5722" // Orange color to differentiate it
                 />
+            )}
+
+            {/* Confirmation Dialog for Starting New Colony */}
+            {showConfirmation && (
+                <Html
+                    position={[0, 4, 0]}
+                    center
+                    occlude
+                >
+                    <div
+                        style={{
+                            background: 'rgba(34, 34, 34, 0.9)',
+                            color: 'white',
+                            padding: '20px',
+                            borderRadius: '8px',
+                            width: '300px',
+                            fontFamily: 'sans-serif',
+                            fontSize: '14px',
+                            textAlign: 'center',
+                            border: '2px solid #FF5722',
+                            boxShadow: '0 0 10px rgba(0,0,0,0.5)'
+                        }}
+                    >
+                        <p style={{ margin: '0 0 15px 0', fontWeight: 'bold', fontSize: '16px' }}>Warning!</p>
+                        <p style={{ margin: '0 0 20px 0' }}>
+                            You already have a colony in progress. Starting a new colony mission will reset your current progress.
+                            <br /><br />
+                            Are you sure you want to proceed?
+                        </p>
+                        <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleConfirmNewColony();
+                                }}
+                                style={{
+                                    background: '#4CAF50',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '8px 16px',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Start New Colony
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCancelNewColony();
+                                }}
+                                style={{
+                                    background: '#F44336',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '8px 16px',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </Html>
             )}
 
             {showInstructions && (
