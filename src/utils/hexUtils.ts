@@ -13,8 +13,8 @@ const SQRT3 = Math.sqrt(3);
 const textureLoader = new THREE.TextureLoader();
 
 // Load normal maps
-const plainsNormalMap = textureLoader.load('/textures/mars_normal.png');
-const mountainNormalMap = textureLoader.load('/textures/mount_normal.png');
+const plainsNormalMap = textureLoader.load('textures/mars_normal.png');
+const mountainNormalMap = textureLoader.load('textures/mount_normal.png');
 
 // --- Enhanced Procedural Textures ---
 
