@@ -1,6 +1,6 @@
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF, OrbitControls, Text, Stars, SpotLight, Plane, Cylinder, Box, Html } from '@react-three/drei';
-import { Suspense, useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
+import { Suspense, useRef, useEffect, useState, forwardRef, useImperativeHandle, useMemo } from 'react';
 import * as THREE from 'three';
 import { useGameStore } from '@store/store';
 import MobileControls from '@components/MobileControls';
@@ -466,8 +466,13 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], han
     const mobileLookInput = useRef({ x: 0, y: 0 }); // New ref for look input
     const isMouseDown = useRef(false);
     const lastMousePosition = useRef({ x: 0, y: 0 });
-    // No internal groupRef needed now, forwardRef ('ref') handles the Group
-
+    const floatOffset = useRef(0);
+    const sphereRef = useRef<THREE.Group>(null);
+    const particlesRef = useRef<THREE.Points>(null);
+    const mainSphereRef = useRef<THREE.Mesh>(null);
+    const secondSphereRef = useRef<THREE.Mesh>(null);
+    const timeRef = useRef(0);
+    
     // Keyboard controls setup (remains the same)
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => { keys.current[e.code] = true; };
@@ -540,7 +545,7 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], han
     }), [playerPosition]); 
 
 
-    useFrame(() => {
+    useFrame((state, delta) => {
         const moveDirection = new THREE.Vector3(0, 0, 0);
         // --- Keyboard Movement ---
         if (keys.current['KeyW'] || keys.current['ArrowUp']) moveDirection.z -= 1;
@@ -583,17 +588,214 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], han
             // Crucially update world matrix for bounding box calculations AND rotation changes
             ref.current.updateMatrixWorld(true); // Force update including descendants
         }
+        
+        // Update time values for animations - simpler animation approach
+        timeRef.current += delta;
+        
+        // Animate floating effect
+        floatOffset.current += delta * 1.5;
+        if (sphereRef.current) {
+            sphereRef.current.position.y = 1.0 + Math.sin(floatOffset.current) * 0.2;
+            sphereRef.current.rotation.y += delta * 0.5;
+        }
+        
+        // Animate particles with less computation
+        if (particlesRef.current && particlesRef.current.geometry.attributes.position) {
+            const positions = particlesRef.current.geometry.attributes.position.array as Float32Array;
+            // Only update a subset of particles each frame for better performance
+            const updateCount = Math.min(positions.length / 3, 20); // Update up to 20 particles per frame
+            const startIdx = Math.floor(Math.random() * (positions.length / 3 - updateCount)) * 3;
+            
+            for (let i = 0; i < updateCount * 3; i += 3) {
+                const idx = startIdx + i;
+                // Simple sine-based movement
+                positions[idx] += Math.sin(timeRef.current + idx * 0.01) * 0.001;
+                positions[idx+1] += Math.cos(timeRef.current + idx * 0.01) * 0.001;
+                
+                // Simple boundary check
+                const dist = Math.sqrt(positions[idx]**2 + positions[idx+1]**2 + positions[idx+2]**2);
+                if (dist > 2) {
+                    positions[idx] *= 0.98;
+                    positions[idx+1] *= 0.98;
+                    positions[idx+2] *= 0.98;
+                }
+            }
+            particlesRef.current.geometry.attributes.position.needsUpdate = true;
+        }
+        
+        // Simplified material animation
+        if (mainSphereRef.current?.material) {
+            const mat = mainSphereRef.current.material as THREE.MeshStandardMaterial;
+            mat.emissiveIntensity = 0.2 + Math.sin(timeRef.current * 2) * 0.1;
+        }
+        
+        if (secondSphereRef.current?.material) {
+            const mat = secondSphereRef.current.material as THREE.MeshStandardMaterial;
+            mat.emissiveIntensity = 0.2 + Math.sin(timeRef.current * 2 + Math.PI) * 0.1;
+        }
     });
+
+    const generateNebulaSphere = (radius: number, count: number) => {
+        const positions = new Float32Array(count * 3);
+        const colors = new Float32Array(count * 3);
+        const sizes = new Float32Array(count);
+        
+        for (let i = 0; i < count; i++) {
+            const idx = i * 3;
+            // Create points in a spherical volume with more density near the surface
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            const rho = radius * (0.8 + Math.random() * 0.6); // Between 80% and 140% of radius
+            
+            positions[idx] = rho * Math.sin(phi) * Math.cos(theta);
+            positions[idx+1] = rho * Math.sin(phi) * Math.sin(theta);
+            positions[idx+2] = rho * Math.cos(phi);
+            
+            // Create color gradient between blue and teal
+            const mixFactor = Math.random();
+            // Blue to teal color mapping with variation
+            colors[idx] = 0.08 + mixFactor * 0.02; // R: from blue (0.08) to teal (0.10)
+            colors[idx+1] = 0.4 + mixFactor * 0.44; // G: from blue (0.4) to teal (0.84)
+            colors[idx+2] = 0.9 - mixFactor * 0.28; // B: from blue (0.9) to teal (0.62)
+            
+            // Varied particle sizes - but keep them smaller
+            sizes[i] = 0.01 + Math.random() * 0.03;
+        }
+        
+        return { positions, colors, sizes };
+    };
+    
+    // Create simpler noise texture for performance
+    const generateNoiseTexture = () => {
+        const size = 64; // Smaller texture size
+        const data = new Uint8Array(size * size * 4);
+        
+        for (let i = 0; i < size; i++) {
+            for (let j = 0; j < size; j++) {
+                const idx = (i * size + j) * 4;
+                
+                // Simpler noise pattern
+                const nx = i / size * 4;
+                const ny = j / size * 4;
+                
+                // Simple noise approximation
+                const noise = Math.sin(nx) * Math.sin(ny) * 0.5;
+                
+                const value = (noise + 1) * 0.5 * 255;
+                
+                data[idx] = value;
+                data[idx+1] = value;
+                data[idx+2] = value;
+                data[idx+3] = 255;
+            }
+        }
+        
+        const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.needsUpdate = true;
+        return texture;
+    };
+    
+    // Create textures only once with reduced particle count for mobile
+    const noiseTexture = useMemo(() => generateNoiseTexture(), []);
+    const nebulaData = useMemo(() => generateNebulaSphere(1.5, 200), []); // Reduced from 1000 to 200 particles
 
     // Assign the forwarded ref (for the Group) directly to the group element
     return (
         <group ref={ref} position={position}> {/* Use the forwarded 'ref' directly */}
-            <mesh position={[0, 0.75, 0]}>
-                {/* Arrow helper to show forward direction */}
-                <arrowHelper args={[new THREE.Vector3(0, 0, -1), new THREE.Vector3(0, 0, 0), 1, 0xffff00]} />
-                <capsuleGeometry args={[0.5, 0.5, 4, 8]} />
-                <meshStandardMaterial color="#1E90FF" />
-            </mesh>
+            {/* Direction indicator arrow */}
+            <arrowHelper args={[new THREE.Vector3(0, 0, -1), new THREE.Vector3(0, 1.2, 0), 1, 0xffff00]} />
+            
+            {/* Floating Yin-Yang sphere */}
+            <group ref={sphereRef} position={[0, 1.0, 0]}>
+                {/* Nebula particles - reduced count for performance */}
+                <points ref={particlesRef}>
+                    <bufferGeometry>
+                        <bufferAttribute attach="attributes-position" count={nebulaData.positions.length / 3} array={nebulaData.positions} itemSize={3} />
+                        <bufferAttribute attach="attributes-color" count={nebulaData.colors.length / 3} array={nebulaData.colors} itemSize={3} />
+                        <bufferAttribute attach="attributes-size" count={nebulaData.sizes.length} array={nebulaData.sizes} itemSize={1} />
+                    </bufferGeometry>
+                    <pointsMaterial 
+                        size={0.05} 
+                        vertexColors={true} 
+                        transparent={true} 
+                        opacity={0.7}
+                        depthWrite={false}
+                        blending={THREE.AdditiveBlending}
+                        sizeAttenuation={true}
+                    />
+                </points>
+                
+                {/* Main sphere - blue side with simplified materials */}
+                <mesh ref={mainSphereRef}>
+                    <sphereGeometry args={[0.8, 32, 32]} /> {/* Reduced from 64 to 32 segments */}
+                    <meshStandardMaterial 
+                        color="#1E88E5" 
+                        roughness={0.2} 
+                        metalness={0.8} 
+                        emissive="#1E88E5" 
+                        emissiveIntensity={0.4}
+                        bumpMap={noiseTexture}
+                        bumpScale={0.02}
+                    />
+                </mesh>
+                
+                {/* Complementary half-sphere with simplified materials */}
+                <mesh ref={secondSphereRef} position={[0, 0, 0]} rotation={[0, 0, Math.PI]}>
+                    <sphereGeometry args={[0.82, 32, 32, 0, Math.PI]} /> {/* Reduced from 64 to 32 segments */}
+                    <meshStandardMaterial 
+                        color="#06D6A0" 
+                        roughness={0.2} 
+                        metalness={0.8} 
+                        emissive="#06D6A0" 
+                        emissiveIntensity={0.4}
+                        bumpMap={noiseTexture}
+                        bumpScale={0.02}
+                    />
+                </mesh>
+                
+                {/* Small teal dot in blue side with glow */}
+                <mesh position={[0, 0.4, 0]}>
+                    <sphereGeometry args={[0.16, 16, 16]} /> {/* Already optimized */}
+                    <meshStandardMaterial 
+                        color="#06D6A0" 
+                        roughness={0.1} 
+                        metalness={0.9} 
+                        emissive="#06D6A0" 
+                        emissiveIntensity={0.7}
+                    />
+                </mesh>
+                
+                {/* Small blue dot in teal side with glow */}
+                <mesh position={[0, -0.4, 0]}>
+                    <sphereGeometry args={[0.16, 16, 16]} /> {/* Already optimized */}
+                    <meshStandardMaterial 
+                        color="#1E88E5" 
+                        roughness={0.1} 
+                        metalness={0.9} 
+                        emissive="#1E88E5" 
+                        emissiveIntensity={0.7}
+                    />
+                </mesh>
+                
+                {/* Single light for better performance */}
+                <pointLight position={[0, 0, 0]} distance={4} intensity={1.2} color="#FFFFFF" />
+                
+                {/* Reduced energy beam effect */}
+                <group rotation={[0, Math.PI/4, 0]}>
+                    {[...Array(3)].map((_, i) => ( // Reduced from 5 to 3 beams
+                        <mesh key={i} position={[0, 0, 0]} rotation={[0, Math.PI * 2 * i / 3, 0]}>
+                            <torusGeometry args={[0.9, 0.02, 6, 16, Math.PI * 0.3]} /> {/* Simplified geometry */}
+                            <meshBasicMaterial 
+                                color={i % 2 === 0 ? "#1E88E5" : "#06D6A0"} 
+                                transparent={true} 
+                                opacity={0.7} 
+                            />
+                        </mesh>
+                    ))}
+                </group>
+            </group>
         </group>
     );
 });
