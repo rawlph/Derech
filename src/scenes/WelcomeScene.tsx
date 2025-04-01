@@ -126,9 +126,10 @@ const InteractiveButton = ({ position, text, onClick, color = "#FFD700" }: Butto
 // Portal component based on provided code
 interface PortalProps {
   position?: [number, number, number];
+  scale?: number;
 }
 
-const PortalToVibeverse = forwardRef<THREE.Group, PortalProps>(({ position = [-15, 0, -20] }, ref) => {
+const PortalToVibeverse = forwardRef<THREE.Group, PortalProps>(({ position = [16, 2, -5], scale = 0.4 }, ref) => {
   const portalInnerRef = useRef<THREE.Mesh>(null);
   const particlesRef = useRef<THREE.Points>(null);
   const boxRef = useRef(new THREE.Box3());
@@ -157,7 +158,7 @@ const PortalToVibeverse = forwardRef<THREE.Group, PortalProps>(({ position = [-1
   });
   
   // Create particles
-  const particleCount = 1000;
+  const particleCount = 500; // Reduced number of particles
   const particlePositions = new Float32Array(particleCount * 3);
   const particleColors = new Float32Array(particleCount * 3);
   
@@ -176,7 +177,7 @@ const PortalToVibeverse = forwardRef<THREE.Group, PortalProps>(({ position = [-1
   }
   
   return (
-    <group ref={ref} position={position} rotation={[0.35, 0, 0]}>
+    <group ref={ref} position={position} rotation={[0.35, 0, 0]} scale={scale}>
       {/* Portal ring */}
       <mesh>
         <torusGeometry args={[10, 1.5, 16, 100]} />
@@ -201,7 +202,7 @@ const PortalToVibeverse = forwardRef<THREE.Group, PortalProps>(({ position = [-1
       
       {/* Portal label */}
       <Text
-        position={[0, 15, 0]}
+        position={[0, 12, 0]}
         fontSize={2}
         color="#00FF00"
         anchorX="center"
@@ -238,7 +239,7 @@ const PortalToVibeverse = forwardRef<THREE.Group, PortalProps>(({ position = [-1
 });
 
 // Start Portal component - only shown when player enters through a portal
-const StartPortal = forwardRef<THREE.Group, PortalProps>(({ position = [0, 0, 10] }, ref) => {
+const StartPortal = forwardRef<THREE.Group, PortalProps>(({ position = [0, 0, 10], scale = 0.4 }, ref) => {
   const portalInnerRef = useRef<THREE.Mesh>(null);
   const particlesRef = useRef<THREE.Points>(null);
   const boxRef = useRef(new THREE.Box3());
@@ -262,7 +263,7 @@ const StartPortal = forwardRef<THREE.Group, PortalProps>(({ position = [0, 0, 10
   });
   
   // Create particles
-  const particleCount = 1000;
+  const particleCount = 500; // Reduced number of particles
   const particlePositions = new Float32Array(particleCount * 3);
   const particleColors = new Float32Array(particleCount * 3);
   
@@ -281,7 +282,7 @@ const StartPortal = forwardRef<THREE.Group, PortalProps>(({ position = [0, 0, 10
   }
   
   return (
-    <group ref={ref} position={position} rotation={[0.35, 0, 0]}>
+    <group ref={ref} position={position} rotation={[0.35, 0, 0]} scale={scale}>
       {/* Portal ring */}
       <mesh>
         <torusGeometry args={[10, 1.5, 16, 100]} />
@@ -306,7 +307,7 @@ const StartPortal = forwardRef<THREE.Group, PortalProps>(({ position = [0, 0, 10
       
       {/* Portal label */}
       <Text
-        position={[0, 15, 0]}
+        position={[0, 12, 0]}
         fontSize={1.8}
         color="#FF0000"
         anchorX="center"
@@ -464,7 +465,7 @@ const SceneContent = () => {
         exitPortalBoxRef.current.getCenter(new THREE.Vector3())
       );
       
-      if (portalDistance < 10 && playerBox.intersectsBox(exitPortalBoxRef.current)) {
+      if (portalDistance < 4 && playerBox.intersectsBox(exitPortalBoxRef.current)) {
         // Prepare to redirect to Vibeverse portal
         const currentParams = new URLSearchParams(window.location.search);
         const newParams = new URLSearchParams();
@@ -495,7 +496,7 @@ const SceneContent = () => {
         startPortalBoxRef.current.getCenter(new THREE.Vector3())
       );
       
-      if (portalDistance < 10 && playerBox.intersectsBox(startPortalBoxRef.current)) {
+      if (portalDistance < 4 && playerBox.intersectsBox(startPortalBoxRef.current)) {
         // Redirect back to the referring site
         let url = refUrl;
         if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -560,6 +561,18 @@ const SceneContent = () => {
       
       {/* Portal to Vibeverse */}
       <PortalToVibeverse ref={exitPortalRef} />
+      
+      {/* Portal description */}
+      <Text
+        position={[16, 0.5, -5]}
+        fontSize={0.4}
+        color="#FFFFFF"
+        anchorX="center"
+        anchorY="middle"
+        maxWidth={6}
+      >
+        Portal to Vibeverse Metaverse
+      </Text>
       
       {/* Start Portal (only visible if player came through portal) */}
       {cameFromPortal && <StartPortal ref={startPortalRef} />}
