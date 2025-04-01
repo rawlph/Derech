@@ -50,7 +50,7 @@ export const issues: Issue[] = [
         title: 'Dust Storm Warning',
         description: 'A massive dust storm is approaching your facility. The fine Martian dust particles can damage equipment and reduce efficiency if not addressed properly. Your sensors indicate it will hit in approximately 12 hours.',
         buildingType: ['Mining Operation', 'Solar Array', 'Geothermal Plant', 'Water Well', 'Scout Outpost'], // Affects all buildings
-        image: '/Derech/images/duststorm.jpg', // Placeholder - will need to create this image
+        image: '/Derech/images/duststorm.jpg', // Path already correct
         repeatable: true,
         choices: [
             {
@@ -106,7 +106,7 @@ export const issues: Issue[] = [
         title: 'Solar Radiation Surge',
         description: 'Long-range sensors have detected a massive solar flare heading toward Mars. Without Earth\'s protective magnetosphere, this facility will be exposed to dangerous radiation levels that could damage sensitive equipment and pose health risks to the crew.',
         buildingType: ['Mining Operation', 'Solar Array', 'Water Well', 'Scout Outpost'], // Affects most buildings except Geothermal
-        image: '/Derech/images/radiation.jpg', // Placeholder image
+        image: '/Derech/images/duststorm.jpg', // Changed from radiation.jpg
         repeatable: true,
         choices: [
             {
@@ -165,7 +165,7 @@ export const issues: Issue[] = [
         title: 'Phobos Power Alignment',
         description: 'A rare orbital alignment of Phobos has created unusual gravitational conditions that are amplifying your facility\'s power systems. Engineers report the potential to harness this natural phenomenon for increased output.',
         buildingType: ['Solar Array', 'Geothermal Plant'], // Only affects power-generating buildings
-        image: '/Derech/images/phobos.jpg', // Placeholder image
+        image: '/Derech/images/duststorm.jpg', // Changed from phobos.jpg
         repeatable: true,
         choices: [
             {
@@ -218,7 +218,7 @@ export const issues: Issue[] = [
         title: 'Ancient Martian Discovery',
         description: 'Workers have uncovered what appears to be preserved microfossils in a nearby rock formation. This extraordinary find has sparked excitement throughout the facility as it may represent the first concrete evidence of ancient life on Mars.',
         buildingType: ['Mining Operation', 'Scout Outpost'], // Only affects exploration-type buildings
-        image: '/Derech/images/discovery.jpg', // Placeholder image
+        image: '/Derech/images/duststorm.jpg', // Changed from discovery.jpg
         repeatable: false, // This is a rare, one-time event
         choices: [
             {
@@ -276,7 +276,7 @@ export const issues: Issue[] = [
         title: 'Ancient Structure Detected',
         description: 'Your enhanced scout drones have detected an unusual geometric formation beyond the Acidalia Planitia. The high-resolution imagery from the new optics system reveals what appears to be an artificial structure, possibly an abandoned early expedition shelter or equipment cache.',
         buildingType: ['Scout Outpost'], // Only for Scout Outposts
-        image: '/Derech/images/ancient-structure.jpg', // Placeholder image
+        image: '/Derech/images/duststorm.jpg', // Changed from ancient-structure.jpg
         repeatable: false, // One-time event
         requiresResearch: 'basic-scouting', // Locked behind Enhanced Rover Optics research
         choices: [
@@ -336,7 +336,7 @@ export const issues: Issue[] = [
         title: 'Rich Subsurface Mineral Vein',
         description: 'The improved seismic sensors from your advanced drilling equipment have detected an unusual formation beneath your mining operation. Analysis suggests a concentrated vein of rare minerals that would typically go undetected with standard equipment. This could be a significant opportunity for resource extraction.',
         buildingType: ['Mining Operation'], // Only for Mining Operations
-        image: '/Derech/images/mineral-vein.jpg', // Placeholder image
+        image: '/Derech/images/duststorm.jpg', // Changed from mineral-vein.jpg
         repeatable: false, // One-time event
         requiresResearch: 'improved-extraction', // Locked behind Efficient Mining Drills research
         choices: [
@@ -401,7 +401,7 @@ export const issues: Issue[] = [
         title: 'Subterranean Ice Chamber Discovered',
         description: 'While expanding your water extraction system with the new atmospheric condensation technology, workers have discovered a sealed underground chamber containing a substantial deposit of pristine ice. Initial analysis indicates unusual purity and potential scientific significance due to trapped gases and sediment layers.',
         buildingType: ['Water Well'], // Only for Water Wells
-        image: '/Derech/images/ice-chamber.jpg', // Placeholder image
+        image: '/Derech/images/duststorm.jpg', // Changed from ice-chamber.jpg
         repeatable: false, // One-time event
         requiresResearch: 'water-reclamation-1', // Locked behind Atmospheric Water Capture research
         choices: [
