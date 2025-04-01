@@ -3,13 +3,35 @@
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 150px;
+  height: 180px;
   z-index: 100;
   pointer-events: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 30px 30px 30px;
+  box-sizing: border-box;
 }
 
-.joystickContainer > * {
+/* Base styles for any joystick zone */
+.joystickZone {
+  width: 120px;
+  height: 120px;
+  position: relative;
   pointer-events: auto;
+  border-radius: 50%;
+  /* Optional: Visual debugging */
+  /* background-color: rgba(255, 255, 255, 0.1); */
+  /* border: 1px dashed white; */
+}
+
+/* Specific styles if needed (currently none, but classes are useful) */
+.moveZone {
+  /* Styles specific to the left move zone if needed */
+}
+
+.lookZone {
+  /* Styles specific to the right look zone if needed */
 }
 
 /* Only show on mobile/touch devices */

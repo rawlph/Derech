@@ -445,77 +445,110 @@ const StartPortal = forwardRef<THREE.Group, PortalProps>(({ position = [0, 0, 10
 // Define the type for the handle exposed by Player
 export interface PlayerHandle {
   handleMobileMove: (data: { x: number; y: number }) => void;
+  handleMobileLook: (data: { x: number; y: number }) => void;
   getPosition: () => THREE.Vector3;
 }
 
 // Add a new prop type for Player to accept the handle ref
-interface PlayerProps extends PortalProps { // Include existing PortalProps if needed
+interface PlayerProps {
     handleRef?: React.Ref<PlayerHandle>;
+    position?: [number, number, number];
 }
 
 // Simple player representation - Separated Group ref and Handle ref
 const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], handleRef }, ref) => {
-  const [playerPosition, setPlayerPosition] = useState(() => new THREE.Vector3(...position));
-  const speed = useRef(0.15);
-  const keys = useRef<Record<string, boolean>>({});
-  const mobileInput = useRef({ x: 0, y: 0 });
-  // No internal groupRef needed now, forwardRef ('ref') handles the Group
+    const [playerPosition, setPlayerPosition] = useState(() => new THREE.Vector3(...position));
+    const speed = useRef(0.15);
+    const lookSensitivity = useRef(0.05); // Sensitivity for look rotation
+    const keys = useRef<Record<string, boolean>>({});
+    const mobileMoveInput = useRef({ x: 0, y: 0 }); // Rename for clarity
+    const mobileLookInput = useRef({ x: 0, y: 0 }); // New ref for look input
+    // No internal groupRef needed now, forwardRef ('ref') handles the Group
 
-  // Keyboard controls setup (remains the same)
-  useEffect(() => {
-      const handleKeyDown = (e: KeyboardEvent) => { keys.current[e.code] = true; };
-      const handleKeyUp = (e: KeyboardEvent) => { keys.current[e.code] = false; };
-      window.addEventListener('keydown', handleKeyDown);
-      window.addEventListener('keyup', handleKeyUp);
-      return () => {
-          window.removeEventListener('keydown', handleKeyDown);
-          window.removeEventListener('keyup', handleKeyUp);
-      };
-  }, []);
+    // Keyboard controls setup (remains the same)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => { keys.current[e.code] = true; };
+        const handleKeyUp = (e: KeyboardEvent) => { keys.current[e.code] = false; };
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+        };
+    }, []);
 
-  // Expose custom methods using useImperativeHandle, BUT link it to the SEPARATE handleRef prop
-  useImperativeHandle(handleRef, () => ({ // Use handleRef prop here
-      handleMobileMove: (data: { x: number; y: number }) => {
-          mobileInput.current = data;
-      },
-      getPosition: () => playerPosition,
-  }), [playerPosition]);
+    // Expose custom methods using useImperativeHandle, BUT link it to the SEPARATE handleRef prop
+    useImperativeHandle(handleRef, () => ({ // Use handleRef prop here
+        handleMobileMove: (data: { x: number; y: number }) => {
+            mobileMoveInput.current = data; // Use renamed ref
+        },
+        handleMobileLook: (data: { x: number; y: number }) => { // Add look handler
+            mobileLookInput.current = data;
+        },
+        getPosition: () => playerPosition,
+    }), [playerPosition]); // Dependencies might need mobileLookInput if it directly affects state, but here it affects the ref in useFrame
 
 
-  useFrame(() => {
-      // ... movement logic using setPlayerPosition ...
-      const moveDirection = new THREE.Vector3(0, 0, 0);
-      if (keys.current['KeyW'] || keys.current['ArrowUp']) moveDirection.z -= 1;
-      if (keys.current['KeyS'] || keys.current['ArrowDown']) moveDirection.z += 1;
-      if (keys.current['KeyA'] || keys.current['ArrowLeft']) moveDirection.x -= 1;
-      if (keys.current['KeyD'] || keys.current['ArrowRight']) moveDirection.x += 1;
-      if (moveDirection.lengthSq() === 0 && (mobileInput.current.x !== 0 || mobileInput.current.y !== 0)) {
-          moveDirection.x += mobileInput.current.x;
-          moveDirection.z -= mobileInput.current.y;
-      }
-      if (moveDirection.lengthSq() > 0) {
-          moveDirection.normalize();
-          setPlayerPosition(current => current.clone().add(moveDirection.multiplyScalar(speed.current)));
-      }
-      mobileInput.current = { x: 0, y: 0 };
+    useFrame(() => {
+        const moveDirection = new THREE.Vector3(0, 0, 0);
+        // --- Keyboard Movement ---
+        if (keys.current['KeyW'] || keys.current['ArrowUp']) moveDirection.z -= 1;
+        if (keys.current['KeyS'] || keys.current['ArrowDown']) moveDirection.z += 1;
+        if (keys.current['KeyA'] || keys.current['ArrowLeft']) moveDirection.x -= 1;
+        if (keys.current['KeyD'] || keys.current['ArrowRight']) moveDirection.x += 1;
 
-      // Update player mesh position using the forwarded group ref
-      if (ref && typeof ref !== 'function' && ref.current) {
-          ref.current.position.copy(playerPosition);
-          // Crucially update world matrix for bounding box calculations
-          ref.current.updateMatrixWorld();
-      }
-  });
+        // --- Mobile Movement ---
+        // Apply mobile move input if no keyboard input OR if additive input is desired
+        // Example: Additive (comment out the `moveDirection.lengthSq() === 0` check if you want this)
+        // if (mobileMoveInput.current.x !== 0 || mobileMoveInput.current.y !== 0) {
+        // Prioritized (current logic):
+        if (moveDirection.lengthSq() === 0 && (mobileMoveInput.current.x !== 0 || mobileMoveInput.current.y !== 0)) {
+            moveDirection.x += mobileMoveInput.current.x;
+            moveDirection.z -= mobileMoveInput.current.y; // Y joystick maps to Z movement
+        }
 
-  // Assign the forwarded ref (for the Group) directly to the group element
-  return (
-     <group ref={ref} position={position}> {/* Use the forwarded 'ref' directly */}
-         <mesh position={[0, 0.75, 0]}>
-             <capsuleGeometry args={[0.5, 0.5, 4, 8]} />
-             <meshStandardMaterial color="#1E90FF" />
-         </mesh>
-     </group>
-  );
+        // --- Apply Movement ---
+        if (moveDirection.lengthSq() > 0) {
+            moveDirection.normalize();
+            // Apply movement relative to player's current rotation
+            if (ref && typeof ref !== 'function' && ref.current) {
+                 const rotatedDirection = moveDirection.clone().applyQuaternion(ref.current.quaternion);
+                 setPlayerPosition(current => current.clone().add(rotatedDirection.multiplyScalar(speed.current)));
+            } else {
+                 // Fallback if ref not ready (shouldn't happen often)
+                 setPlayerPosition(current => current.clone().add(moveDirection.multiplyScalar(speed.current)));
+            }
+        }
+
+         // --- Mobile Look Rotation ---
+         if (ref && typeof ref !== 'function' && ref.current && mobileLookInput.current.x !== 0) {
+             // Rotate the player group around the Y axis based on the look joystick's X input
+             ref.current.rotation.y -= mobileLookInput.current.x * lookSensitivity.current;
+         }
+
+        // Reset mobile inputs for the next frame
+        mobileMoveInput.current = { x: 0, y: 0 };
+        mobileLookInput.current = { x: 0, y: 0 }; // Reset look input
+
+        // Update player mesh position using the forwarded group ref
+        if (ref && typeof ref !== 'function' && ref.current) {
+            ref.current.position.copy(playerPosition);
+            // Crucially update world matrix for bounding box calculations AND rotation changes
+            ref.current.updateMatrixWorld(true); // Force update including descendants
+        }
+    });
+
+    // Assign the forwarded ref (for the Group) directly to the group element
+    return (
+        <group ref={ref} position={position}> {/* Use the forwarded 'ref' directly */}
+            <mesh position={[0, 0.75, 0]}>
+                {/* Arrow helper to show forward direction */}
+                <arrowHelper args={[new THREE.Vector3(0, 0, -1), new THREE.Vector3(0, 0, 0), 1, 0xffff00]} />
+                <capsuleGeometry args={[0.5, 0.5, 4, 8]} />
+                <meshStandardMaterial color="#1E90FF" />
+            </mesh>
+        </group>
+    );
 });
 
 // Display names for debugging
@@ -525,7 +558,10 @@ Player.displayName = 'Player';
 
 // Main scene content component
 const SceneContent = forwardRef<
-    { handleMobileInput: (data: { x: number; y: number }) => void },
+    {
+        handleMobileInput: (data: { x: number; y: number }) => void;
+        handleMobileLook: (data: { x: number; y: number }) => void;
+    },
     {}
 >((props, ref) => {
     const setGameView = useGameStore(state => state.setGameView);
@@ -541,15 +577,20 @@ const SceneContent = forwardRef<
     const [showInstructions, setShowInstructions] = useState(false);
     const [showAbout, setShowAbout] = useState(false);
 
+    // Handler for MOVE input
     const handleMobileInputInternal = (data: { x: number; y: number }) => {
-        if (playerHandleRef.current?.handleMobileMove) {
-            playerHandleRef.current.handleMobileMove(data);
-        }
+        playerHandleRef.current?.handleMobileMove?.(data); // Use optional chaining
+    };
+
+    // NEW: Handler for LOOK input
+    const handleMobileLookInternal = (data: { x: number; y: number }) => {
+        playerHandleRef.current?.handleMobileLook?.(data); // Use optional chaining
     };
 
     useImperativeHandle(ref, () => ({
         handleMobileInput: handleMobileInputInternal,
-    }), [handleMobileInputInternal]);
+        handleMobileLook: handleMobileLookInternal, // Expose the look handler
+    }), [handleMobileInputInternal, handleMobileLookInternal]); // Add new handler to dependencies
 
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -570,11 +611,27 @@ const SceneContent = forwardRef<
     useFrame((state) => {
         const { camera } = state;
         if (!playerGroupRef.current || !playerHandleRef.current || !controlsRef.current) return;
-        const playerWorldPos = playerHandleRef.current.getPosition();
-        const cameraOffset = new THREE.Vector3(0, 5, 12);
-        const desiredCameraPosition = playerWorldPos.clone().add(cameraOffset);
+
+        const playerWorldPos = playerGroupRef.current.position; // Get position directly from group ref now
+        const playerQuaternion = playerGroupRef.current.quaternion; // Get rotation
+
+        // Calculate camera offset relative to player's rotation
+        const cameraOffset = new THREE.Vector3(0, 5, 12); // Base offset behind player
+        const rotatedOffset = cameraOffset.clone().applyQuaternion(playerQuaternion);
+        const desiredCameraPosition = playerWorldPos.clone().add(rotatedOffset);
+
+        // Smoothly move camera to desired position
         camera.position.lerp(desiredCameraPosition, 0.05);
+
+        // Camera always looks at the player's position
         camera.lookAt(playerWorldPos);
+
+        // Update OrbitControls target to player position IF OrbitControls is used for rotation
+        // If player rotation controls look, this might not be needed, or might need adjustment
+        if (controlsRef.current) {
+             controlsRef.current.target.lerp(playerWorldPos, 0.1); // Smoothly update target
+             controlsRef.current.update(); // Necessary after manual target change
+        }
 
         if (!exitPortalRef.current && !startPortalRef.current) return;
         if (playerGroupRef.current instanceof THREE.Object3D) {
@@ -693,7 +750,16 @@ const SceneContent = forwardRef<
 
             <PortalToVibeverse ref={exitPortalRef} position={[0, 2, -40]} scale={0.5} />
             {cameFromPortal && <StartPortal ref={startPortalRef} position={[0, 2, 15]} />}
-            <OrbitControls ref={controlsRef} enablePan={false} enableZoom={true} maxPolarAngle={Math.PI / 2 - 0.05} minPolarAngle={0} minDistance={3} maxDistance={80}/>
+            <OrbitControls
+                ref={controlsRef}
+                enablePan={true}
+                enableRotate={false}
+                enableZoom={true}
+                maxPolarAngle={Math.PI / 2 + 0.2}
+                minPolarAngle={0.1}
+                minDistance={3}
+                maxDistance={20}
+            />
         </>
     );
 });
@@ -701,19 +767,22 @@ const SceneContent = forwardRef<
 // Main component
 const WelcomeScene = () => {
     const [isLoading, setIsLoading] = useState(true);
-    const sceneContentRef = useRef<{ handleMobileInput: (data: { x: number; y: number }) => void } | null>(null);
+    const sceneContentRef = useRef<{
+        handleMobileInput: (data: { x: number; y: number }) => void;
+        handleMobileLook: (data: { x: number; y: number }) => void;
+    } | null>(null);
 
     useEffect(() => {
-      const timer = setTimeout(() => setIsLoading(false), 1500);
-      return () => clearTimeout(timer);
+        const timer = setTimeout(() => setIsLoading(false), 1500);
+        return () => clearTimeout(timer);
     }, []);
 
     const handleMobileInput = (data: { x: number; y: number }) => {
-         if (sceneContentRef.current?.handleMobileInput) {
-             sceneContentRef.current.handleMobileInput(data);
-         } else {
-             console.warn('SceneContent handleMobileInput not available yet.');
-         }
+        sceneContentRef.current?.handleMobileInput?.(data);
+    };
+
+    const handleMobileLook = (data: { x: number; y: number }) => {
+        sceneContentRef.current?.handleMobileLook?.(data);
     };
 
     return (
@@ -728,8 +797,11 @@ const WelcomeScene = () => {
                     </Suspense>
                 </Canvas>
             </div>
-            <div className={styles.controlsInfo}> WASD / Arrow Keys: Move | Mouse Drag: Look | Click: Interact </div>
-            <MobileControls onMove={handleMobileInput} />
+            <div className={styles.controlsInfo}>
+                Desktop: WASD/Arrows: Move | Mouse Drag: Look (if enabled) | Click: Interact <br/>
+                Mobile: Left Stick: Move | Right Stick: Look | Tap Buttons: Interact
+            </div>
+            <MobileControls onMove={handleMobileInput} onLook={handleMobileLook} />
         </div>
     );
 };
