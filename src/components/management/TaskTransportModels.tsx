@@ -9,7 +9,7 @@ import * as THREE from 'three';
 const IN_PROGRESS_STATUSES: TaskState['status'][] = ['deploying'];
 
 // Model path for transport vehicle
-const TRANSPORT_MODEL_PATH = '/models/transport.glb';
+const TRANSPORT_MODEL_PATH = '/Derech/models/transport.glb';
 
 // Animation constants
 const ANIMATION_DURATION = 2.5; // seconds for a complete animation

@@ -25,7 +25,7 @@ export const taskConfigs: Record<string, TaskConfig> = {
     cost: { power: 20, colonyGoods: 10 }, // Cost to deploy
     workforceRequired: 3, // Number of workers needed
     duration: 2, // Takes 2 rounds to set up
-    operationalModelPath: '/models/mars_workforce_mining.glb', // Model to show when running
+    operationalModelPath: '/Derech/models/mars_workforce_mining.glb', // Model to show when running
     resourceYield: { resource: 'minerals', baseAmount: 5 }, // Yields 5 minerals per round base
     scale: [0.06, 0.06, 0.06], // Updated scale to match starter buildings
     yOffset: 0.2, // Updated to match starter buildings
@@ -39,7 +39,7 @@ export const taskConfigs: Record<string, TaskConfig> = {
     cost: { power: 10, colonyGoods: 5 },
     workforceRequired: 1,
     duration: 1,
-    operationalModelPath: '/models/mars_building_scout.glb',
+    operationalModelPath: '/Derech/models/mars_building_scout.glb',
     resourceYield: { resource: 'researchPoints', baseAmount: 2 }, // Increased from 1 to 2
     scale: [0.04, 0.04, 0.04], // Scout outpost scale
     yOffset: 0.2, // Base position, will be adjusted in TaskVisuals
@@ -52,7 +52,7 @@ export const taskConfigs: Record<string, TaskConfig> = {
     cost: { minerals: 15, colonyGoods: 5 },
     workforceRequired: 2,
     duration: 3,
-    operationalModelPath: '/models/mars_solar.glb',
+    operationalModelPath: '/Derech/models/mars_solar.glb',
     resourceYield: { resource: 'power', baseAmount: 10 }, // Example: Generates power
     scale: [0.15, 0.15, 0.15], // Solar panel scale
     yOffset: 0.01, // Lowered from 0.2 to sit closer to the tile
@@ -65,7 +65,7 @@ export const taskConfigs: Record<string, TaskConfig> = {
     cost: { minerals: 25, colonyGoods: 10 }, // Higher cost than solar
     workforceRequired: 5, // Takes 5 workforce as requested
     duration: 4, // Longer build time than solar
-    operationalModelPath: '/models/mars_thermal.glb', // New model
+    operationalModelPath: '/Derech/models/mars_thermal.glb', // New model
     resourceYield: { resource: 'power', baseAmount: 25 }, // Generates more power than solar
     scale: [0.08, 0.08, 0.08], // Reduced by 20% from original 0.1
     yOffset: 0.05, // Moderate position above tile
@@ -78,7 +78,7 @@ export const taskConfigs: Record<string, TaskConfig> = {
     cost: { power: 15, minerals: 20 }, // Cost to build
     workforceRequired: 3, // Medium workforce requirement
     duration: 3, // Takes 3 rounds to set up
-    operationalModelPath: '/models/mars_waterwell.glb', // Water well model
+    operationalModelPath: '/Derech/models/mars_waterwell.glb', // Water well model
     resourceYield: { resource: 'water', baseAmount: 15 }, // Generates water resource
     scale: [0.08, 0.08, 0.08], // Similar scale to geothermal
     yOffset: 0.15, // Slightly lower than geothermal
