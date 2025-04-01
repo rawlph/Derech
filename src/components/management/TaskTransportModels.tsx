@@ -109,7 +109,7 @@ const TransportModel = ({
     // Set rotation to face the movement direction
     if (direction.x !== 0 || direction.z !== 0) {
       const angle = Math.atan2(direction.x, direction.z);
-      modelRef.current.rotation.y = angle + Math.PI/4; // 45° rotation to the left
+      modelRef.current.rotation.y = angle + Math.PI/2; // 45° rotation to the left
     }
   });
 

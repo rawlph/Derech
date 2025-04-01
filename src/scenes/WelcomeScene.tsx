@@ -460,9 +460,12 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], han
     const [playerPosition, setPlayerPosition] = useState(() => new THREE.Vector3(...position));
     const speed = useRef(0.15);
     const lookSensitivity = useRef(0.05); // Sensitivity for look rotation
+    const mouseLookSensitivity = useRef(0.005); // Sensitivity for mouse look - lower than joystick
     const keys = useRef<Record<string, boolean>>({});
     const mobileMoveInput = useRef({ x: 0, y: 0 }); // Rename for clarity
     const mobileLookInput = useRef({ x: 0, y: 0 }); // New ref for look input
+    const isMouseDown = useRef(false);
+    const lastMousePosition = useRef({ x: 0, y: 0 });
     // No internal groupRef needed now, forwardRef ('ref') handles the Group
 
     // Keyboard controls setup (remains the same)
@@ -477,16 +480,64 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], han
         };
     }, []);
 
+    // Mouse controls for desktop users
+    useEffect(() => {
+        const handleMouseDown = (e: MouseEvent) => {
+            // Only handle left mouse button (button 0)
+            if (e.button === 0) {
+                isMouseDown.current = true;
+                lastMousePosition.current = { x: e.clientX, y: e.clientY };
+            }
+        };
+
+        const handleMouseMove = (e: MouseEvent) => {
+            if (isMouseDown.current) {
+                // Calculate mouse movement delta
+                const deltaX = e.clientX - lastMousePosition.current.x;
+                
+                // Update player rotation based on horizontal mouse movement
+                if (ref && typeof ref !== 'function' && ref.current) {
+                    ref.current.rotation.y -= deltaX * mouseLookSensitivity.current;
+                }
+                
+                // Update last position
+                lastMousePosition.current = { x: e.clientX, y: e.clientY };
+            }
+        };
+
+        const handleMouseUp = () => {
+            isMouseDown.current = false;
+        };
+
+        const handleMouseLeave = () => {
+            isMouseDown.current = false;
+        };
+
+        // Add event listeners to the document
+        document.addEventListener('mousedown', handleMouseDown);
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        document.addEventListener('mouseleave', handleMouseLeave);
+
+        // Clean up
+        return () => {
+            document.removeEventListener('mousedown', handleMouseDown);
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            document.removeEventListener('mouseleave', handleMouseLeave);
+        };
+    }, [ref]);
+
     // Expose custom methods using useImperativeHandle, BUT link it to the SEPARATE handleRef prop
     useImperativeHandle(handleRef, () => ({ // Use handleRef prop here
         handleMobileMove: (data: { x: number; y: number }) => {
-            mobileMoveInput.current = data; // Use renamed ref
+            mobileMoveInput.current = data; // Store the mobile input
         },
         handleMobileLook: (data: { x: number; y: number }) => { // Add look handler
-            mobileLookInput.current = data;
+            mobileLookInput.current = data; // Store the look input
         },
         getPosition: () => playerPosition,
-    }), [playerPosition]); // Dependencies might need mobileLookInput if it directly affects state, but here it affects the ref in useFrame
+    }), [playerPosition]); 
 
 
     useFrame(() => {
@@ -498,11 +549,9 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], han
         if (keys.current['KeyD'] || keys.current['ArrowRight']) moveDirection.x += 1;
 
         // --- Mobile Movement ---
-        // Apply mobile move input if no keyboard input OR if additive input is desired
-        // Example: Additive (comment out the `moveDirection.lengthSq() === 0` check if you want this)
-        // if (mobileMoveInput.current.x !== 0 || mobileMoveInput.current.y !== 0) {
-        // Prioritized (current logic):
-        if (moveDirection.lengthSq() === 0 && (mobileMoveInput.current.x !== 0 || mobileMoveInput.current.y !== 0)) {
+        // Apply mobile input if no keyboard input OR if it's the only input source
+        if ((moveDirection.lengthSq() === 0 && (mobileMoveInput.current.x !== 0 || mobileMoveInput.current.y !== 0)) ||
+            (mobileMoveInput.current.x !== 0 || mobileMoveInput.current.y !== 0)) {
             moveDirection.x += mobileMoveInput.current.x;
             moveDirection.z -= mobileMoveInput.current.y; // Y joystick maps to Z movement
         }
@@ -526,10 +575,8 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], han
              ref.current.rotation.y -= mobileLookInput.current.x * lookSensitivity.current;
          }
 
-        // Reset mobile inputs for the next frame
-        mobileMoveInput.current = { x: 0, y: 0 };
-        mobileLookInput.current = { x: 0, y: 0 }; // Reset look input
-
+        // No longer resetting mobile inputs each frame - they are managed by MobileControls
+        
         // Update player mesh position using the forwarded group ref
         if (ref && typeof ref !== 'function' && ref.current) {
             ref.current.position.copy(playerPosition);
@@ -865,11 +912,11 @@ const SceneContent = forwardRef<
             {cameFromPortal && <StartPortal ref={startPortalRef} position={[0, 2, 15]} />}
             <OrbitControls
                 ref={controlsRef}
-                enablePan={true}
+                enablePan={false}
                 enableRotate={false}
                 enableZoom={true}
                 maxPolarAngle={Math.PI / 2 + 0.2}
-                minPolarAngle={0.1}
+                minPolarAngle={Math.PI / 16}
                 minDistance={3}
                 maxDistance={20}
             />
@@ -911,7 +958,7 @@ const WelcomeScene = () => {
                 </Canvas>
             </div>
             <div className={styles.controlsInfo}>
-                Desktop: WASD/Arrows: Move | Mouse Drag: Look (if enabled) | Click: Interact <br/>
+                Desktop: WASD/Arrows: Move | Left Mouse Drag: Look | Click: Interact <br/>
                 Mobile: Left Stick: Move | Right Stick: Look | Tap Buttons: Interact
             </div>
             <MobileControls onMove={handleMobileInput} onLook={handleMobileLook} />

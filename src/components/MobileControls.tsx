@@ -12,6 +12,10 @@ const MobileControls = ({ onMove, onLook }: MobileControlsProps) => {
   const lookZoneRef = useRef<HTMLDivElement>(null);
   const moveJoystickManagerRef = useRef<JoystickManager | null>(null);
   const lookJoystickManagerRef = useRef<JoystickManager | null>(null);
+  const moveActiveRef = useRef(false);
+  const lookActiveRef = useRef(false);
+  const lastMoveDataRef = useRef({ x: 0, y: 0 });
+  const lastLookDataRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     if (!moveZoneRef.current || !lookZoneRef.current) return;
@@ -19,23 +23,41 @@ const MobileControls = ({ onMove, onLook }: MobileControlsProps) => {
     // --- Define handlers ---
     const handleMove = (_: any, data: JoystickOutputData) => {
       if (onMove && data.vector) {
-        onMove({ x: data.vector.x, y: data.vector.y });
+        moveActiveRef.current = true;
+        lastMoveDataRef.current = { x: data.vector.x, y: data.vector.y };
+        onMove(lastMoveDataRef.current);
       }
     };
-    // Store the end handler in a variable
+    
     const handleMoveEnd = () => {
+      moveActiveRef.current = false;
+      lastMoveDataRef.current = { x: 0, y: 0 };
       if (onMove) onMove({ x: 0, y: 0 });
     };
 
     const handleLook = (_: any, data: JoystickOutputData) => {
       if (onLook && data.vector) {
-        onLook({ x: data.vector.x, y: data.vector.y });
+        lookActiveRef.current = true;
+        lastLookDataRef.current = { x: data.vector.x, y: data.vector.y };
+        onLook(lastLookDataRef.current);
       }
     };
-    // Store the end handler in a variable
+    
     const handleLookEnd = () => {
+      lookActiveRef.current = false;
+      lastLookDataRef.current = { x: 0, y: 0 };
       if (onLook) onLook({ x: 0, y: 0 });
     };
+
+    // Set up interval to continuously send the last joystick data
+    const moveInterval = setInterval(() => {
+      if (moveActiveRef.current && onMove) {
+        onMove(lastMoveDataRef.current);
+      }
+      if (lookActiveRef.current && onLook) {
+        onLook(lastLookDataRef.current);
+      }
+    }, 16); // ~60fps update rate
 
     // --- Create Move Joystick (Left) ---
     moveJoystickManagerRef.current = nipplejs.create({
@@ -48,7 +70,7 @@ const MobileControls = ({ onMove, onLook }: MobileControlsProps) => {
     });
 
     moveJoystickManagerRef.current.on('move', handleMove);
-    moveJoystickManagerRef.current.on('end', handleMoveEnd); // Use stored handler
+    moveJoystickManagerRef.current.on('end', handleMoveEnd);
 
     // --- Create Look Joystick (Right) ---
     lookJoystickManagerRef.current = nipplejs.create({
@@ -61,22 +83,24 @@ const MobileControls = ({ onMove, onLook }: MobileControlsProps) => {
     });
 
     lookJoystickManagerRef.current.on('move', handleLook);
-    lookJoystickManagerRef.current.on('end', handleLookEnd); // Use stored handler
+    lookJoystickManagerRef.current.on('end', handleLookEnd);
 
     // --- Clean up ---
     return () => {
+      clearInterval(moveInterval);
+      
       if (moveJoystickManagerRef.current) {
-        // Unbind specific handlers first
         moveJoystickManagerRef.current.off('move', handleMove);
-        moveJoystickManagerRef.current.off('end', handleMoveEnd); // Correctly unbind using stored handler
+        moveJoystickManagerRef.current.off('end', handleMoveEnd);
         moveJoystickManagerRef.current.destroy();
-        moveJoystickManagerRef.current = null; // Clear ref
+        moveJoystickManagerRef.current = null;
       }
+      
       if (lookJoystickManagerRef.current) {
         lookJoystickManagerRef.current.off('move', handleLook);
-        lookJoystickManagerRef.current.off('end', handleLookEnd); // Correctly unbind using stored handler
+        lookJoystickManagerRef.current.off('end', handleLookEnd);
         lookJoystickManagerRef.current.destroy();
-        lookJoystickManagerRef.current = null; // Clear ref
+        lookJoystickManagerRef.current = null;
       }
     };
   }, [onMove, onLook]);
