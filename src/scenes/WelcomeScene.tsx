@@ -565,6 +565,7 @@ const SceneContent = forwardRef<
     {}
 >((props, ref) => {
     const setGameView = useGameStore(state => state.setGameView);
+    const previousGameView = useGameStore(state => state.previousGameView);
     const playerGroupRef = useRef<THREE.Group | null>(null);
     const playerHandleRef = useRef<PlayerHandle | null>(null);
     const exitPortalBoxRef = useRef(new THREE.Box3());
@@ -662,6 +663,10 @@ const SceneContent = forwardRef<
 1. START COLONY MISSION: Enter Management Mode.
 2. RETURN TO 3D AREA: Use the Research Center in Management Mode.`;
 
+    const handleReturnToColony = () => {
+        setGameView('management');
+    };
+
     return (
         <>
             <ambientLight intensity={0.6} color="#d0d0e0" />
@@ -686,6 +691,16 @@ const SceneContent = forwardRef<
                 }}
                 color="#FFC107"
             />
+            
+            {/* Add Return to Colony button if coming from management */}
+            {previousGameView === 'management' && (
+                <InteractiveButton
+                    position={[0, 3, 0]}
+                    text="Return to Colony"
+                    onClick={handleReturnToColony}
+                    color="#FF5722" // Orange color to differentiate it
+                />
+            )}
 
             {showInstructions && (
                 <group position={[-8, 4, 0]}>

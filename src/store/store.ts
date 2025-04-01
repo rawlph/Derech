@@ -81,6 +81,7 @@ interface GameState {
   gridTiles: GridTiles;
   selectedTile: TileData | null;
   gameView: 'management' | 'puzzle' | 'menu' | 'welcome';  // Added 'welcome' view type
+  previousGameView: 'management' | 'puzzle' | 'menu' | 'welcome' | null; // Track the previous view
   activeTasks: Record<string, TaskState>; // NEW: Ongoing tasks
 
   // --- NEW: Dialogue State ---
@@ -290,6 +291,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   gridTiles: {}, // Initialized below
   selectedTile: null,
   gameView: 'welcome',  // Changed from 'management' to 'welcome'
+  previousGameView: null, // Initially null
   activeTasks: {}, // Start with no active tasks
   dialogueMessage: null, // Initialize dialogue as hidden
   lastFlavourRound: 0, // Initialize last flavour round
@@ -503,7 +505,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
   },
 
-  setGameView: (view) => set({ gameView: view }),
+  setGameView: (view) => set(state => ({
+    gameView: view, 
+    previousGameView: state.gameView 
+  })),
 
   // --- Task Management Actions Implementation ---
   assignWorkforceToTask: (taskType, targetTile, workforce) => {
@@ -860,7 +865,8 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   // --- NEW: Issue Management Functions ---
   checkForNewIssues: () => {
-    const { activeTasks, gridTiles, currentRound, lastIssueRounds, buildingIssues, completedResearch = [] } = get();
+    const { activeTasks, gridTiles, currentRound, lastIssueRounds, buildingIssues } = get();
+    const completedResearch: string[] = get().completedResearch || []; // Ensure this is always an array
     const currentIssueBuildingIds = Object.values(buildingIssues)
       .filter(issue => !issue.resolved)
       .map(issue => issue.buildingId);
@@ -886,9 +892,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         const applicableIssues = issues.filter(issue => 
           (typeof issue.buildingType === 'string' 
               ? issue.buildingType === tile.building
-              : issue.buildingType.includes(tile.building))
+              : Array.isArray(issue.buildingType) && tile.building && issue.buildingType.includes(tile.building))
           // Check if research requirement is met, if any
-          && (!issue.requiresResearch || completedResearch.includes(issue.requiresResearch))
+          && (!issue.requiresResearch || (issue.requiresResearch && completedResearch.includes(issue.requiresResearch)))
         );
         
         if (applicableIssues.length > 0) {
@@ -1024,9 +1030,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     const issueTemplate = getIssueById(issueState.issueId);
     return issueTemplate || null; // Ensure we always return Issue | null, not undefined
   },
-
-  // Research system
-  completedResearch: [], // Array of research project IDs that have been completed
 
   // --- NEW: Research Actions ---
   startResearch: (projectId: string) => {

@@ -35,6 +35,10 @@ const ManagementUI = () => {
         endRound();
     };
 
+    const handleGoToWelcome = () => {
+        setGameView('welcome');
+    };
+
     const handleDeselect = () => {
         deselectTile();
     }
@@ -259,6 +263,9 @@ const ManagementUI = () => {
                     <span>Round: {currentRound}</span>
                     <button onClick={handleEndRound} className={styles.actionButton}>
                         End Round
+                    </button>
+                    <button onClick={handleGoToWelcome} className={styles.actionButton}>
+                        PORTAL ROOM
                     </button>
                 </div>
             </div>
