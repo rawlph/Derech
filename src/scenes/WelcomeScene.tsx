@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from '@react-three/fiber';
-import { useGLTF, OrbitControls, Text } from '@react-three/drei';
+import { useGLTF, OrbitControls, Text, Stars, SpotLight } from '@react-three/drei';
 import { Suspense, useRef, useEffect, useState, forwardRef } from 'react';
 import * as THREE from 'three';
 import { useGameStore } from '@store/store';
@@ -73,6 +73,245 @@ const LowPolyEnvironment = () => {
   );
 };
 
+// Research Lab/Museum elements
+const MarsLabEnvironment = () => {
+  // Create a sci-fi Mars lab/museum environment
+  return (
+    <group>
+      {/* Mars-like reddish floor with grid pattern */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]}>
+        <planeGeometry args={[100, 100, 30, 30]} />
+        <meshStandardMaterial 
+          color="#c8664a" 
+          roughness={0.8}
+          metalness={0.2}
+          wireframe={false}
+          flatShading={true}
+        />
+      </mesh>
+      
+      {/* Grid overlay on floor */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.99, 0]}>
+        <planeGeometry args={[100, 100, 1, 1]} />
+        <meshBasicMaterial 
+          wireframe={true}
+          color="#803326"
+          transparent={true}
+          opacity={0.5}
+        />
+      </mesh>
+      
+      {/* Sci-fi dome ceiling */}
+      <mesh position={[0, 20, 0]}>
+        <sphereGeometry args={[40, 16, 8]} />
+        <meshStandardMaterial 
+          color="#301d1a" 
+          side={THREE.BackSide}
+          transparent={true}
+          opacity={0.9}
+          metalness={0.5}
+          roughness={0.6}
+          emissive="#120b0a"
+          emissiveIntensity={0.5}
+        />
+      </mesh>
+      
+      {/* Central holographic Mars display */}
+      <group position={[0, 5, -12]}>
+        <mesh>
+          <sphereGeometry args={[4, 32, 32]} />
+          <meshStandardMaterial 
+            color="#e05e39" 
+            emissive="#ff3a1f"
+            emissiveIntensity={0.3}
+            metalness={0.4}
+            roughness={0.7}
+          />
+        </mesh>
+        
+        {/* Holographic ring around Mars */}
+        <mesh rotation={[Math.PI/2, 0, 0]}>
+          <torusGeometry args={[6, 0.15, 16, 100]} />
+          <meshStandardMaterial
+            color="#00ffff"
+            emissive="#00ffff"
+            emissiveIntensity={1}
+            transparent={true}
+            opacity={0.7}
+          />
+        </mesh>
+        
+        {/* Second holographic ring at different angle */}
+        <mesh rotation={[Math.PI/3, Math.PI/4, 0]}>
+          <torusGeometry args={[5.5, 0.1, 16, 100]} />
+          <meshStandardMaterial
+            color="#5599ff"
+            emissive="#5599ff"
+            emissiveIntensity={1}
+            transparent={true}
+            opacity={0.7}
+          />
+        </mesh>
+        
+        {/* Add holographic text above mars */}
+        <Text
+          position={[0, 8, 0]}
+          fontSize={1.2}
+          color="#00ffff"
+          anchorX="center"
+          anchorY="middle"
+          maxWidth={10}
+        >
+          MARS COLONIZATION PROJECT
+        </Text>
+        
+        <Text
+          position={[0, 6.5, 0]}
+          fontSize={0.7}
+          color="#5599ff"
+          anchorX="center"
+          anchorY="middle"
+          maxWidth={10}
+        >
+          DERECH AI MISSION CONTROL
+        </Text>
+      </group>
+      
+      {/* Add display terminals around the room */}
+      {[...Array(6)].map((_, i) => {
+        const angle = (i / 6) * Math.PI * 2;
+        const radius = 15;
+        const x = Math.sin(angle) * radius;
+        const z = Math.cos(angle) * radius;
+        return (
+          <group key={`terminal-${i}`} position={[x, 0, z]} rotation={[0, -angle, 0]}>
+            {/* Terminal screen */}
+            <mesh position={[0, 2, 0]}>
+              <boxGeometry args={[3, 2, 0.2]} />
+              <meshStandardMaterial 
+                color="#2a6179"
+                emissive="#0a3a56"
+                emissiveIntensity={0.7}
+                roughness={0.4}
+                metalness={0.8}
+              />
+            </mesh>
+            
+            {/* Terminal stand */}
+            <mesh position={[0, 0, 0]}>
+              <boxGeometry args={[0.5, 2, 0.5]} />
+              <meshStandardMaterial 
+                color="#444444"
+                roughness={0.4}
+                metalness={0.8}
+              />
+            </mesh>
+            
+            {/* Terminal screen text with different text for each terminal */}
+            <Text
+              position={[0, 2, 0.15]}
+              fontSize={0.2}
+              color="#00ffff"
+              anchorX="center"
+              anchorY="middle"
+              maxWidth={2.5}
+            >
+              {[
+                "COLONY STATUS: PREPARATION\n\nAWAITING MISSION START\n\nAll systems nominal",
+                "RESOURCE OVERVIEW\n\nMinerals: Standby\nWater: Standby\nPower: Standby",
+                "RESEARCH PROJECTS\n\n6 Projects Available\n\nInitial research ready",
+                "MARS GEOLOGY\n\nSurvey regions identified\n\nScanning equipment calibrated",
+                "WORKFORCE STATUS\n\nColonists ready for deployment\n\nTraining complete",
+                "MISSION OBJECTIVES\n\nBuild sustainable colony\n\nExplore Mars surface"
+              ][i]}
+            </Text>
+          </group>
+        );
+      })}
+      
+      {/* Low-poly research equipment scattered around with pulsing lights */}
+      {[...Array(8)].map((_, i) => {
+        const angle = (i / 8) * Math.PI * 2 + Math.PI/16;
+        const radius = 22;
+        const x = Math.sin(angle) * radius;
+        const z = Math.cos(angle) * radius;
+        const size = 1 + Math.random() * 1.5;
+        
+        // Create refs for the blinking lights
+        const lightRef = useRef<THREE.Mesh>(null);
+        
+        // Create pulsing effect directly with useFrame
+        useFrame(({ clock }) => {
+          if (lightRef.current) {
+            // Pulse intensity based on sin wave, offset by index for variety
+            const intensity = Math.abs(Math.sin(clock.getElapsedTime() * 2 + i * 0.7));
+            
+            // Apply to material opacity for pulse effect
+            if (lightRef.current.material instanceof THREE.Material) {
+              (lightRef.current.material as THREE.MeshBasicMaterial).opacity = 0.5 + intensity * 0.5;
+            }
+          }
+        });
+        
+        return (
+          <group key={`equipment-${i}`} position={[x, 0, z]}>
+            {/* Equipment base */}
+            <mesh position={[0, size/2, 0]}>
+              <boxGeometry args={[size, size, size]} />
+              <meshStandardMaterial 
+                color={[
+                  "#455a64", // Blue-grey
+                  "#546e7a", 
+                  "#607d8b", 
+                  "#78909c", 
+                  "#d32f2f", // Red
+                  "#5d4037", // Brown
+                  "#455a64", // Blue-grey
+                  "#607d8b",
+                ][i]}
+                roughness={0.4}
+                metalness={0.8}
+              />
+            </mesh>
+            
+            {/* Equipment details */}
+            <mesh position={[0, size + 0.5, 0]}>
+              <cylinderGeometry args={[size/4, size/3, 1, 8]} />
+              <meshStandardMaterial 
+                color={["#b0bec5", "#90a4ae", "#78909c"][i % 3]}
+                roughness={0.4}
+                metalness={0.8}
+              />
+            </mesh>
+            
+            {/* Small blinking light with manual animation */}
+            <mesh ref={lightRef} position={[size/3, size + 0.2, size/3]}>
+              <sphereGeometry args={[0.1, 8, 8]} />
+              <meshBasicMaterial 
+                color={["#f44336", "#4caf50", "#2196f3"][i % 3]}
+                transparent={true}
+                opacity={0.8}
+              />
+            </mesh>
+          </group>
+        );
+      })}
+      
+      {/* Add some subtle Mars atmosphere */}
+      <mesh position={[0, 10, -40]}>
+        <planeGeometry args={[120, 60]} />
+        <meshBasicMaterial 
+          color="#ff7f50" 
+          transparent={true} 
+          opacity={0.15}
+          side={THREE.DoubleSide}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+    </group>
+  );
+};
+
 // 3D Button component
 interface ButtonProps {
   position: [number, number, number];
@@ -81,6 +320,7 @@ interface ButtonProps {
   color?: string;
 }
 
+// 3D Button component - Modified for better visibility
 const InteractiveButton = ({ position, text, onClick, color = "#FFD700" }: ButtonProps) => {
   const buttonRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
@@ -104,18 +344,31 @@ const InteractiveButton = ({ position, text, onClick, color = "#FFD700" }: Butto
         <boxGeometry args={[6, 1.5, 0.5]} />
         <meshStandardMaterial 
           color={hovered ? "#FFFFFF" : color} 
-          emissive={hovered ? color : "#000000"}
-          emissiveIntensity={hovered ? 0.5 : 0}
+          emissive={hovered ? color : color}
+          emissiveIntensity={hovered ? 0.8 : 0.5}
           roughness={0.3}
           metalness={0.7}
         />
       </mesh>
       <Text
         position={[0, 0, 0.3]}
-        fontSize={0.5}
+        fontSize={0.6}
         color="#000000"
         anchorX="center"
         anchorY="middle"
+        fontWeight="bold"
+      >
+        {text}
+      </Text>
+      <Text
+        position={[0, 0, 0.35]}
+        fontSize={0.6}
+        color="white"
+        anchorX="center"
+        anchorY="middle"
+        outlineWidth={0.02}
+        outlineColor={hovered ? color : "black"}
+        outlineOpacity={0.8}
       >
         {text}
       </Text>
@@ -521,12 +774,57 @@ const SceneContent = () => {
   
   return (
     <>
-      {/* Lights */}
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
+      {/* Enhanced Lighting Setup */}
+      <ambientLight intensity={1.0} color="#fff1e9" />
       
-      {/* Low-poly environment */}
-      <LowPolyEnvironment />
+      {/* Main directional light */}
+      <directionalLight 
+        position={[10, 20, 10]} 
+        intensity={1.5} 
+        castShadow 
+        color="#fff5f0"
+        shadow-mapSize={[2048, 2048]}
+        shadow-camera-far={100}
+        shadow-camera-near={0.5}
+      />
+      
+      {/* Main overhead spot light */}
+      <spotLight 
+        position={[0, 20, 0]} 
+        angle={0.6} 
+        penumbra={0.5} 
+        intensity={2} 
+        color="#ffe0cc" 
+        castShadow
+        distance={50}
+        decay={0.5}
+      />
+      
+      {/* Holographic spot light */}
+      <spotLight 
+        position={[0, 10, -15]} 
+        angle={0.6} 
+        penumbra={0.5} 
+        intensity={3}
+        color="#00ffff" 
+        castShadow
+        distance={30}
+        decay={1}
+      />
+      
+      {/* Add point lights near each button for better visibility - increased intensity */}
+      <pointLight position={[0, 2, -5]} intensity={1.5} color="#4CAF50" distance={10} />
+      <pointLight position={[8, 2, -5]} intensity={1.5} color="#2196F3" distance={10} />
+      <pointLight position={[-8, 2, -5]} intensity={1.5} color="#FFC107" distance={10} />
+      
+      {/* Add a soft fill light from below for dramatic effect */}
+      <hemisphereLight color="#ffe0e0" groundColor="#331111" intensity={0.5} />
+      
+      {/* Stars background for space feeling */}
+      <Stars radius={80} depth={50} count={1000} factor={4} fade speed={1} />
+      
+      {/* Mars Lab environment */}
+      <MarsLabEnvironment />
       
       {/* Player */}
       <Player ref={playerRef} position={[0, 0, 0]} />
@@ -562,7 +860,7 @@ const SceneContent = () => {
       {/* Portal to Vibeverse */}
       <PortalToVibeverse ref={exitPortalRef} />
       
-      {/* Portal description */}
+      {/* Portal description with improved visibility */}
       <Text
         position={[16, 0.5, -5]}
         fontSize={0.4}
@@ -612,8 +910,8 @@ const WelcomeScene = () => {
       
       <div className={styles.canvasContainer}>
         <Canvas shadows camera={{ position: [0, 8, 15], fov: 60 }}>
-          <color attach="background" args={['#120807']} /> {/* Dark space background */}
-          <fog attach="fog" args={['#240f0c', 30, 100]} /> {/* Mars-like atmospheric fog */}
+          <color attach="background" args={['#251512']} /> {/* Brighter background for better visibility */}
+          <fog attach="fog" args={['#3d211e', 50, 150]} /> {/* Brighter fog with increased visibility range */}
           
           <Suspense fallback={null}>
             <SceneContent />
