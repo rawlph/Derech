@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from '@react-three/fiber';
-import { useGLTF, OrbitControls, Text, Stars, SpotLight, Plane, Cylinder, Box } from '@react-three/drei';
+import { useGLTF, OrbitControls, Text, Stars, SpotLight, Plane, Cylinder, Box, Html } from '@react-three/drei';
 import { Suspense, useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import * as THREE from 'three';
 import { useGameStore } from '@store/store';
@@ -538,7 +538,7 @@ const SceneContent = forwardRef<
     const controlsRef = useRef<any>(null);
     const [cameFromPortal, setCameFromPortal] = useState(false);
     const [refUrl, setRefUrl] = useState('');
-    const [showHelp, setShowHelp] = useState(false);
+    const [showInstructions, setShowInstructions] = useState(false);
     const [showAbout, setShowAbout] = useState(false);
 
     const handleMobileInputInternal = (data: { x: number; y: number }) => {
@@ -605,9 +605,6 @@ const SceneContent = forwardRef<
 1. START COLONY MISSION: Enter Management Mode.
 2. RETURN TO 3D AREA: Use the Research Center in Management Mode.`;
 
-    const aboutText = `[ABOUT]
-Derech Project by @rawlph`;
-
     return (
         <>
             <ambientLight intensity={0.6} color="#d0d0e0" />
@@ -622,18 +619,18 @@ Derech Project by @rawlph`;
             <Player ref={playerGroupRef} handleRef={playerHandleRef} key="player-component" />
 
             <InteractiveButton position={[0, 1.5, 0]} text="Start Colony Mission" onClick={() => setGameView('management')} color="#4CAF50"/>
-            <InteractiveButton position={[8, 1.5, 0]} text="About" onClick={() => { setShowAbout(!showAbout); setShowHelp(false); }} color="#2196F3"/>
+            <InteractiveButton position={[8, 1.5, 0]} text="About" onClick={() => { setShowAbout(!showAbout); setShowInstructions(false); }} color="#2196F3"/>
             <InteractiveButton
                 position={[-8, 1.5, 0]}
                 text="Instructions"
                 onClick={() => {
-                    setShowHelp(!showHelp);
+                    setShowInstructions(!showInstructions);
                     setShowAbout(false);
                 }}
                 color="#FFC107"
             />
 
-            {showHelp && (
+            {showInstructions && (
                 <group position={[-8, 4, 0]}>
                     <Plane args={[7, 2.5]} rotation={[0, 0, 0]} >
                          <meshStandardMaterial color="#222222" side={THREE.DoubleSide} transparent opacity={0.8} />
@@ -655,24 +652,43 @@ Derech Project by @rawlph`;
             )}
 
              {showAbout && (
-                <group position={[8, 4, 0]}>
-                    <Plane args={[5, 1.5]} rotation={[0, 0, 0]}>
-                         <meshStandardMaterial color="#222222" side={THREE.DoubleSide} transparent opacity={0.8}/>
-                    </Plane>
-                    <Text
-                         position={[0, 0, 0.1]}
-                         fontSize={0.35}
-                         color="#FFFFFF"
-                         maxWidth={4.5}
-                         lineHeight={1.4}
-                         anchorX="center"
-                         anchorY="middle"
-                         whiteSpace="normal"
-                         overflowWrap="break-word"
+                <Html
+                    position={[8, 2.5, 0]}
+                    center
+                    occlude
+                >
+                    <div
+                        style={{
+                            background: 'rgba(34, 34, 34, 0.8)',
+                            color: 'white',
+                            padding: '15px 20px',
+                            borderRadius: '5px',
+                            width: '250px',
+                            fontFamily: 'sans-serif',
+                            fontSize: '14px',
+                            textAlign: 'center',
+                        }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowAbout(false);
+                        }}
                     >
-                         {aboutText}
-                    </Text>
-                </group>
+                        <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>[ABOUT]</p>
+                        <p style={{ margin: 0 }}>
+                            Derech Project by{' '}
+                            <a
+                                href="https://x.com/rawlph"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ color: '#61dafb' }}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                @rawlph
+                            </a>
+                        </p>
+                         <p style={{ margin: '10px 0 0 0', fontSize: '12px', opacity: 0.7 }}>(Click to close)</p>
+                    </div>
+                </Html>
             )}
 
             <PortalToVibeverse ref={exitPortalRef} position={[0, 2, -40]} scale={0.5} />
