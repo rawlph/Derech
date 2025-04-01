@@ -9,7 +9,7 @@ interface ResearchWindowProps {
 }
 
 // Placeholder image path (replace with your actual image in /public)
-const headerImagePath = '/placeholders/research_header.png';
+const headerImagePath = '/Derech/placeholders/research_header.png';
 
 const ResearchWindow: React.FC<ResearchWindowProps> = ({ isVisible, onClose }) => {
     const { 

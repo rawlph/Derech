@@ -6,15 +6,15 @@ export interface FlavourMessage {
 
 // Define the mapping from category to avatar filename
 const categoryAvatars: Record<NonNullable<FlavourMessage['category']>, string> = {
-    mars: '/avatars/regolithdeposit.jpg',
-    colony: '/avatars/ColonistAvatarFem2.jpg',
-    resource: '/avatars/ColonistAvatarMal5.jpg',
-    general: '/avatars/AiHelper.jpg',
-    'event-hint': '/avatars/AiHelper.jpg', // Use AI Helper for hints too
+    mars: '/Derech/avatars/regolithdeposit.jpg',
+    colony: '/Derech/avatars/ColonistAvatarFem2.jpg',
+    resource: '/Derech/avatars/ColonistAvatarMal5.jpg',
+    general: '/Derech/avatars/AiHelper.jpg',
+    'event-hint': '/Derech/avatars/AiHelper.jpg', // Use AI Helper for hints too
 };
 
 // Default avatar if category is missing or unmapped
-const defaultAvatar = '/avatars/AiHelper.jpg';
+const defaultAvatar = '/Derech/avatars/AiHelper.jpg';
 
 // Updated message list - removed specific avatars, relying on category now
 export const flavourMessages: FlavourMessage[] = [

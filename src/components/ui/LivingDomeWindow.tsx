@@ -9,7 +9,7 @@ interface LivingDomeWindowProps {
 }
 
 // Placeholder image path (replace with your actual image in /public)
-const headerImagePath = '/placeholders/living_dome_header.png'; // Needs creation
+const headerImagePath = '/Derech/placeholders/living_dome_header.png'; // Needs creation
 
 const LivingDomeWindow: React.FC<LivingDomeWindowProps> = ({ isVisible, onClose }) => {
     const { 

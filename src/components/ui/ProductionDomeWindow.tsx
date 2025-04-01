@@ -9,7 +9,7 @@ interface ProductionDomeWindowProps {
 }
 
 // Placeholder image path (replace with your actual image in /public)
-const headerImagePath = '/placeholders/production_header.png'; // Needs creation
+const headerImagePath = '/Derech/placeholders/production_header.png'; // Needs creation
 
 const ProductionDomeWindow: React.FC<ProductionDomeWindowProps> = ({ isVisible, onClose }) => {
     const { 

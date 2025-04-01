@@ -624,7 +624,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             // Store Completion Message with AI Helper Avatar
             tasksCompletedMessages.push({
                 message: `${taskName} completed on tile ${coords}`,
-                avatar: '/avatars/AiHelper.jpg'
+                avatar: '/Derech/avatars/AiHelper.jpg'
             });
             console.log(`Task ${task.id} deployment complete, now operational.`);
           }
@@ -651,7 +651,7 @@ export const useGameStore = create<GameState>((set, get) => ({
               
               deconstructionCompletedMessages.push({
                 message: `Deconstruction of ${buildingName} at ${coords} completed.`,
-                avatar: '/avatars/AiHelper.jpg'
+                avatar: '/Derech/avatars/AiHelper.jpg'
               });
               
               // Update the tile in our copy
@@ -919,7 +919,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           const tileLoc = `(${tile.q}, ${tile.r})`;
           get().showDialogue(
             `Alert: ${tile.building} at ${tileLoc} has reported an issue that needs attention.`,
-            '/avatars/AiHelper.jpg'
+            '/Derech/avatars/AiHelper.jpg'
           );
           
           console.log(`New issue created for ${tile.building} at ${tileLoc}: ${issue.title}`);
@@ -1085,7 +1085,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       // Show completion message
       get().showDialogue(
         `Research completed: ${activeResearch.name}. ${completedProject.effectDescription}`,
-        '/avatars/AiHelper.jpg'
+        '/Derech/avatars/AiHelper.jpg'
       );
       
       console.log(`Research project completed: ${activeResearch.name}`);
@@ -1157,7 +1157,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       // Show completion message
       get().showDialogue(
         `Living area project completed: ${activeLivingProject.name}. ${completedProject.effectDescription}`,
-        '/avatars/AiHelper.jpg'
+        '/Derech/avatars/AiHelper.jpg'
       );
       
       console.log(`Living area project completed: ${activeLivingProject.name}`);
@@ -1229,7 +1229,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       // Show completion message
       get().showDialogue(
         `Production project completed: ${activeProductionProject.name}. ${completedProject.effectDescription}`,
-        '/avatars/AiHelper.jpg'
+        '/Derech/avatars/AiHelper.jpg'
       );
       
       console.log(`Production project completed: ${activeProductionProject.name}`);
@@ -1273,7 +1273,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           if (canShowMessage) {
             get().showDialogue(
               `Research completed: ${activeResearch.name}. ${completedProject.effectDescription}`,
-              '/avatars/AiHelper.jpg'
+              '/Derech/avatars/AiHelper.jpg'
             );
             messageShown = true;
           }
@@ -1314,7 +1314,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           if (canShowMessage && !messageShown) {
             get().showDialogue(
               `Living area project completed: ${activeLivingProject.name}. ${completedProject.effectDescription}`,
-              '/avatars/AiHelper.jpg'
+              '/Derech/avatars/AiHelper.jpg'
             );
             messageShown = true;
           }
@@ -1355,7 +1355,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           if (canShowMessage && !messageShown) {
             get().showDialogue(
               `Production project completed: ${activeProductionProject.name}. ${completedProject.effectDescription}`,
-              '/avatars/AiHelper.jpg'
+              '/Derech/avatars/AiHelper.jpg'
             );
             messageShown = true;
           }
