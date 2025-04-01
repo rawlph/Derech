@@ -149,8 +149,8 @@
             `;
         }
         
-        // Add button event listeners
-        document.getElementById('start-colony-btn').addEventListener('click', function() {
+        // Function to automatically enter the welcome scene
+        function enterWelcomeScene() {
             // Show loading overlay
             document.getElementById('loading-overlay').style.opacity = '1';
             
@@ -170,8 +170,11 @@
             // Redirect after short delay to show loading
             setTimeout(function() {
                 window.location.href = appUrl;
-            }, 1500);
-        });
+            }, 2000);
+        }
+        
+        // Add button event listeners - keep these for manual operation if needed
+        document.getElementById('start-colony-btn').addEventListener('click', enterWelcomeScene);
         
         document.getElementById('about-btn').addEventListener('click', function() {
             alert("Derech is a Mars Colony Simulation Game. Build your colony, manage resources, and explore the red planet!");
@@ -369,6 +372,10 @@
             document.getElementById('loading-overlay').style.opacity = '0';
             setTimeout(function() {
                 document.getElementById('loading-overlay').style.display = 'none';
+                
+                // Auto-enter welcome scene after the loading is complete
+                // Small delay to ensure the scene is visible first
+                setTimeout(enterWelcomeScene, 500);
             }, 500);
         }, 2000);
         

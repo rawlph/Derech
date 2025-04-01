@@ -62,12 +62,57 @@ jobs:
             cp public/* dist/ || true
           fi
       
-      - name: Ensure dist exists
+      - name: Create index.html that redirects to app
+        if: success()
         run: |
-          if [ ! -d "dist" ]; then
-            echo "Creating dist directory"
-            mkdir -p dist
-            echo "<html><body><h1>Derech - Mars Colony Simulation</h1><p>Deployment in progress...</p></body></html>" > dist/index.html
+          if [ -f "dist/index.html" ]; then
+            # Check if it's the static landing page or the actual app
+            if grep -q "Enter Colony Management" dist/index.html; then
+              echo "Replacing static index.html with redirect to app"
+              cat > dist/index.html << 'EOL'
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <meta charset="UTF-8">
+                <meta http-equiv="refresh" content="0;url=app.html?portal=true">
+                <title>Redirecting to Derech...</title>
+                <style>
+                  body {
+                    background-color: #301010;
+                    color: #fff;
+                    font-family: Arial, sans-serif;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                    margin: 0;
+                  }
+                  .spinner {
+                    width: 60px;
+                    height: 60px;
+                    border: 6px solid rgba(255, 106, 69, 0.3);
+                    border-radius: 50%;
+                    border-top-color: #ff6a45;
+                    animation: spin 1s ease-in-out infinite;
+                    margin-bottom: 30px;
+                  }
+                  @keyframes spin {
+                    to { transform: rotate(360deg); }
+                  }
+                </style>
+              </head>
+              <body>
+                <div>
+                  <div class="spinner"></div>
+                  <p>Entering Mars colony simulation...</p>
+                </div>
+                <script>
+                  window.location.href = "app.html?portal=true";
+                </script>
+              </body>
+              </html>
+              EOL
+            fi
           fi
       
       - name: Setup Pages
