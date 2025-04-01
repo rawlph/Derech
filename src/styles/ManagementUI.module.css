@@ -23,6 +23,7 @@
     pointer-events: auto; /* Make these elements clickable */
 }
 
+/* --- Restored Top Bar Styles --- */
 .topBar {
     display: flex;
     justify-content: space-between;
@@ -70,45 +71,128 @@
     background-color: #4a4a4a;
 }
 
+/* --- NEW: Distinct Portal Button Style --- */
+.portalButton {
+    background-color: #0077cc; /* A distinct blue */
+    border: 1px solid #005fa3;
+    box-shadow: 0 2px 5px rgba(0, 119, 204, 0.3);
+}
+
+.portalButton:hover {
+    background-color: #008ae6; /* Lighter blue on hover */
+    border-color: #00aaff;
+}
+/* --- End of Portal Button Style --- */
+
+/* --- End of Restored Top Bar Styles --- */
+
+
+/* --- Updated Selected Tile Info Box Styles --- */
 .selectedTileInfo {
     align-self: flex-start; /* Align to the left */
-    background-color: rgba(0, 0, 0, 0.6);
-    padding: 1rem;
-    border-radius: 8px;
-    max-width: 250px; /* Limit width */
-    border: 1px solid #444;
+    background-color: rgba(0, 0, 0, 0.7); /* Slightly darker */
+    padding: 1.25rem; /* Increased padding */
+    border-radius: 10px; /* Slightly larger radius */
+    width: 90%; /* More responsive width */
+    max-width: 300px; /* Reduced max-width from 320px */
+    border: 1px solid #555; /* Slightly more prominent border */
+    margin-left: 1rem; /* Add some margin from the edge */
+    margin-bottom: 1rem;
+    font-size: 1em; /* Base font size for the box */
+    position: relative; /* Needed for absolute positioning of warnings */
 }
 
 .selectedTileInfo h4 {
     margin-top: 0;
-    margin-bottom: 0.5rem;
-    border-bottom: 1px solid #555;
-    padding-bottom: 0.3rem;
+    margin-bottom: 0.75rem; /* More space below header */
+    border-bottom: 1px solid #666;
+    padding-bottom: 0.5rem;
+    font-size: 1.2em; /* Larger header */
+    color: #eee;
 }
 
 .selectedTileInfo p {
-    margin: 0.3rem 0;
-    font-size: 0.9em;
+    margin: 0.5rem 0; /* Increased vertical spacing for p */
+    font-size: 1em; /* Larger paragraph text */
+    color: #ddd; /* Slightly brighter text */
+}
+
+.actionsContainer {
+    margin-top: 1rem; /* Space above actions */
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem; /* Space between action buttons */
 }
 
 .actionButtonSmall {
-    padding: 0.3em 0.6em;
-    font-size: 0.8em;
-    margin-top: 0.5rem;
-    /* Inherit styles from .actionButton or define similar */
+    padding: 0.6em 1em; /* Increased padding */
+    font-size: 0.9em; /* Larger font size */
+    margin-top: 0; /* Remove default margin-top, use gap instead */
     font-weight: 500;
     font-family: inherit;
     background-color: #5a5a5a;
     color: white;
     cursor: pointer;
-    transition: background-color 0.25s, border-color 0.25s;
+    transition: background-color 0.25s, border-color 0.25s, transform 0.1s ease-out; /* Added transform */
     border: 1px solid transparent;
     border-radius: 6px;
+    position: relative; /* Needed for positioning warning message */
+    overflow: hidden; /* Hide overflowing warning before animation */
+}
+.actionButtonSmall:not(:disabled):hover {
+    border-color: #aaa; /* Lighter border on hover */
+    background-color: #6f6f6f; /* Lighter background on hover */
+}
+.actionButtonSmall:disabled {
+    background-color: #444; /* Darker disabled background */
+    color: #888;
+    cursor: not-allowed;
+    border-color: #555;
+}
+/* Style for the Deselect button */
+.deselectButton {
+    background-color: #782f1a; /* More distinct color */
+    margin-top: 0.75rem; /* Add space above deselect */
+}
+.deselectButton:hover {
+    background-color: #9a3e22;
+    border-color: #d46a4b;
 }
 
-.actionButtonSmall:hover {
-    border-color: #888;
-    background-color: #6a6a6a;
+/* Shake Animation */
+@keyframes shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-3px); }
+  40%, 60% { transform: translateX(3px); }
+}
+
+.shake {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+  border-color: #ff6b6b !important; /* Highlight border during shake */
+}
+
+/* Resource Warning Message */
+.resourceWarning {
+    position: absolute;
+    bottom: -25px; /* Position below the button */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #ff6b6b;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.75em;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s ease-out, bottom 0.3s ease-out;
+    z-index: 10;
+    pointer-events: none; /* Don't block clicks */
+}
+
+.resourceWarningVisible {
+    opacity: 1;
+    bottom: -30px; /* Move slightly further down when visible */
 }
 
 .infoText {
@@ -121,9 +205,12 @@
     font-size: 0.85em;
     text-align: center;
 }
+/* --- End of Updated Selected Tile Info Box Styles --- */
+
 
 /* Basic Mobile Responsiveness (Portrait Focus or Small Screens) */
 @media (max-width: 768px) {
+    /* --- Restored Top Bar Mobile Styles --- */
     .uiOverlay {
         padding: 0.5rem; /* Reduce padding on small screens */
     }
@@ -135,7 +222,6 @@
     }
     .resourceDisplay {
         gap: 0.5rem;
-        /* Allow more items per line if they fit */
     }
     .resourceDisplay span {
        font-size: 0.8em;
@@ -146,26 +232,44 @@
         justify-content: space-between; /* Space out round# and button */
         margin-top: 0.5rem; /* Add space when stacked */
     }
-     .selectedTileInfo {
-        max-width: 90%; /* Take more width */
-        align-self: center; /* Center on mobile */
-        margin-bottom: 70px; /* Add space if overlapping with potential mobile controls */
-        padding: 0.75rem; /* Slightly reduce padding */
-        font-size: 0.9em; /* Slightly reduce font */
-    }
     .actionButton {
         font-size: 0.85em;
         padding: 0.4em 0.8em;
     }
+    /* Ensure portal button inherits base button adjustments */
+    .portalButton {
+       /* No specific overrides needed here unless desired */
+    }
+    /* --- End of Restored Top Bar Mobile Styles --- */
+
+    /* --- Updated Selected Tile Info Mobile Styles --- */
+     .selectedTileInfo {
+        max-width: 90%; /* Take more width */
+        align-self: center; /* Center on mobile */
+        margin-left: 0; /* Remove left margin */
+        margin-bottom: 80px; /* Increased space if overlapping with potential mobile controls */
+        padding: 1rem; /* Adjust padding */
+        font-size: 0.95em; /* Adjust base font */
+    }
+    .selectedTileInfo h4 {
+        font-size: 1.15em;
+    }
+    .selectedTileInfo p {
+        font-size: 0.95em;
+    }
+    .actionButtonSmall {
+        padding: 0.5em 0.9em;
+        font-size: 0.85em;
+    }
+    /* --- End of Updated Selected Tile Info Mobile Styles --- */
 }
 
 /* Mobile Landscape Specific Adjustments */
-@media (orientation: landscape) and (max-height: 500px) { /* Target typical phone landscape height */
+@media (orientation: landscape) and (max-height: 500px) {
+    /* --- Restored Top Bar Landscape Styles --- */
     .uiOverlay {
         padding: 0.5rem; /* Keep reduced padding */
     }
-
-    /* Try to keep top bar horizontal if possible */
     .topBar {
         flex-direction: row; /* Override the max-width rule */
         justify-content: space-between;
@@ -173,7 +277,6 @@
         padding: 0.3rem 0.5rem; /* Further reduce padding */
         gap: 0.5rem; /* Reduce gap */
     }
-
     .resourceDisplay {
         gap: 0.5rem; /* Smaller gap */
     }
@@ -181,7 +284,6 @@
        font-size: 0.75em; /* Slightly smaller font in landscape */
        padding: 0.15rem 0.3rem;
     }
-
     .roundDisplay {
         width: auto; /* Don't force full width */
         margin-top: 0; /* Remove top margin */
@@ -190,24 +292,30 @@
     .roundDisplay span {
         font-size: 0.8em;
     }
-
     .actionButton {
         font-size: 0.75em;
         padding: 0.3em 0.6em;
     }
+    /* Ensure portal button inherits base button adjustments */
+    .portalButton {
+        /* No specific overrides needed here unless desired */
+    }
+    /* --- End of Restored Top Bar Landscape Styles --- */
 
-    /* Adjust selected tile panel for less vertical space */
+
+    /* --- Updated Selected Tile Info Landscape Styles --- */
     .selectedTileInfo {
-        position: absolute; /* Allow precise positioning */
+        position: fixed; /* Use fixed to detach from flex flow */
         bottom: 10px; /* Position near bottom */
         left: 10px;
-        max-width: 200px; /* Limit width */
-        max-height: 40%; /* Limit height */
-        padding: 0.5rem; /* Reduce padding */
-        font-size: 0.8em; /* Smaller font */
+        max-width: 260px; /* Reduced landscape max-width as well */
+        max-height: calc(100vh - 70px); /* Limit height based on viewport, leave space for top bar */
+        padding: 0.75rem; /* Reduce padding */
+        font-size: 0.85em; /* Smaller font */
         overflow-y: auto; /* Allow scrolling if content overflows */
         margin-bottom: 0; /* Override margin */
-        align-self: flex-start; /* Override centering */
+        align-self: flex-start; /* Align to left */
+        z-index: 11; /* Ensure it's above canvas but potentially below popups */
     }
     .selectedTileInfo h4 {
         margin-bottom: 0.3rem;
@@ -218,4 +326,5 @@
         font-size: 0.7em;
         padding: 0.2em 0.4em;
     }
+    /* --- End of Updated Selected Tile Info Landscape Styles --- */
 } 

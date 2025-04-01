@@ -1,7 +1,8 @@
 import { useGameStore, TaskState } from '@store/store';
 import styles from '@styles/ManagementUI.module.css'; // Create this CSS module
 import { taskConfigs, getTaskConfig } from '@config/tasks'; // Import task configs
-import { useMemo } from 'react'; // Import useMemo
+import { useMemo, useState } from 'react'; // Import useMemo and useState
+import ConfirmationDialog from './ConfirmationDialog'; // Import the new component
 
 const ManagementUI = () => {
     const {
@@ -17,7 +18,7 @@ const ManagementUI = () => {
         endRound,
         selectedTile,
         deselectTile,
-        assignWorkforceToTask, // Get task action
+        assignWorkforceToTask, // Get task action - NOTE: We will update its return type later
         recallWorkforce, // Get task action
         activeTasks, // Get active tasks state
         setGameView, // To switch to puzzle view
@@ -31,12 +32,33 @@ const ManagementUI = () => {
         // --- --- 
     } = useGameStore();
 
+    // --- State for button feedback ---
+    const [feedbackState, setFeedbackState] = useState<{
+        shakingButton: string | null; // Task type ID (e.g., 'deploy-mining')
+        warningMessage: { type: string; message: string } | null;
+    }>({ shakingButton: null, warningMessage: null });
+    // --- ---
+
+    // --- State for Portal Room Confirmation ---
+    const [showPortalConfirm, setShowPortalConfirm] = useState(false);
+    // --- ---
+
     const handleEndRound = () => {
         endRound();
     };
 
     const handleGoToWelcome = () => {
-        setGameView('welcome');
+        // Show the custom confirmation dialog instead of window.confirm
+        setShowPortalConfirm(true);
+    };
+
+    const handleConfirmPortal = () => {
+        setShowPortalConfirm(false); // Hide dialog
+        setGameView('welcome');      // Go to welcome view
+    };
+
+    const handleCancelPortal = () => {
+        setShowPortalConfirm(false); // Just hide the dialog
     };
 
     const handleDeselect = () => {
@@ -53,20 +75,43 @@ const ManagementUI = () => {
         if (selectedTile) {
             const config = getTaskConfig(taskType);
             if (config) {
-                // Immediately deselect the tile to prevent multiple assignments
-                const tileCopy = {...selectedTile}; // Create a copy for use in callback
-                deselectTile(); // Immediately deselect to prevent further actions
-                
-                const success = assignWorkforceToTask(taskType, tileCopy, config.workforceRequired);
-                if (success) {
+                // Immediately deselect the tile to prevent multiple assignments visually
+                const tileCopy = { ...selectedTile }; // Create a copy for use in callback/checks
+                deselectTile(); // Immediately deselect to prevent further actions on this click
+
+                // Call the store action which now returns a detailed status
+                const assignmentResult = assignWorkforceToTask(taskType, tileCopy, config.workforceRequired);
+
+                if (assignmentResult === true) {
                     console.log(`Successfully initiated task: ${config.name}`);
-                    // Task assigned, UI will be updated due to deselection
+                    // Task assigned, UI updated due to deselection
                 } else {
-                    console.warn(`Failed to initiate task: ${config.name}`);
-                    // Reselect the tile if the assignment failed
+                    console.warn(`Failed to initiate task: ${config.name} - Reason: ${assignmentResult}`);
+                    let message = 'Cannot start task.';
+                    if (assignmentResult === 'insufficient_resources') {
+                        message = 'Insufficient resources!';
+                    } else if (assignmentResult === 'insufficient_workforce') {
+                        message = 'Insufficient workforce!';
+                    } else if (assignmentResult === 'tile_occupied' || assignmentResult === 'building_present') {
+                        message = 'Location occupied!';
+                    } else if (assignmentResult === 'task_type_deploying') {
+                        message = 'Task type already deploying!';
+                    }
+
+                    // Trigger feedback
+                    setFeedbackState({
+                        shakingButton: taskType,
+                        warningMessage: { type: taskType, message: message }
+                    });
+
+                    // Clear feedback after a short duration
+                    setTimeout(() => {
+                        setFeedbackState({ shakingButton: null, warningMessage: null });
+                    }, 1200); // Duration for shake + fade
+
+                    // Re-select the tile since the action failed, use timeout for state consistency
                     if (tileCopy) {
                         setTimeout(() => {
-                            // Use a timeout to ensure state is consistent
                             useGameStore.getState().selectTile(tileCopy.q, tileCopy.r);
                         }, 50);
                     }
@@ -156,7 +201,7 @@ const ManagementUI = () => {
             );
 
             return (
-                <div>
+                <div className={styles.actionsContainer}>
                     <p><strong>Active Task:</strong> {
                         currentTask.status === 'operational' || currentTask.status === 'shutdown' || currentTask.status === 'deconstructing'
                             ? `Working in ${getTaskConfig(currentTask.type)?.name.replace(/(Deploy|Establish|Construct)\s+/, '')}`
@@ -178,7 +223,7 @@ const ManagementUI = () => {
                         </button>
                     )}
                     {(currentTask.status === 'operational' || currentTask.status === 'deploying' || currentTask.status === 'event-pending') && (
-                        <button onClick={() => handleRecallWorkforce(currentTask.id)} className={styles.actionButtonSmall}>
+                        <button onClick={() => handleRecallWorkforce(currentTask.id)} className={`${styles.actionButtonSmall} ${styles.deselectButton}`}>
                             Deconstruct ({currentTask.assignedWorkforce} W)
                         </button>
                     )}
@@ -198,22 +243,17 @@ const ManagementUI = () => {
 
         if (possibleTasks.length > 0) {
             return (
-                <div>
+                <div className={styles.actionsContainer}> {/* Wrap actions */}
                     <p><strong>Available Actions:</strong></p>
                     {possibleTasks.map(config => {
                          const canAffordWorkforce = availableWorkforce >= config.workforceRequired;
-                         // Basic resource check (can be more detailed)
                          const canAffordResources =
                             (config.cost.power === undefined || power >= config.cost.power) &&
                             (config.cost.minerals === undefined || minerals >= config.cost.minerals) &&
                             (config.cost.colonyGoods === undefined || colonyGoods >= config.cost.colonyGoods);
-
-                         // Check if there's already a task on this tile
                          const hasExistingTask = selectedTile.taskId !== null;
-                         
-                         // Check if this type of task is already being deployed somewhere
-                         const isTaskTypeDeploying = Object.values(activeTasks).some(task => 
-                            task.type === config.type && 
+                         const isTaskTypeDeploying = Object.values(activeTasks).some(task =>
+                            task.type === config.type &&
                             task.status === 'deploying'
                          );
 
@@ -221,18 +261,28 @@ const ManagementUI = () => {
                          let tooltip = '';
                          if (!canAffordWorkforce) tooltip += 'Insufficient workforce. ';
                          if (!canAffordResources) tooltip += 'Insufficient resources. ';
-                         if (hasExistingTask) tooltip += 'Tile already has an active task. ';
-                         if (isTaskTypeDeploying) tooltip += 'This type of task is already being deployed elsewhere. ';
+                         if (hasExistingTask) tooltip += 'Tile already has an active task/building. ';
+                         if (isTaskTypeDeploying) tooltip += 'Task type deployment already in progress. ';
+
+                        // Check if this button should be shaking
+                        const isShaking = feedbackState.shakingButton === config.type;
+                        const showWarning = feedbackState.warningMessage?.type === config.type;
 
                         return (
                             <button
                                 key={config.type}
                                 onClick={() => handleDeployTask(config.type as TaskState['type'])}
-                                className={styles.actionButtonSmall}
+                                className={`${styles.actionButtonSmall} ${isShaking ? styles.shake : ''}`}
                                 disabled={disabled}
                                 title={tooltip.trim()} // Show reason for disabling on hover
                             >
                                 {config.name} ({config.workforceRequired} W)
+                                {/* Render warning message */}
+                                {showWarning && (
+                                    <span className={`${styles.resourceWarning} ${styles.resourceWarningVisible}`}>
+                                        {feedbackState.warningMessage?.message}
+                                    </span>
+                                )}
                             </button>
                         );
                     })}
@@ -242,7 +292,7 @@ const ManagementUI = () => {
 
         return <p>No specific actions available for this tile type.</p>; // No actions
 
-    }, [selectedTile, activeTasks, availableWorkforce, power, minerals, colonyGoods, assignWorkforceToTask, recallWorkforce, setGameView, showResearchWindow, deselectTile, buildingIssues, showIssueWindow]); // Updated dependencies
+    }, [selectedTile, activeTasks, availableWorkforce, power, minerals, colonyGoods, assignWorkforceToTask, recallWorkforce, setGameView, showResearchWindow, deselectTile, buildingIssues, showIssueWindow, feedbackState]); // Added feedbackState dependency
 
 
     return (
@@ -264,7 +314,7 @@ const ManagementUI = () => {
                     <button onClick={handleEndRound} className={styles.actionButton}>
                         End Round
                     </button>
-                    <button onClick={handleGoToWelcome} className={styles.actionButton}>
+                    <button onClick={handleGoToWelcome} className={`${styles.actionButton} ${styles.portalButton}`}>
                         PORTAL ROOM
                     </button>
                 </div>
@@ -279,12 +329,20 @@ const ManagementUI = () => {
                     {/* --- Render Tile Actions --- */}
                     {tileActions}
                     {/* --- --- */}
-                    <hr style={{margin: '0.5rem 0', borderColor: '#555'}}/> {/* Separator */}
-                    <button onClick={handleDeselect} className={styles.actionButtonSmall}>
+                    <hr style={{margin: '1rem 0 0.75rem', borderColor: '#555'}}/> {/* Separator */}
+                    <button onClick={handleDeselect} className={`${styles.actionButtonSmall} ${styles.deselectButton}`}>
                         Deselect
                     </button>
                 </div>
             )}
+
+            {/* Render Confirmation Dialog Conditionally */}
+            <ConfirmationDialog
+                isVisible={showPortalConfirm}
+                message="Want to enter the Portal Room?"
+                onConfirm={handleConfirmPortal}
+                onCancel={handleCancelPortal}
+            />
 
             {/* Other UI elements like event popups can go here */}
         </div>

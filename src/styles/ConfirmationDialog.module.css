@@ -1,0 +1,101 @@
+/* ConfirmationDialog.module.css */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.7); /* Darker overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1500; /* Ensure it's above other UI elements */
+    padding: 20px;
+    box-sizing: border-box;
+    pointer-events: auto; /* Capture clicks */
+    backdrop-filter: blur(3px); /* Optional: Add background blur */
+    animation: fadeIn 0.2s ease-out;
+}
+
+.dialogBox {
+    background-color: rgba(30, 20, 15, 0.95); /* Dark background */
+    color: #e0d8d0;
+    border: 1px solid rgba(217, 119, 93, 0.7); /* Orange-ish border */
+    border-radius: 8px;
+    padding: 25px 30px;
+    width: 100%;
+    max-width: 400px; /* Max width */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+    text-align: center;
+    animation: scaleIn 0.2s ease-out 0.1s; /* Delayed scale-in */
+    animation-fill-mode: backwards; /* Start animation from initial state */
+}
+
+.message {
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    line-height: 1.4;
+}
+
+.buttonContainer {
+    display: flex;
+    justify-content: center; /* Center buttons */
+    gap: 15px; /* Space between buttons */
+}
+
+.button {
+    padding: 0.6em 1.2em;
+    font-size: 0.95rem;
+    font-weight: 500;
+    font-family: inherit;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.confirmButton {
+    background-color: #2a8a2a; /* Green for confirm */
+    color: white;
+    border-color: #206a20;
+}
+
+.confirmButton:hover {
+    background-color: #34a834;
+    border-color: #288a28;
+}
+
+.cancelButton {
+    background-color: #a83232; /* Red for cancel */
+    color: white;
+    border-color: #8a2020;
+}
+
+.cancelButton:hover {
+    background-color: #c84040;
+    border-color: #a83030;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Basic Mobile Adjustments */
+@media (max-width: 480px) {
+    .dialogBox {
+        padding: 20px 25px;
+        max-width: 90vw;
+    }
+    .message {
+        font-size: 1rem;
+    }
+    .button {
+        font-size: 0.9rem;
+        padding: 0.5em 1em;
+    }
+} 

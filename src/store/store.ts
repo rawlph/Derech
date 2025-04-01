@@ -133,7 +133,7 @@ interface GameState {
   resetColony: () => void; // NEW: Reset colony state but keep grid
   
   // Task Management Actions (NEW)
-  assignWorkforceToTask: (taskType: TaskState['type'], targetTile: TileData, workforce: number) => boolean;
+  assignWorkforceToTask: (taskType: TaskState['type'], targetTile: TileData, workforce: number) => AssignTaskResult;
   updateTaskProgress: () => boolean;
   generateTaskResources: () => void;
   triggerTaskEvent: (taskId: string, eventType: string) => void; // Simplified event trigger
@@ -172,6 +172,9 @@ interface GameState {
   // --- Helper Functions ---
   processDomeProjects: (dialogueAlreadyShown: boolean) => boolean; // Returns true if a message was shown
 }
+
+// Define return types for assignWorkforceToTask
+type AssignTaskResult = true | 'insufficient_workforce' | 'insufficient_resources' | 'tile_occupied' | 'building_present' | 'config_missing' | 'task_type_deploying';
 
 // Helper to generate initial grid data
 const generateInitialGrid = (radius: number): GridTiles => {
@@ -550,42 +553,57 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   // --- Task Management Actions Implementation ---
-  assignWorkforceToTask: (taskType, targetTile, workforce) => {
-    const { availableWorkforce } = get();
+  assignWorkforceToTask: (taskType, targetTile, workforce): AssignTaskResult => {
+    const { availableWorkforce, activeTasks } = get();
     const taskConfig = getTaskConfig(taskType);
 
     if (!taskConfig) {
       console.error(`Task config not found for type: ${taskType}`);
-      return false;
+      return 'config_missing';
     }
 
     if (workforce > availableWorkforce) {
       console.warn("Not enough available workforce.");
-      return false; // Not enough workforce
+      return 'insufficient_workforce';
     }
     if (workforce !== taskConfig.workforceRequired) {
       console.warn(`Incorrect workforce amount specified. Required: ${taskConfig.workforceRequired}`);
-      return false;
-    }
-    if (targetTile.taskId) {
-      console.warn(`Tile ${targetTile.q},${targetTile.r} already has an active task.`);
-      return false;
-    }
-    // Check if the tile already has a building
-    if (targetTile.building) {
-      console.warn(`Tile ${targetTile.q},${targetTile.r} already has a building: ${targetTile.building}`);
-      return false;
+      return 'insufficient_workforce';
     }
 
-    // Deduct resource costs
+    // Check tile state *before* deducting resources
+    const tileKey = `${targetTile.q},${targetTile.r}`;
+    const currentTileState = get().gridTiles[tileKey];
+    if (!currentTileState) {
+        console.error(`Tile ${tileKey} not found in current state!`);
+        return 'tile_occupied';
+    }
+    if (currentTileState.taskId) {
+        console.warn(`Tile ${tileKey} already has an active task.`);
+        return 'tile_occupied';
+    }
+    if (currentTileState.building) {
+        console.warn(`Tile ${tileKey} already has a building: ${currentTileState.building}`);
+        return 'building_present';
+    }
+
+    // Check if this task type is already deploying *anywhere*
+    const isTaskTypeDeploying = Object.values(activeTasks).some(task =>
+      task.type === taskType && task.status === 'deploying'
+    );
+    if (isTaskTypeDeploying) {
+        console.warn(`Task type ${taskType} is already being deployed elsewhere.`);
+        return 'task_type_deploying';
+    }
+
+    // Deduct resource costs *after* validating tile and workforce
     if (!get().deductResources(taskConfig.cost)) {
       console.warn("Not enough resources for task:", taskConfig.name);
-      return false; // Not enough resources
+      return 'insufficient_resources';
     }
 
-    // Assign workforce and create task
-    const tileKey = `${targetTile.q},${targetTile.r}`;
-    const taskId = `${taskType}-${tileKey}`; // Simple unique ID
+    // Assign workforce and create task if all checks pass
+    const taskId = `${taskType}-${tileKey}`;
     const newTask: TaskState = {
       id: taskId,
       type: taskType,
@@ -599,41 +617,39 @@ export const useGameStore = create<GameState>((set, get) => ({
     set((state) => {
       // Make a copy of the gridTiles object
       const updatedGridTiles = { ...state.gridTiles };
-      
-      // Update the specific tile with the taskId
+
+      // Update the specific tile with the taskId using the correct key
       if (updatedGridTiles[tileKey]) {
         updatedGridTiles[tileKey] = {
           ...updatedGridTiles[tileKey],
           taskId: taskId
         };
       }
-      
+
       return {
         availableWorkforce: state.availableWorkforce - workforce,
         activeTasks: { ...state.activeTasks, [taskId]: newTask },
-        gridTiles: updatedGridTiles // Update gridTiles in the same state update
+        gridTiles: updatedGridTiles
       };
     });
-    
+
     console.log(`Task ${taskId} (${taskConfig.name}) assigned to tile ${tileKey} with ${workforce} workforce.`);
     return true;
   },
 
-  updateTaskProgress: (): boolean => { // <-- Return boolean indicating if message was shown
+  updateTaskProgress: (): boolean => {
     const { gridTiles } = get();
     const tasksCompletedMessages: Array<{ message: string; avatar?: string }> = [];
     const deconstructionCompletedMessages: Array<{ message: string; avatar?: string }> = [];
 
     set((state) => {
       const updatedTasks = { ...state.activeTasks };
-      const taskIdsToRemove: string[] = []; // Track tasks to remove after deconstruction
-      const updatedGridTiles = { ...state.gridTiles }; // Make a copy of gridTiles
+      const taskIdsToRemove: string[] = [];
+      const updatedGridTiles = { ...state.gridTiles };
       let progressMade = false;
       let workforceToReturn = 0;
       
-      // Process all tasks
       Object.values(updatedTasks).forEach(task => {
-        // Handle deploying tasks
         if (task.status === 'deploying') {
           task.progress += 100 / task.duration;
           if (task.progress >= 100) {
@@ -644,11 +660,9 @@ export const useGameStore = create<GameState>((set, get) => ({
             const taskName = taskConfig?.name || 'Unknown Task';
             const coords = tile ? `(${tile.q}, ${tile.r})` : '(Unknown Tile)';
             
-            // Set the building property on the tile when task becomes operational
             if (tile) {
               const [q, r] = task.targetTileKey.split(',').map(Number);
               
-              // Map task type to building name
               let buildingName = null;
               if (task.type === 'deploy-scout') buildingName = 'Scout Outpost';
               else if (task.type === 'build-solar') buildingName = 'Solar Array';
@@ -656,7 +670,6 @@ export const useGameStore = create<GameState>((set, get) => ({
               else if (task.type === 'deploy-mining') buildingName = 'Mining Operation';
               else if (task.type === 'build-waterwell') buildingName = 'Water Well';
               
-              // Update the tile with the building name
               if (updatedGridTiles[task.targetTileKey]) {
                 updatedGridTiles[task.targetTileKey] = {
                   ...updatedGridTiles[task.targetTileKey],
@@ -665,7 +678,6 @@ export const useGameStore = create<GameState>((set, get) => ({
               }
             }
             
-            // Store Completion Message with AI Helper Avatar
             tasksCompletedMessages.push({
                 message: `${taskName} completed on tile ${coords}`,
                 avatar: '/Derech/avatars/AiHelper.jpg'
@@ -675,21 +687,16 @@ export const useGameStore = create<GameState>((set, get) => ({
           progressMade = true;
         }
         
-        // Handle deconstructing tasks
         else if (task.status === 'deconstructing') {
-          // Progress increases by 25% each round (4 rounds total)
           const deconstructProgress = (task.deconstructProgress || 0) + 25;
           task.deconstructProgress = deconstructProgress;
           
           if (deconstructProgress >= 100) {
-            // Deconstruction complete - prepare to remove the task
             taskIdsToRemove.push(task.id);
             workforceToReturn += task.assignedWorkforce;
             
-            // Clear building and taskId from the tile
             const tile = gridTiles[task.targetTileKey];
             if (tile) {
-              // Create message for deconstruction completion
               const coords = `(${tile.q}, ${tile.r})`;
               const buildingName = tile.building || 'Building';
               
@@ -698,7 +705,6 @@ export const useGameStore = create<GameState>((set, get) => ({
                 avatar: '/Derech/avatars/AiHelper.jpg'
               });
               
-              // Update the tile in our copy
               if (updatedGridTiles[task.targetTileKey]) {
                 updatedGridTiles[task.targetTileKey] = {
                   ...updatedGridTiles[task.targetTileKey],
@@ -715,15 +721,13 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
       });
       
-      // Remove completed deconstruction tasks
       const remainingTasks = { ...updatedTasks };
       taskIdsToRemove.forEach(id => {
         delete remainingTasks[id];
       });
       
-      if (!progressMade) return {}; // No changes needed
+      if (!progressMade) return {};
       
-      // Apply all updates
       return { 
         activeTasks: remainingTasks,
         gridTiles: updatedGridTiles,
@@ -731,21 +735,19 @@ export const useGameStore = create<GameState>((set, get) => ({
       };
     });
 
-    // Trigger Dialogue(s) for Completed Tasks
     if (tasksCompletedMessages.length > 0) {
       const firstCompletion = tasksCompletedMessages[0];
       get().showDialogue(firstCompletion.message, firstCompletion.avatar);
-      return true; // Indicate a message was shown
+      return true;
     }
     
-    // Show deconstruction messages if no construction messages
     if (tasksCompletedMessages.length === 0 && deconstructionCompletedMessages.length > 0) {
       const firstDeconstructionMessage = deconstructionCompletedMessages[0];
       get().showDialogue(firstDeconstructionMessage.message, firstDeconstructionMessage.avatar);
-      return true; // Indicate a message was shown
+      return true;
     }
     
-    return false; // No message shown
+    return false;
   },
 
   generateTaskResources: () => {
@@ -756,39 +758,32 @@ export const useGameStore = create<GameState>((set, get) => ({
     let totalWaterGenerated = 0;
     
     Object.values(state.activeTasks).forEach(task => {
-      if (task.status === 'operational') { // Only operational tasks generate resources, not shutdown or event-pending
+      if (task.status === 'operational') {
         const taskConfig = getTaskConfig(task.type);
         const tile = state.gridTiles[task.targetTileKey];
         if (taskConfig?.resourceYield && tile) {
           const resourceType = taskConfig.resourceYield.resource;
           let yieldAmount = taskConfig.resourceYield.baseAmount;
           
-          // Apply any bonuses based on terrain type
           if (resourceType === 'minerals' && tile.type === 'Mountain') {
-            // Calculate yield bonus based on mountain height
-            const heightBonus = tile.height * 0.5; // +50% per height level
+            const heightBonus = tile.height * 0.5;
             yieldAmount = Math.floor(yieldAmount * (1 + heightBonus));
             totalMineralsGenerated += yieldAmount;
             console.log(`Task ${task.id} generated ${yieldAmount} minerals (Base: ${taskConfig.resourceYield.baseAmount}, Height: ${tile.height})`);
           } else if (resourceType === 'researchPoints') {
-            // Handle research points generation
             totalResearchPointsGenerated += yieldAmount;
             console.log(`Task ${task.id} generated ${yieldAmount} research points`);
           } else if (resourceType === 'power') {
-            // Handle power generation
             totalPowerGenerated += yieldAmount;
             console.log(`Task ${task.id} generated ${yieldAmount} power`);
           } else if (resourceType === 'water') {
-            // Handle water generation
             totalWaterGenerated += yieldAmount;
             console.log(`Task ${task.id} generated ${yieldAmount} water`);
           }
-          // Add other resource types as needed
         }
       }
     });
 
-    // Update the resource totals in the state
     if (totalMineralsGenerated > 0) {
       state.addMinerals(totalMineralsGenerated);
     }
@@ -817,10 +812,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       const updatedTasks = { ...state.activeTasks };
       if (updatedTasks[taskId]) {
         updatedTasks[taskId].status = 'event-pending';
-        updatedTasks[taskId].eventDetails = { type: eventType, message: "An issue requires investigation!" }; // Example details
-        // TODO: Integrate with puzzle system - set activePuzzle state?
-        // state.setGameView('puzzle'); // Example: Switch view immediately
-        return { activeTasks: updatedTasks /*, gameView: 'puzzle'*/ };
+        updatedTasks[taskId].eventDetails = { type: eventType, message: "An issue requires investigation!" };
+        return { activeTasks: updatedTasks };
       }
       return {};
     });
@@ -831,36 +824,30 @@ export const useGameStore = create<GameState>((set, get) => ({
     set((state) => {
       const updatedTasks = { ...state.activeTasks };
       if (updatedTasks[taskId] && updatedTasks[taskId].status === 'event-pending') {
-        // Apply outcome effects here (e.g., resource changes, workforce loss)
-        // For now, just revert status to operational
         updatedTasks[taskId].status = 'operational';
-        updatedTasks[taskId].eventDetails = undefined; // Clear event details
+        updatedTasks[taskId].eventDetails = undefined;
         return { activeTasks: updatedTasks };
       }
       return {};
     });
-    // Potentially switch view back if needed
-    // get().setGameView('management');
   },
 
   recallWorkforce: (taskId) => {
     console.log(`Starting deconstruction for task ${taskId}`);
     
-    // Check if the task exists
     const task = get().activeTasks[taskId];
     if (!task) {
       console.warn(`Task ${taskId} not found for deconstruction`);
       return;
     }
     
-    // Set the task to deconstructing status
     set((state) => ({
       activeTasks: {
         ...state.activeTasks,
         [taskId]: {
           ...task,
           status: 'deconstructing',
-          deconstructProgress: 0, // Start at 0% progress
+          deconstructProgress: 0,
         }
       }
     }));
@@ -868,9 +855,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     console.log(`Task ${taskId} set to deconstructing status. Will complete in 4 rounds.`);
   },
 
-  // --- NEW: Dialogue Action Implementations ---
   showDialogue: (message, avatar) => {
-    // Prevent showing a new dialogue if one is already visible
     if (get().dialogueMessage) {
         console.log("Dialogue already visible, skipping new message:", message);
         return;
@@ -890,58 +875,46 @@ export const useGameStore = create<GameState>((set, get) => ({
     console.log("Hiding Dialogue");
   },
 
-  // --- NEW: Research Action Implementations ---
   showResearchWindow: () => set({ isResearchWindowVisible: true }),
   hideResearchWindow: () => set({ isResearchWindowVisible: false }),
 
-  // --- NEW: Living Dome Action Implementations ---
   showLivingDomeWindow: () => set({ isLivingDomeWindowVisible: true }),
   hideLivingDomeWindow: () => set({ isLivingDomeWindowVisible: false }),
 
-  // --- NEW: Production Dome Action Implementations ---
   showProductionDomeWindow: () => set({ isProductionDomeWindowVisible: true }),
   hideProductionDomeWindow: () => set({ isProductionDomeWindowVisible: false }),
 
-  // --- NEW: Issue Management Functions ---
   checkForNewIssues: () => {
     const { activeTasks, gridTiles, currentRound, lastIssueRounds, buildingIssues } = get();
-    const completedResearch: string[] = get().completedResearch || []; // Ensure this is always an array
+    const completedResearch: string[] = get().completedResearch || [];
     const currentIssueBuildingIds = Object.values(buildingIssues)
       .filter(issue => !issue.resolved)
       .map(issue => issue.buildingId);
     
-    // Check each operational task/building for potential issues
     Object.values(activeTasks).forEach(task => {
       if (task.status !== 'operational') return;
       
       const tile = gridTiles[task.targetTileKey];
       if (!tile || !tile.building) return;
       
-      // Skip if this building already has an active issue
       if (currentIssueBuildingIds.includes(task.id)) return;
       
-      // Get last round when this building had an issue
       const lastIssueRound = lastIssueRounds[task.id] || 0;
       const roundsSinceLastIssue = currentRound - lastIssueRound;
       
-      // Check if it's time for a new issue based on building type
       const issueRate = buildingIssueRates[tile.building];
       if (issueRate && roundsSinceLastIssue >= issueRate) {
-        // Get all applicable issues for this building type
         const applicableIssues = issues.filter(issue => 
           (typeof issue.buildingType === 'string' 
               ? issue.buildingType === tile.building
               : Array.isArray(issue.buildingType) && tile.building && issue.buildingType.includes(tile.building))
-          // Check if research requirement is met, if any
           && (!issue.requiresResearch || (issue.requiresResearch && completedResearch.includes(issue.requiresResearch)))
         );
         
         if (applicableIssues.length > 0) {
-          // Time for an issue! Get a random issue for this building type
           const issueIndex = Math.floor(Math.random() * applicableIssues.length);
           const issue = applicableIssues[issueIndex];
           
-          // Create a new building issue
           const issueInstanceId = `issue-${Date.now()}-${task.id}`;
           set((state) => ({
             buildingIssues: {
@@ -960,7 +933,6 @@ export const useGameStore = create<GameState>((set, get) => ({
             }
           }));
           
-          // Show notification about new issue
           const tileLoc = `(${tile.q}, ${tile.r})`;
           get().showDialogue(
             `Alert: ${tile.building} at ${tileLoc} has reported an issue that needs attention.`,
@@ -968,7 +940,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           );
           
           console.log(`New issue created for ${tile.building} at ${tileLoc}: ${issue.title}`);
-          return; // Only create one issue per round
+          return;
         }
       }
     });
@@ -992,19 +964,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     const issueState = get().buildingIssues[issueId];
     if (!issueState) return;
     
-    // Get the issue template and choice
     const issueTemplate = getIssueById(issueState.issueId);
     if (!issueTemplate) return;
     
     const choice = issueTemplate.choices.find(c => c.id === choiceId);
     if (!choice) return;
     
-    // Apply resource costs if any
     if (choice.cost) {
       get().deductResources(choice.cost);
     }
     
-    // Apply outcome effects
     if (choice.outcomes.effects) {
       const effects = choice.outcomes.effects;
       if (effects.power) get().addPower(effects.power);
@@ -1013,12 +982,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (effects.researchPoints) set(state => ({ researchPoints: state.researchPoints + (effects.researchPoints || 0) }));
       if (effects.colonyGoods) set(state => ({ colonyGoods: state.colonyGoods + (effects.colonyGoods || 0) }));
       
-      // Check if this issue resolution should shutdown the building/task
       if (choice.outcomes.shutdown === true) {
-        // Get the associated task
         const task = Object.values(get().activeTasks).find(t => t.id === issueState.buildingId);
         if (task) {
-          // Update task status to shutdown
           set(state => ({
             activeTasks: {
               ...state.activeTasks,
@@ -1029,10 +995,8 @@ export const useGameStore = create<GameState>((set, get) => ({
             }
           }));
           
-          // Log the shutdown for debugging
           console.log(`Task ${task.id} shutdown status updated: ${task.targetTileKey}`);
           
-          // Access the tile to verify it still has the building property
           const tileKey = task.targetTileKey;
           const tile = get().gridTiles[tileKey];
           if (tile) {
@@ -1042,7 +1006,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
     }
     
-    // Mark issue as resolved
     set(state => ({
       buildingIssues: {
         ...state.buildingIssues,
@@ -1053,7 +1016,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
     }));
     
-    // Hide the issue window
     get().hideIssueWindow();
     
     console.log(`Issue ${issueId} resolved with choice: ${choiceId}`);
@@ -1067,10 +1029,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!issueState) return null;
     
     const issueTemplate = getIssueById(issueState.issueId);
-    return issueTemplate || null; // Ensure we always return Issue | null, not undefined
+    return issueTemplate || null;
   },
 
-  // --- NEW: Research Actions ---
   startResearch: (projectId: string) => {
     const project = researchProjects[projectId];
     if (!project) {
@@ -1078,19 +1039,16 @@ export const useGameStore = create<GameState>((set, get) => ({
       return false;
     }
     
-    // Check if we already have an active project
     if (get().activeResearch) {
       console.warn("There is already an active research project.");
       return false;
     }
     
-    // Check if we have enough resources
     if (!get().deductResources(project.cost)) {
       console.warn("Not enough resources for research project:", project.name);
       return false;
     }
     
-    // Start the research project
     set({
       activeResearch: {
         id: project.id,
@@ -1110,21 +1068,17 @@ export const useGameStore = create<GameState>((set, get) => ({
     const { activeResearch, currentRound } = get();
     if (!activeResearch) return;
     
-    // Update progress
     const progressPerRound = 100 / activeResearch.duration;
     const newProgress = activeResearch.progress + progressPerRound;
     
     if (newProgress >= 100) {
-      // Research completed
       const completedProject = researchProjects[activeResearch.id];
       
-      // Add to completed research
       set(state => ({
         completedResearch: [...state.completedResearch, activeResearch.id],
         activeResearch: null
       }));
       
-      // Show completion message
       get().showDialogue(
         `Research completed: ${activeResearch.name}. ${completedProject.effectDescription}`,
         '/Derech/avatars/AiHelper.jpg'
@@ -1132,7 +1086,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       
       console.log(`Research project completed: ${activeResearch.name}`);
     } else {
-      // Update progress
       set({
         activeResearch: {
           ...activeResearch,
@@ -1142,7 +1095,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  // --- NEW: Living Dome Actions ---
   startLivingProject: (projectId: string) => {
     const project = livingAreaProjects[projectId];
     if (!project) {
@@ -1150,19 +1102,16 @@ export const useGameStore = create<GameState>((set, get) => ({
       return false;
     }
     
-    // Check if we already have an active project
     if (get().activeLivingProject) {
       console.warn("There is already an active living area project.");
       return false;
     }
     
-    // Check if we have enough resources
     if (!get().deductResources(project.cost)) {
       console.warn("Not enough resources for living area project:", project.name);
       return false;
     }
     
-    // Start the living project
     set({
       activeLivingProject: {
         id: project.id,
@@ -1182,21 +1131,17 @@ export const useGameStore = create<GameState>((set, get) => ({
     const { activeLivingProject, currentRound } = get();
     if (!activeLivingProject) return;
     
-    // Update progress
     const progressPerRound = 100 / activeLivingProject.duration;
     const newProgress = activeLivingProject.progress + progressPerRound;
     
     if (newProgress >= 100) {
-      // Project completed
       const completedProject = livingAreaProjects[activeLivingProject.id];
       
-      // Add to completed projects
       set(state => ({
         completedLivingProjects: [...state.completedLivingProjects, activeLivingProject.id],
         activeLivingProject: null
       }));
       
-      // Show completion message
       get().showDialogue(
         `Living area project completed: ${activeLivingProject.name}. ${completedProject.effectDescription}`,
         '/Derech/avatars/AiHelper.jpg'
@@ -1204,7 +1149,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       
       console.log(`Living area project completed: ${activeLivingProject.name}`);
     } else {
-      // Update progress
       set({
         activeLivingProject: {
           ...activeLivingProject,
@@ -1214,7 +1158,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  // --- NEW: Production Dome Actions ---
   startProductionProject: (projectId: string) => {
     const project = productionProjects[projectId];
     if (!project) {
@@ -1222,19 +1165,16 @@ export const useGameStore = create<GameState>((set, get) => ({
       return false;
     }
     
-    // Check if we already have an active project
     if (get().activeProductionProject) {
       console.warn("There is already an active production project.");
       return false;
     }
     
-    // Check if we have enough resources
     if (!get().deductResources(project.cost)) {
       console.warn("Not enough resources for production project:", project.name);
       return false;
     }
     
-    // Start the production project
     set({
       activeProductionProject: {
         id: project.id,
@@ -1254,21 +1194,17 @@ export const useGameStore = create<GameState>((set, get) => ({
     const { activeProductionProject, currentRound } = get();
     if (!activeProductionProject) return;
     
-    // Update progress
     const progressPerRound = 100 / activeProductionProject.duration;
     const newProgress = activeProductionProject.progress + progressPerRound;
     
     if (newProgress >= 100) {
-      // Project completed
       const completedProject = productionProjects[activeProductionProject.id];
       
-      // Add to completed projects
       set(state => ({
         completedProductionProjects: [...state.completedProductionProjects, activeProductionProject.id],
         activeProductionProject: null
       }));
       
-      // Show completion message
       get().showDialogue(
         `Production project completed: ${activeProductionProject.name}. ${completedProject.effectDescription}`,
         '/Derech/avatars/AiHelper.jpg'
@@ -1276,7 +1212,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       
       console.log(`Production project completed: ${activeProductionProject.name}`);
     } else {
-      // Update progress
       set({
         activeProductionProject: {
           ...activeProductionProject,
@@ -1286,32 +1221,25 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  // Helper function to process all dome projects and return if any messages were shown
   processDomeProjects: (dialogueAlreadyShown: boolean) => {
     let messageShown = false;
     
-    // Check if we can show a message (if no dialogue is already shown)
     const canShowMessage = !dialogueAlreadyShown;
     
-    // Process Research Project
     if (get().activeResearch) {
-      // Update research progress
       const activeResearch = get().activeResearch;
       if (activeResearch) {
         const progressPerRound = 100 / activeResearch.duration;
         const newProgress = activeResearch.progress + progressPerRound;
         
         if (newProgress >= 100) {
-          // Research completed
           const completedProject = researchProjects[activeResearch.id];
           
-          // Add to completed research
           set(state => ({
             completedResearch: [...state.completedResearch, activeResearch.id],
             activeResearch: null
           }));
           
-          // Show completion message if no dialogue is already shown
           if (canShowMessage) {
             get().showDialogue(
               `Research completed: ${activeResearch.name}. ${completedProject.effectDescription}`,
@@ -1322,7 +1250,6 @@ export const useGameStore = create<GameState>((set, get) => ({
           
           console.log(`Research project completed: ${activeResearch.name}`);
         } else {
-          // Update progress
           set({
             activeResearch: {
               ...activeResearch,
@@ -1334,25 +1261,20 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
     }
     
-    // Process Living Project (if no message shown yet)
     if (get().activeLivingProject && (!messageShown || !canShowMessage)) {
-      // Update project progress
       const activeLivingProject = get().activeLivingProject;
       if (activeLivingProject) {
         const progressPerRound = 100 / activeLivingProject.duration;
         const newProgress = activeLivingProject.progress + progressPerRound;
         
         if (newProgress >= 100) {
-          // Project completed
           const completedProject = livingAreaProjects[activeLivingProject.id];
           
-          // Add to completed projects
           set(state => ({
             completedLivingProjects: [...state.completedLivingProjects, activeLivingProject.id],
             activeLivingProject: null
           }));
           
-          // Show completion message if no dialogue is already shown and we haven't shown one yet
           if (canShowMessage && !messageShown) {
             get().showDialogue(
               `Living area project completed: ${activeLivingProject.name}. ${completedProject.effectDescription}`,
@@ -1363,7 +1285,6 @@ export const useGameStore = create<GameState>((set, get) => ({
           
           console.log(`Living area project completed: ${activeLivingProject.name}`);
         } else {
-          // Update progress
           set({
             activeLivingProject: {
               ...activeLivingProject,
@@ -1375,25 +1296,20 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
     }
     
-    // Process Production Project (if no message shown yet)
     if (get().activeProductionProject && (!messageShown || !canShowMessage)) {
-      // Update project progress
       const activeProductionProject = get().activeProductionProject;
       if (activeProductionProject) {
         const progressPerRound = 100 / activeProductionProject.duration;
         const newProgress = activeProductionProject.progress + progressPerRound;
         
         if (newProgress >= 100) {
-          // Project completed
           const completedProject = productionProjects[activeProductionProject.id];
           
-          // Add to completed projects
           set(state => ({
             completedProductionProjects: [...state.completedProductionProjects, activeProductionProject.id],
             activeProductionProject: null
           }));
           
-          // Show completion message if no dialogue is already shown and we haven't shown one yet
           if (canShowMessage && !messageShown) {
             get().showDialogue(
               `Production project completed: ${activeProductionProject.name}. ${completedProject.effectDescription}`,
@@ -1404,7 +1320,6 @@ export const useGameStore = create<GameState>((set, get) => ({
           
           console.log(`Production project completed: ${activeProductionProject.name}`);
         } else {
-          // Update progress
           set({
             activeProductionProject: {
               ...activeProductionProject,
@@ -1421,5 +1336,4 @@ export const useGameStore = create<GameState>((set, get) => ({
 
 }));
 
-// Initialize the grid on load - Increase radius for more space
-useGameStore.getState().initializeGrid(5); // Start with radius 5 
+useGameStore.getState().initializeGrid(5); 
