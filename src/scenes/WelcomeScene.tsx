@@ -947,7 +947,7 @@ const WelcomeScene = () => {
 
     return (
         <div className={styles.sceneContainer}>
-            {isLoading && ( <div className={styles.loadingOverlay}> <div className={styles.loadingSpinner} /> <p>Loading Museum Portal...</p> </div> )}
+            {isLoading && ( <div className={styles.loadingOverlay}> <div className={styles.loadingSpinner} /> <p>Loading PORTAL ROOM...</p> </div> )}
             <div className={styles.canvasContainer}>
                 <Canvas shadows camera={{ position: [0, 15, 25], fov: 60 }}>
                     <color attach="background" args={['#1a1a2a']} />
@@ -958,8 +958,8 @@ const WelcomeScene = () => {
                 </Canvas>
             </div>
             <div className={styles.controlsInfo}>
-                Desktop: WASD/Arrows: Move | Left Mouse Drag: Look | Click: Interact <br/>
-                Mobile: Left Stick: Move | Right Stick: Look | Tap Buttons: Interact
+                Desktop: WASD, Mouse Drag Look<br/>
+                Mobile: Left stick move, Right stick look
             </div>
             <MobileControls onMove={handleMobileInput} onLook={handleMobileLook} />
         </div>
