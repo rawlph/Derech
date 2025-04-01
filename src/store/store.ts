@@ -1146,7 +1146,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     
     if (newProgress >= 100) {
       // Project completed
-      const { livingAreaProjects } = require('@config/livingAreaProjects');
       const completedProject = livingAreaProjects[activeLivingProject.id];
       
       // Add to completed projects
@@ -1219,7 +1218,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     
     if (newProgress >= 100) {
       // Project completed
-      const { productionProjects } = require('@config/productionProjects');
       const completedProject = productionProjects[activeProductionProject.id];
       
       // Add to completed projects
