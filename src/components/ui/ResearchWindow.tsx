@@ -113,93 +113,104 @@ const ResearchWindow: React.FC<ResearchWindowProps> = ({ isVisible, onClose }) =
                     )}
                 </div>
 
-                {/* Show active research if any */}
-                {activeResearch && (
-                    <div className={styles.activeResearchSection}>
-                        <h3>Current Research: {activeResearch.name}</h3>
-                        <div className={styles.progressBar}>
-                            <div 
-                                className={styles.progressFill} 
-                                style={{ width: `${Math.floor(activeResearch.progress)}%` }}
-                            />
+                {/* Main content container for mobile layout control */}
+                <div className={styles.mainContentContainer}>
+                    {/* Show active research if any */}
+                    {activeResearch && (
+                        <div className={styles.activeResearchSection}>
+                            <h3>Current Research: {activeResearch.name}</h3>
+                            <div className={styles.progressBar}>
+                                <div 
+                                    className={styles.progressFill} 
+                                    style={{ width: `${Math.floor(activeResearch.progress)}%` }}
+                                />
+                            </div>
+                            <p>Progress: {Math.floor(activeResearch.progress)}% (Started on round {activeResearch.startedRound})</p>
                         </div>
-                        <p>Progress: {Math.floor(activeResearch.progress)}% (Started on round {activeResearch.startedRound})</p>
-                    </div>
-                )}
-
-                <ul className={styles.projectList}>
-                    {availableProjects.length > 0 ? (
-                        availableProjects.map((project) => (
-                            <li key={project.id} className={styles.projectItem}>
-                                <div className={styles.projectDetails}>
-                                    <h3 className={styles.projectName}>{project.name}</h3>
-                                    <p className={styles.projectDescription}>{project.description}</p>
-                                    <p className={styles.projectCost}>
-                                        Cost: {project.cost.researchPoints || 0} RP
-                                        {project.duration && `, Duration: ${project.duration} Rounds`}
-                                    </p>
-                                    <p className={styles.effectDescription}>
-                                        <strong>Effect:</strong> {project.effectDescription}
-                                    </p>
-                                    {project.prerequisites && project.prerequisites.length > 0 && (
-                                        <p className={styles.prerequisitesNote}>
-                                            <strong>Prerequisites:</strong> {
-                                                project.prerequisites.includes('__ANY_THREE_RESEARCH__')
-                                                    ? 'Any three completed research projects'
-                                                    : project.prerequisites.map(prereq => {
-                                                        const prereqProject = Object.values(getAvailableResearch([])).find(p => p.id === prereq);
-                                                        return prereqProject ? prereqProject.name : prereq;
-                                                    }).join(', ')
-                                            }
-                                        </p>
-                                    )}
-                                </div>
-                                <button
-                                    className={styles.startButton}
-                                    onClick={() => handleStartResearch(project)}
-                                    disabled={
-                                        activeResearch !== null || 
-                                        (project.cost.researchPoints || 0) > researchPoints
-                                    }
-                                >
-                                    Start Research
-                                </button>
-                            </li>
-                        ))
-                    ) : (
-                        <p className={styles.noProjectsMessage}>
-                            {currentTier === 1 
-                                ? "No research projects currently available." 
-                                : (isTier2Unlocked 
-                                    ? "No Tier 2 research projects currently available." 
-                                    : "Complete 3 research projects to unlock Tier 2 research.")}
-                        </p>
                     )}
-                </ul>
 
-                {/* Display completed research */}
-                {completedResearch.length > 0 && (
-                    <div className={styles.completedResearchSection}>
-                        <h3>Completed Research</h3>
-                        <ul className={styles.completedList}>
-                            {completedResearch.map(id => {
-                                const project = Object.values(getAvailableResearch([])).find(p => p.id === id);
-                                if (!project) return null;
-                                return (
-                                    <li key={id} className={styles.completedItem}>
+                    <ul className={styles.projectList}>
+                        {availableProjects.length > 0 ? (
+                            availableProjects.map((project) => (
+                                <li key={project.id} className={styles.projectItem}>
+                                    <div className={styles.projectContent}>
                                         <div className={styles.projectDetails}>
                                             <h3 className={styles.projectName}>{project.name}</h3>
+                                            <p className={styles.projectDescription}>{project.description}</p>
+                                            <p className={styles.projectCost}>
+                                                Cost: {project.cost.researchPoints || 0} RP
+                                                {project.duration && `, Duration: ${project.duration} Rounds`}
+                                            </p>
                                             <p className={styles.effectDescription}>
                                                 <strong>Effect:</strong> {project.effectDescription}
                                             </p>
+                                            {project.prerequisites && project.prerequisites.length > 0 && (
+                                                <p className={styles.prerequisitesNote}>
+                                                    <strong>Prerequisites:</strong> {
+                                                        project.prerequisites.includes('__ANY_THREE_RESEARCH__')
+                                                            ? 'Any three completed research projects'
+                                                            : project.prerequisites.map(prereq => {
+                                                                const prereqProject = Object.values(getAvailableResearch([])).find(p => p.id === prereq);
+                                                                return prereqProject ? prereqProject.name : prereq;
+                                                            }).join(', ')
+                                                    }
+                                                </p>
+                                            )}
                                         </div>
-                                        <button className={styles.completedButton}>Finished!</button>
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    </div>
-                )}
+                                        <div className={styles.buttonContainer}>
+                                            <button
+                                                className={styles.startButton}
+                                                onClick={() => handleStartResearch(project)}
+                                                disabled={
+                                                    activeResearch !== null || 
+                                                    (project.cost.researchPoints || 0) > researchPoints
+                                                }
+                                            >
+                                                Start Research
+                                            </button>
+                                        </div>
+                                    </div>
+                                </li>
+                            ))
+                        ) : (
+                            <p className={styles.noProjectsMessage}>
+                                {currentTier === 1 
+                                    ? "No research projects currently available." 
+                                    : (isTier2Unlocked 
+                                        ? "No Tier 2 research projects currently available." 
+                                        : "Complete 3 research projects to unlock Tier 2 research.")}
+                            </p>
+                        )}
+                    </ul>
+
+                    {/* Display completed research */}
+                    {completedResearch.length > 0 && (
+                        <div className={styles.completedResearchSection}>
+                            <h3>Completed Research</h3>
+                            <ul className={styles.completedList}>
+                                {completedResearch.map(id => {
+                                    const project = Object.values(getAvailableResearch([])).find(p => p.id === id);
+                                    if (!project) return null;
+                                    return (
+                                        <li key={id} className={styles.completedItem}>
+                                            <div className={styles.projectContent}>
+                                                <div className={styles.projectDetails}>
+                                                    <h3 className={styles.projectName}>{project.name}</h3>
+                                                    <p className={styles.effectDescription}>
+                                                        <strong>Effect:</strong> {project.effectDescription}
+                                                    </p>
+                                                </div>
+                                                <div className={styles.buttonContainer}>
+                                                    <button className={styles.completedButton}>Finished!</button>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

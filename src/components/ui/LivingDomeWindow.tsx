@@ -131,104 +131,115 @@ const LivingDomeWindow: React.FC<LivingDomeWindowProps> = ({ isVisible, onClose 
                     )}
                 </div>
                 
-                {/* Show active project if any */}
-                {activeLivingProject && (
-                    <div className={styles.activeProjectSection}>
-                        <h3>Current Project: {activeLivingProject.name}</h3>
-                        <div className={styles.progressBar}>
-                            <div 
-                                className={styles.progressFill} 
-                                style={{ width: `${Math.floor(activeLivingProject.progress)}%` }}
-                            />
+                {/* Main content container for mobile layout control */}
+                <div className={styles.mainContentContainer}>
+                    {/* Show active project if any */}
+                    {activeLivingProject && (
+                        <div className={styles.activeProjectSection}>
+                            <h3>Current Project: {activeLivingProject.name}</h3>
+                            <div className={styles.progressBar}>
+                                <div 
+                                    className={styles.progressFill} 
+                                    style={{ width: `${Math.floor(activeLivingProject.progress)}%` }}
+                                />
+                            </div>
+                            <p>Progress: {Math.floor(activeLivingProject.progress)}% (Started on round {activeLivingProject.startedRound})</p>
                         </div>
-                        <p>Progress: {Math.floor(activeLivingProject.progress)}% (Started on round {activeLivingProject.startedRound})</p>
-                    </div>
-                )}
-
-                <ul className={styles.projectList}>
-                    {availableProjects.length > 0 ? (
-                        availableProjects.map((project) => (
-                            <li key={project.id} className={styles.projectItem}>
-                                <div className={styles.projectDetails}>
-                                    <h3 className={styles.projectName}>{project.name}</h3>
-                                    <p className={styles.projectDescription}>{project.description}</p>
-                                    <p className={styles.projectCost}>
-                                        Cost: 
-                                        {Object.entries(project.cost).map(([resource, amount], index, arr) => (
-                                            <span key={resource}>
-                                                {` ${amount} ${resource.charAt(0).toUpperCase() + resource.slice(1)}`}
-                                                {index < arr.length - 1 ? ', ' : ''}
-                                            </span>
-                                        ))}
-                                        {project.duration && `, Duration: ${project.duration} Rounds`}
-                                    </p>
-                                    <p className={styles.effectDescription}>
-                                        <strong>Effect:</strong> {project.effectDescription}
-                                    </p>
-                                    {project.prerequisites && project.prerequisites.length > 0 && (
-                                        <p className={styles.prerequisitesNote}>
-                                            <strong>Prerequisites:</strong> {
-                                                project.prerequisites.includes('__ANY_THREE_RESEARCH__')
-                                                    ? 'Any three completed research or living projects'
-                                                    : project.prerequisites.map(prereq => {
-                                                        // Find the prerequisite project (either in living or other project types)
-                                                        const livingProject = Object.values(getAvailableLivingAreaProjects([], 1)).find(p => p.id === prereq) ||
-                                                                          Object.values(getAvailableLivingAreaProjects([], 2)).find(p => p.id === prereq);
-                                                        return livingProject ? livingProject.name : prereq;
-                                                    }).join(', ')
-                                            }
-                                        </p>
-                                    )}
-                                </div>
-                                <button
-                                    className={styles.startButton}
-                                    onClick={() => handleStartProject(project)}
-                                    disabled={
-                                        activeLivingProject !== null || 
-                                        !canAffordProject(project) ||
-                                        (project.prerequisites && project.prerequisites.length > 0 && !checkPrerequisites(project, completedLivingProjects, completedResearch))
-                                    }
-                                >
-                                    Start Project
-                                </button>
-                            </li>
-                        ))
-                    ) : (
-                        <p className={styles.noProjectsMessage}>
-                            {currentTier === 1 
-                                ? "No living area projects currently available." 
-                                : (isTier2Unlocked 
-                                    ? "No Tier 2 living area projects currently available." 
-                                    : "Complete 3 research or living projects to unlock Tier 2 projects.")}
-                        </p>
                     )}
-                </ul>
-                
-                {/* Display completed projects */}
-                {completedLivingProjects.length > 0 && (
-                    <div className={styles.completedProjectsSection}>
-                        <h3>Completed Projects</h3>
-                        <ul className={styles.completedList}>
-                            {completedLivingProjects.map(id => {
-                                // Get the project from all tiers
-                                const project = Object.values(getAvailableLivingAreaProjects([], 1)).find(p => p.id === id) ||
-                                              Object.values(getAvailableLivingAreaProjects([], 2)).find(p => p.id === id);
-                                if (!project) return null;
-                                return (
-                                    <li key={id} className={styles.completedItem}>
+
+                    <ul className={styles.projectList}>
+                        {availableProjects.length > 0 ? (
+                            availableProjects.map((project) => (
+                                <li key={project.id} className={styles.projectItem}>
+                                    <div className={styles.projectContent}>
                                         <div className={styles.projectDetails}>
                                             <h3 className={styles.projectName}>{project.name}</h3>
+                                            <p className={styles.projectDescription}>{project.description}</p>
+                                            <p className={styles.projectCost}>
+                                                Cost: 
+                                                {Object.entries(project.cost).map(([resource, amount], index, arr) => (
+                                                    <span key={resource}>
+                                                        {` ${amount} ${resource.charAt(0).toUpperCase() + resource.slice(1)}`}
+                                                        {index < arr.length - 1 ? ', ' : ''}
+                                                    </span>
+                                                ))}
+                                                {project.duration && `, Duration: ${project.duration} Rounds`}
+                                            </p>
                                             <p className={styles.effectDescription}>
                                                 <strong>Effect:</strong> {project.effectDescription}
                                             </p>
+                                            {project.prerequisites && project.prerequisites.length > 0 && (
+                                                <p className={styles.prerequisitesNote}>
+                                                    <strong>Prerequisites:</strong> {
+                                                        project.prerequisites.includes('__ANY_THREE_RESEARCH__')
+                                                            ? 'Any three completed research or living projects'
+                                                            : project.prerequisites.map(prereq => {
+                                                                // Find the prerequisite project (either in living or other project types)
+                                                                const livingProject = Object.values(getAvailableLivingAreaProjects([], 1)).find(p => p.id === prereq) ||
+                                                                                  Object.values(getAvailableLivingAreaProjects([], 2)).find(p => p.id === prereq);
+                                                                return livingProject ? livingProject.name : prereq;
+                                                            }).join(', ')
+                                                    }
+                                                </p>
+                                            )}
                                         </div>
-                                        <button className={styles.completedButton}>Finished!</button>
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    </div>
-                )}
+                                        <div className={styles.buttonContainer}>
+                                            <button
+                                                className={styles.startButton}
+                                                onClick={() => handleStartProject(project)}
+                                                disabled={
+                                                    activeLivingProject !== null || 
+                                                    !canAffordProject(project) ||
+                                                    (project.prerequisites && project.prerequisites.length > 0 && !checkPrerequisites(project, completedLivingProjects, completedResearch))
+                                                }
+                                            >
+                                                Start Project
+                                            </button>
+                                        </div>
+                                    </div>
+                                </li>
+                            ))
+                        ) : (
+                            <p className={styles.noProjectsMessage}>
+                                {currentTier === 1 
+                                    ? "No living area projects currently available." 
+                                    : (isTier2Unlocked 
+                                        ? "No Tier 2 living area projects currently available." 
+                                        : "Complete 3 research or living projects to unlock Tier 2 projects.")}
+                            </p>
+                        )}
+                    </ul>
+                    
+                    {/* Display completed projects */}
+                    {completedLivingProjects.length > 0 && (
+                        <div className={styles.completedProjectsSection}>
+                            <h3>Completed Projects</h3>
+                            <ul className={styles.completedList}>
+                                {completedLivingProjects.map(id => {
+                                    // Get the project from all tiers
+                                    const project = Object.values(getAvailableLivingAreaProjects([], 1)).find(p => p.id === id) ||
+                                                  Object.values(getAvailableLivingAreaProjects([], 2)).find(p => p.id === id);
+                                    if (!project) return null;
+                                    return (
+                                        <li key={id} className={styles.completedItem}>
+                                            <div className={styles.projectContent}>
+                                                <div className={styles.projectDetails}>
+                                                    <h3 className={styles.projectName}>{project.name}</h3>
+                                                    <p className={styles.effectDescription}>
+                                                        <strong>Effect:</strong> {project.effectDescription}
+                                                    </p>
+                                                </div>
+                                                <div className={styles.buttonContainer}>
+                                                    <button className={styles.completedButton}>Finished!</button>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
