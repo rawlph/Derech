@@ -38,8 +38,13 @@ const ProductionDomeWindow: React.FC<ProductionDomeWindowProps> = ({ isVisible, 
     // Get available projects for the current tier
     const availableProjects = getAvailableProductionProjects(completedProductionProjects, currentTier, completedResearch);
 
+    // Debug logging
+    console.log("[ProductionDomeWindow] completedResearch:", completedResearch);
+    console.log("[ProductionDomeWindow] isTier2Unlocked:", completedResearch.length >= 3);
+    
     // Function to toggle between tiers
     const toggleTier = () => {
+        console.log("[ProductionDomeWindow] Toggling tier from", currentTier, "to", currentTier === 1 ? 2 : 1);
         setCurrentTier(currentTier === 1 ? 2 : 1);
     };
 
@@ -69,8 +74,8 @@ const ProductionDomeWindow: React.FC<ProductionDomeWindowProps> = ({ isVisible, 
         return null;
     }
 
-    // Check if tier 2 is unlocked (requires at least 3 completed research)
-    const isTier2Unlocked = completedResearch.length >= 3;
+    // Check if tier 2 is unlocked (requires at least 3 completed research projects OR 3 completed production projects)
+    const isTier2Unlocked = completedResearch.length >= 3 || completedProductionProjects.length >= 3;
 
     return (
         <div className={styles.overlay} onClick={onClose}>
@@ -99,7 +104,7 @@ const ProductionDomeWindow: React.FC<ProductionDomeWindowProps> = ({ isVisible, 
                             </button>
                             {!isTier2Unlocked && (
                                 <span className={styles.tierLockHint}>
-                                    Complete 3 research projects to unlock Tier 2
+                                    Complete 3 research or production projects to unlock Tier 2
                                 </span>
                             )}
                             {isTier2Unlocked && (
@@ -164,7 +169,7 @@ const ProductionDomeWindow: React.FC<ProductionDomeWindowProps> = ({ isVisible, 
                                         <p className={styles.prerequisitesNote}>
                                             <strong>Prerequisites:</strong> {
                                                 project.prerequisites.includes('__ANY_THREE_RESEARCH__')
-                                                    ? 'Any three completed research projects'
+                                                    ? 'Any three completed research or production projects'
                                                     : project.prerequisites.map(prereq => {
                                                         // Find the prerequisite project (either in production or other project types)
                                                         const productionProject = Object.values(getAvailableProductionProjects([], 1)).find(p => p.id === prereq) ||
@@ -194,7 +199,7 @@ const ProductionDomeWindow: React.FC<ProductionDomeWindowProps> = ({ isVisible, 
                                 ? "No production projects currently available." 
                                 : (isTier2Unlocked 
                                     ? "No Tier 2 production projects currently available." 
-                                    : "Complete 3 research projects to unlock Tier 2 projects.")}
+                                    : "Complete 3 research or production projects to unlock Tier 2 projects.")}
                         </p>
                     )}
                 </ul>

@@ -341,6 +341,23 @@ const ManagementUI = () => {
                         <button onClick={handleGoToWelcome} className={`${styles.actionButton} ${styles.portalButton}`}>
                             PORTAL ROOM
                         </button>
+                        <button 
+                            onClick={() => {
+                                // Add resources for testing
+                                useGameStore.getState().addPower(500);
+                                useGameStore.getState().addWater(500);
+                                useGameStore.getState().addMinerals(500);
+                                // Need to add these resources too
+                                useGameStore.setState(state => ({
+                                    colonyGoods: state.colonyGoods + 500,
+                                    researchPoints: state.researchPoints + 500
+                                }));
+                                console.log("TEST MODE: Added 500 of each resource");
+                            }} 
+                            className={`${styles.actionButton} ${styles.testButton}`}
+                        >
+                            TEST MODE
+                        </button>
                         <VolumeControl />
                     </div>
                 </div>

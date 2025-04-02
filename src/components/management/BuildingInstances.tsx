@@ -1,10 +1,30 @@
-import { useMemo, useEffect } from 'react';
-// Restore GLTF and Instancing imports, remove Sphere
+import { useMemo, useEffect, useCallback } from 'react';
+// Update imports
 import { useGLTF, Instances, Instance } from '@react-three/drei';
+import { useLoader } from '@react-three/fiber';
 import { useGameStore, TileData } from '@store/store';
 import { axialToWorld, TILE_THICKNESS } from '@utils/hexUtils';
 import { buildingConfigs, getBuildingConfig } from '@config/buildings';
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+
+// Set up Draco loader to be used by GLTFLoader
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('/Derech/draco/'); // Path to the Draco decoder files
+
+// Prepare GLTFLoader with Draco support
+const gltfLoader = new GLTFLoader();
+gltfLoader.setDRACOLoader(dracoLoader);
+
+// Preload models with Draco support
+const preloadModel = (path: string) => {
+  console.log(`Preloading model: ${path}`);
+  gltfLoader.load(path, () => {
+    console.log(`Preloaded model: ${path}`);
+  });
+  return path;
+};
 
 interface BuildingInstanceInfo {
     key: string;
@@ -21,32 +41,80 @@ const SingleBuildingTypeInstances = ({ buildingName }: { buildingName: string })
     const config = getBuildingConfig(buildingName);
     if (!config) return null;
 
-    // --- Restore GLTF Loading ---
+    // Get state to check for completed upgrade projects
+    const completedLivingProjects = useGameStore(state => state.completedLivingProjects);
+    const completedProductionProjects = useGameStore(state => state.completedProductionProjects);
+    const completedResearch = useGameStore(state => state.completedResearch);
+
+    // Determine if we should show the upgrade model
+    const hasUpgrade = useMemo(() => {
+        if (!config.upgradeModelPath) return false;
+        
+        if (buildingName === 'Living Dome') {
+            return completedLivingProjects.includes('upgrade-living-dome');
+        } else if (buildingName === 'Production Dome') {
+            return completedProductionProjects.includes('upgrade-production-dome');
+        } else if (buildingName === 'Research Dome') {
+            return completedResearch.includes('upgrade-research-dome');
+        }
+        return false;
+    }, [buildingName, config, completedLivingProjects, completedProductionProjects, completedResearch]);
+
+    // --- Load base model ---
     const { scene } = useGLTF(config.modelPath);
 
-    // --- Geometry and Material Extraction ---
-    // This part is crucial and might need adjustment based on your model structure.
-    // It assumes the *first* mesh found in the GLTF scene holds the geometry/material.
-    const buildingGeometry = useMemo(() => {
-        let geometry: THREE.BufferGeometry | null = null;
+    // Debug: Log the full scene structure
+    useEffect(() => {
+        console.log(`Debugging model structure for ${buildingName}:`);
+        let meshCount = 0;
+        
         scene.traverse((child) => {
-            if (child instanceof THREE.Mesh && child.isMesh && !geometry) {
-                 // Important: Clone the geometry to prevent issues if multiple
-                 // Instances components try to use the exact same geometry object
-                 // simultaneously, especially if materials differ or matrix updates occur.
-                geometry = child.geometry.clone();
-                // Keep this log? Useful for confirming mesh names
-                // console.log(`Geometry found for ${buildingName} in mesh:`, child.name);
+            if (child instanceof THREE.Mesh) {
+                meshCount++;
+                console.log(`- Mesh #${meshCount}: ${child.name || 'unnamed'}`);
+                console.log(`  - Geometry: vertices=${child.geometry.attributes.position.count}`);
+                console.log(`  - Material: ${Array.isArray(child.material) ? 
+                    `${child.material.length} materials` : 
+                    child.material.type}`);
+            } else if (child.name) {
+                console.log(`- Other object: ${child.name} (type: ${child.type})`);
             }
         });
-         if (!geometry) {
-            // Keep this warning
-            console.warn(`No mesh geometry found for ${buildingName} in ${config.modelPath}`);
-        }
-        return geometry;
-    }, [scene, buildingName, config.modelPath]); // Add dependencies
+        
+        console.log(`Total meshes in ${buildingName}: ${meshCount}`);
+    }, [scene, buildingName]);
 
-    // --- Restore original material extraction ---
+    // --- Geometry and Material Extraction for base model ---
+    const buildingGeometry = useMemo(() => {
+        let geometry: THREE.BufferGeometry | null = null;
+        let meshCount = 0;
+        
+        // First check if there's a single mesh that contains everything
+        scene.traverse((child) => {
+            if (child instanceof THREE.Mesh && child.isMesh) {
+                meshCount++;
+                // If this is the first mesh or it has a lot more vertices than our current geometry,
+                // use this one (assuming larger meshes are more likely to be the main model)
+                if (!geometry || 
+                    (child.geometry.attributes.position.count > geometry.attributes.position.count * 1.5)) {
+                    if (geometry) {
+                        console.log(`Replacing geometry with larger mesh for ${buildingName}`);
+                    }
+                    geometry = child.geometry.clone();
+                }
+            }
+        });
+        
+        if (!geometry) {
+            console.warn(`No mesh geometry found for ${buildingName} in ${config.modelPath}`);
+        } else if (meshCount > 1) {
+            console.log(`Model ${buildingName} has ${meshCount} meshes, using the largest one`);
+        }
+        
+        return geometry;
+    }, [scene, buildingName, config.modelPath]);
+
+    // --- Restore original material extraction for base model ---
     const buildingMaterial = useMemo(() => {
         let material: THREE.Material | THREE.Material[] | null = null;
         scene.traverse((child) => {
@@ -56,7 +124,6 @@ const SingleBuildingTypeInstances = ({ buildingName }: { buildingName: string })
                 } else {
                     material = child.material.clone();
                 }
-                 // console.log(`Material found for ${buildingName} in mesh:`, child.name);
             }
         });
          if (!material) {
@@ -87,6 +154,143 @@ const SingleBuildingTypeInstances = ({ buildingName }: { buildingName: string })
         return material || new THREE.MeshStandardMaterial({ color: 'purple', name: 'Fallback Material' });
     }, [scene, buildingName, config.modelPath]);
     // ---
+
+    // --- Load upgrade model if available and needed ---
+    const upgradeModel = useMemo(() => {
+        if (!hasUpgrade || !config.upgradeModelPath) {
+            return null;
+        }
+
+        console.log(`Loading upgrade model for ${buildingName}: ${config.upgradeModelPath}`);
+        try {
+            // Load the model directly - don't use useGLTF hook here to avoid React issues
+            const model = useGLTF(config.upgradeModelPath);
+            
+            // Add debugging to check what was loaded
+            console.log(`Successfully loaded upgrade model for ${buildingName}:`, model);
+            console.log(`Model scene children:`, model.scene.children);
+            
+            // Check if any meshes were found
+            let foundMeshes = false;
+            model.scene.traverse((child) => {
+                if (child instanceof THREE.Mesh) {
+                    console.log(`Found mesh in upgrade model:`, child.name, child);
+                    foundMeshes = true;
+                }
+            });
+            
+            if (!foundMeshes) {
+                console.warn(`No meshes found in upgrade model for ${buildingName}`);
+            }
+            
+            return model;
+        } catch (error) {
+            console.error(`Failed to load upgrade model for ${buildingName}:`, error);
+            return null;
+        }
+    }, [hasUpgrade, buildingName, config.upgradeModelPath]);
+
+    // --- Extract geometry and material for upgrade model ---
+    const upgradeGeometry = useMemo(() => {
+        if (!upgradeModel || !upgradeModel.scene) return null;
+
+        let geometry: THREE.BufferGeometry | null = null;
+        let meshCount = 0;
+        
+        // Debug: Log the upgrade model structure
+        console.log(`Debugging UPGRADE model structure for ${buildingName}:`);
+        
+        upgradeModel.scene.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+                meshCount++;
+                console.log(`- Upgrade Mesh #${meshCount}: ${child.name || 'unnamed'}`);
+                console.log(`  - Geometry: vertices=${child.geometry.attributes.position.count}`);
+                
+                // Similar to base model, get the largest mesh
+                if (!geometry || 
+                    (child.geometry.attributes.position.count > geometry.attributes.position.count * 1.5)) {
+                    if (geometry) {
+                        console.log(`Replacing upgrade geometry with larger mesh for ${buildingName}`);
+                    }
+                    geometry = child.geometry.clone();
+                }
+            } else if (child.name) {
+                console.log(`- Other upgrade object: ${child.name} (type: ${child.type})`);
+            }
+        });
+        
+        console.log(`Total meshes in ${buildingName} upgrade: ${meshCount}`);
+        
+        if (!geometry) {
+            console.warn(`No mesh geometry found for upgrade ${buildingName} in ${config.upgradeModelPath}`);
+        } else if (meshCount > 1) {
+            console.log(`Upgrade model ${buildingName} has ${meshCount} meshes, using the largest one`);
+        }
+        
+        return geometry;
+    }, [upgradeModel, buildingName, config.upgradeModelPath]);
+
+    // --- Render upgrade with original scene for complex models ---
+    const renderUpgradeDirectly = useMemo(() => {
+        // For complex models with multiple meshes, we'll render the full scene instead
+        return hasUpgrade && upgradeModel && (!upgradeGeometry || upgradeModel.scene.children.length > 1);
+    }, [hasUpgrade, upgradeModel, upgradeGeometry]);
+
+    // Return and position a copy of the complete scene instead of just the mesh
+    const cloneUpgradeScene = useCallback((position: THREE.Vector3, rotation: THREE.Euler, scale: THREE.Vector3) => {
+        if (!upgradeModel || !upgradeModel.scene) return null;
+        
+        // Clone the entire scene
+        const clonedScene = upgradeModel.scene.clone();
+        
+        // Position the scene group
+        clonedScene.position.copy(position);
+        clonedScene.rotation.copy(rotation);
+        clonedScene.scale.copy(scale);
+        
+        return clonedScene;
+    }, [upgradeModel]);
+
+    const upgradeMaterial = useMemo(() => {
+        if (!upgradeModel || !upgradeModel.scene) return null;
+
+        let material: THREE.Material | THREE.Material[] | null = null;
+        upgradeModel.scene.traverse((child) => {
+            if (child instanceof THREE.Mesh && child.isMesh && !material) {
+                if (Array.isArray(child.material)) {
+                    material = child.material.map(m => m.clone());
+                } else {
+                    material = child.material.clone();
+                }
+            }
+        });
+        
+        if (!material) {
+            console.warn(`No mesh material found for upgrade ${buildingName} in ${config.upgradeModelPath}`);
+        }
+        
+        // Apply common properties or adjustments if needed
+        const applyProps = (mat: THREE.Material) => {
+            if (mat instanceof THREE.MeshStandardMaterial) {
+                // Decrease roughness slightly to make them less 'dull'
+                mat.roughness = Math.max(0., mat.roughness * 0.6);
+                // Ensure metalness isn't too high if they are non-metals
+                mat.metalness = Math.min(0.1, mat.metalness);
+            }
+            mat.needsUpdate = true;
+        }
+        
+        if (material) {
+            if (Array.isArray(material)) {
+                const materialArray = material as THREE.Material[];
+                materialArray.forEach(applyProps);
+            } else {
+                applyProps(material);
+            }
+        }
+        
+        return material || new THREE.MeshStandardMaterial({ color: 'purple', name: 'Fallback Material' });
+    }, [upgradeModel, buildingName, config.upgradeModelPath]);
 
     const gridTiles = useGameStore((state) => state.gridTiles);
     const activeTasks = useGameStore((state) => state.activeTasks);
@@ -144,12 +348,7 @@ const SingleBuildingTypeInstances = ({ buildingName }: { buildingName: string })
                     }
                 }
                 
-                // Force isShutdown to true for Scout Outpost as a test if we still have issues
-                if (buildingName === 'Scout Outpost') {
-                    // Debugging attempt - force shutdown for Scout Outpost
-                    isShutdown = true;
-                    console.log(`FORCING SCOUT OUTPOST AT ${key} TO SHUTDOWN STATE FOR TESTING`);
-                }
+                // Don't force Scout Outposts to shutdown anymore (removed debugging code)
                 
                 return { 
                     key: `${key}-${buildingName}`, 
@@ -158,7 +357,7 @@ const SingleBuildingTypeInstances = ({ buildingName }: { buildingName: string })
                     tileData, 
                     config,
                     taskId,
-                    isShutdown 
+                    isShutdown
                 };
             });
     }, [gridTiles, buildingName, config, activeTasks]);
@@ -261,6 +460,91 @@ const SingleBuildingTypeInstances = ({ buildingName }: { buildingName: string })
                     ))}
                 </Instances>
             )}
+
+            {/* Render building upgrades if available and the building is operational */}
+            {hasUpgrade && upgradeGeometry && upgradeMaterial && operationalInstances.length > 0 && !renderUpgradeDirectly && (
+                <Instances
+                    geometry={upgradeGeometry}
+                    material={upgradeMaterial}
+                    castShadow
+                    receiveShadow
+                >
+                    {operationalInstances.map(({ key, position, rotation, config: instanceConfig }) => {
+                        // Position the upgrade slightly above the base building
+                        const upgradePosition = new THREE.Vector3(
+                            position.x,
+                            position.y + 0.15, // Add a small offset to prevent z-fighting
+                            position.z
+                        );
+                        
+                        console.log(`Rendering upgrade for ${key} at position`, upgradePosition);
+                        
+                        return (
+                            <Instance
+                                key={`upgrade-${key}`}
+                                position={upgradePosition}
+                                rotation={rotation}
+                                scale={instanceConfig?.scale || [0.04, 0.04, 0.04]}
+                            />
+                        );
+                    })}
+                </Instances>
+            )}
+
+            {/* Render complex upgrades (with multiple meshes) directly using the full scene */}
+            {hasUpgrade && renderUpgradeDirectly && operationalInstances.length > 0 && upgradeModel && (
+                <>
+                    {operationalInstances.map(({ key, position, rotation, config: instanceConfig }) => {
+                        // Position the upgrade slightly above the base building
+                        const upgradePosition = new THREE.Vector3(
+                            position.x,
+                            position.y + 0.15, // Add a small offset to prevent z-fighting
+                            position.z
+                        );
+                        
+                        console.log(`Rendering complex upgrade for ${key} at position`, upgradePosition);
+                        
+                        const scale = instanceConfig?.scale || [0.04, 0.04, 0.04];
+                        const scaleVector = new THREE.Vector3(scale[0], scale[1], scale[2]);
+                        
+                        // Create a unique key for this upgrade instance
+                        const upgradeKey = `full-upgrade-${key}`;
+                        
+                        // Direct model rendering approach - create a group and add a clone of the model
+                        // This avoids some issues with the primitive component
+                        return (
+                            <group 
+                                key={upgradeKey}
+                                position={upgradePosition}
+                                rotation={rotation}
+                                scale={scaleVector}
+                            >
+                                {/* Debug sphere to verify position */}
+                                <mesh position={[0, 0.5, 0]}>
+                                    <sphereGeometry args={[0.2, 16, 16]} />
+                                    <meshBasicMaterial color="green" transparent opacity={0.7} />
+                                </mesh>
+                                
+                                {/* Clone and add the model */}
+                                {(() => {
+                                    // Create a clone to avoid React reconciliation issues
+                                    const modelClone = upgradeModel.scene.clone();
+                                    console.log(`Created model clone for ${upgradeKey}:`, modelClone);
+                                    
+                                    // Return the clone as a primitive
+                                    return (
+                                        <primitive
+                                            object={modelClone}
+                                            castShadow
+                                            receiveShadow
+                                        />
+                                    );
+                                })()}
+                            </group>
+                        );
+                    })}
+                </>
+            )}
             
             {/* Render shutdown buildings with dimmed material */}
             {shutdownInstances.length > 0 && (() => {
@@ -303,18 +587,107 @@ const SingleBuildingTypeInstances = ({ buildingName }: { buildingName: string })
                     </>
                 );
             })()}
+
+            {/* Add direct model loader component for each upgrade */}
+            {hasUpgrade && operationalInstances.length > 0 && config.upgradeModelPath && (
+                <>
+                    {operationalInstances.map(({ key, position, rotation, config: instanceConfig }) => {
+                        // Position the upgrade slightly above the base building
+                        const upgradePosition = new THREE.Vector3(
+                            position.x,
+                            position.y + 0.15, // Add a small offset to prevent z-fighting
+                            position.z
+                        );
+                        
+                        const scale = instanceConfig?.scale || [0.04, 0.04, 0.04];
+                        
+                        // Ensure modelPath is not undefined
+                        if (!config.upgradeModelPath) return null;
+                        
+                        return (
+                            <DirectModelLoader
+                                key={`direct-model-${key}`}
+                                modelPath={config.upgradeModelPath}
+                                position={upgradePosition}
+                                rotation={rotation}
+                                scale={scale}
+                            />
+                        );
+                    })}
+                </>
+            )}
         </>
     );
 };
 
+// Helper component for direct model rendering
+const DirectModelLoader = ({ 
+    modelPath, 
+    position,
+    rotation,
+    scale = [0.04, 0.04, 0.04]
+}: { 
+    modelPath: string, 
+    position: THREE.Vector3,
+    rotation: THREE.Euler,
+    scale?: number[]
+}) => {
+    // Load the model directly with GLTFLoader with Draco support
+    const model = useLoader(GLTFLoader, modelPath, (loader) => {
+        // Cast loader to GLTFLoader to add Draco support
+        (loader as GLTFLoader).setDRACOLoader(dracoLoader);
+    });
+    
+    console.log(`DirectModelLoader: Loaded model from ${modelPath}:`, model);
+    
+    useEffect(() => {
+        // Check if model loaded correctly
+        if (model && model.scene) {
+            console.log(`DirectModelLoader: Model scene for ${modelPath}:`, model.scene);
+            
+            // Count meshes
+            let meshCount = 0;
+            model.scene.traverse((child: THREE.Object3D) => {
+                if (child instanceof THREE.Mesh) {
+                    meshCount++;
+                    console.log(`DirectModelLoader: Found mesh ${child.name}`);
+                }
+            });
+            
+            console.log(`DirectModelLoader: Found ${meshCount} meshes in model`);
+        }
+    }, [model, modelPath]);
+    
+    if (!model) return null;
+    
+    return (
+        <group position={position} rotation={rotation}>
+            {/* The actual model */}
+            <primitive
+                object={model.scene}
+                scale={scale}
+                castShadow
+                receiveShadow
+            />
+        </group>
+    );
+};
 
-// Main component - Restore preloading
+// Main component - Update to use our custom loader
 const BuildingInstances = () => {
     console.log("Rendering BuildingInstances component");
     
-    // --- Restore preloading ---
-    Object.values(buildingConfigs).forEach(config => useGLTF.preload(config.modelPath));
-    // ---
+    // Preload all building models including upgrades
+    useEffect(() => {
+        Object.values(buildingConfigs).forEach(config => {
+            if (config.modelPath) {
+                preloadModel(config.modelPath);
+            }
+            if (config.upgradeModelPath) {
+                preloadModel(config.upgradeModelPath);
+            }
+        });
+    }, []);
 
     return (
         <>

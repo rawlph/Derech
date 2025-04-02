@@ -30,8 +30,13 @@ const ResearchWindow: React.FC<ResearchWindowProps> = ({ isVisible, onClose }) =
     // Get available projects for the current tier
     const availableProjects = getAvailableResearch(completedResearch, currentTier);
 
+    // Debug logging
+    console.log("[ResearchWindow] completedResearch:", completedResearch);
+    console.log("[ResearchWindow] isTier2Unlocked:", completedResearch.length >= 3);
+    
     // Function to toggle between tiers
     const toggleTier = () => {
+        console.log("[ResearchWindow] Toggling tier from", currentTier, "to", currentTier === 1 ? 2 : 1);
         setCurrentTier(currentTier === 1 ? 2 : 1);
     };
 

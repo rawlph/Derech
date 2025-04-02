@@ -38,8 +38,13 @@ const LivingDomeWindow: React.FC<LivingDomeWindowProps> = ({ isVisible, onClose 
     // Get available projects for the current tier
     const availableProjects = getAvailableLivingAreaProjects(completedLivingProjects, currentTier, completedResearch);
 
+    // Debug logging
+    console.log("[LivingDomeWindow] completedResearch:", completedResearch);
+    console.log("[LivingDomeWindow] isTier2Unlocked:", completedResearch.length >= 3);
+    
     // Function to toggle between tiers
     const toggleTier = () => {
+        console.log("[LivingDomeWindow] Toggling tier from", currentTier, "to", currentTier === 1 ? 2 : 1);
         setCurrentTier(currentTier === 1 ? 2 : 1);
     };
 
@@ -69,8 +74,8 @@ const LivingDomeWindow: React.FC<LivingDomeWindowProps> = ({ isVisible, onClose 
         return null;
     }
 
-    // Check if tier 2 is unlocked (requires at least 3 completed research)
-    const isTier2Unlocked = completedResearch.length >= 3;
+    // Check if tier 2 is unlocked (requires at least 3 completed research projects OR 3 completed living projects)
+    const isTier2Unlocked = completedResearch.length >= 3 || completedLivingProjects.length >= 3;
 
     return (
         <div className={styles.overlay} onClick={onClose}>
@@ -99,7 +104,7 @@ const LivingDomeWindow: React.FC<LivingDomeWindowProps> = ({ isVisible, onClose 
                             </button>
                             {!isTier2Unlocked && (
                                 <span className={styles.tierLockHint}>
-                                    Complete 3 research projects to unlock Tier 2
+                                    Complete 3 research or living projects to unlock Tier 2
                                 </span>
                             )}
                             {isTier2Unlocked && (
@@ -164,7 +169,7 @@ const LivingDomeWindow: React.FC<LivingDomeWindowProps> = ({ isVisible, onClose 
                                         <p className={styles.prerequisitesNote}>
                                             <strong>Prerequisites:</strong> {
                                                 project.prerequisites.includes('__ANY_THREE_RESEARCH__')
-                                                    ? 'Any three completed research projects'
+                                                    ? 'Any three completed research or living projects'
                                                     : project.prerequisites.map(prereq => {
                                                         // Find the prerequisite project (either in living or other project types)
                                                         const livingProject = Object.values(getAvailableLivingAreaProjects([], 1)).find(p => p.id === prereq) ||
@@ -194,7 +199,7 @@ const LivingDomeWindow: React.FC<LivingDomeWindowProps> = ({ isVisible, onClose 
                                 ? "No living area projects currently available." 
                                 : (isTier2Unlocked 
                                     ? "No Tier 2 living area projects currently available." 
-                                    : "Complete 3 research projects to unlock Tier 2 projects.")}
+                                    : "Complete 3 research or living projects to unlock Tier 2 projects.")}
                         </p>
                     )}
                 </ul>

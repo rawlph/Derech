@@ -99,7 +99,7 @@ export const checkPrerequisites = (project: LivingAreaProject, completedProjects
     
     // Special case: Any three research projects
     if (project.prerequisites.includes('__ANY_THREE_RESEARCH__')) {
-        return completedResearch.length >= 3;
+        return completedResearch.length >= 3 || completedProjects.length >= 3;
     }
     
     // Standard prerequisite check

@@ -84,6 +84,19 @@
 }
 /* --- End of Portal Button Style --- */
 
+/* --- NEW: Test Mode Button Style --- */
+.testButton {
+    background-color: #9b3ad1; /* Purple color */
+    border: 1px solid #7b2aa1;
+    box-shadow: 0 2px 5px rgba(155, 58, 209, 0.3);
+}
+
+.testButton:hover {
+    background-color: #b154e8; /* Lighter purple on hover */
+    border-color: #9b3ad1;
+}
+/* --- End of Test Button Style --- */
+
 /* --- End of Restored Top Bar Styles --- */
 
 
