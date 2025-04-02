@@ -389,220 +389,91 @@
     to { opacity: 1; transform: scale(1); }
 }
 
-/* Regular mobile portrait adjustments */
-@media (max-width: 768px) {
+/* --- RESPONSIVE STYLES --- */
+
+/* Base mobile styles - fixed positioning approach */
+@media only screen and (max-width: 800px) {
+    .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1100;
+        background-color: rgba(0, 0, 0, 0.75);
+        padding: 0;
+        display: block; /* Switch from flex to block */
+    }
+    
     .windowContainer {
-        max-width: 98vw;
-        max-height: 85vh;
+        position: fixed; /* IMPORTANT: Ensures consistent positioning */
+        top: 60px; /* Standard top positioning */
+        left: 50%;
+        transform: translateX(-50%); /* Center horizontally */
+        margin: 0; /* Remove margins, using fixed positioning instead */
+        width: 95%; /* Width relative to viewport */
+        max-width: 600px;
+        max-height: 80vh; /* Slightly reduced from desktop */
+        min-height: auto; /* Allow natural height */
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .mainContentContainer {
         overflow-y: auto;
+        flex: 1;
     }
     
-    /* Use more horizontal space */
-    .projectList, .completedProjectsSection, .activeProjectSection {
-        padding: 0 5px 10px; /* Reduce side padding */
-        margin: 0 0 15px; /* Remove horizontal margins */
-        width: 100%;
-        box-sizing: border-box;
-    }
-    
-    /* Fix header section in mobile */
-    .headerSection {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        padding-bottom: 0; /* Remove padding-bottom */
-    }
-    
+    /* Reduce header size */
     .headerImageContainer {
-        height: 100px; /* Smaller header on mobile */
-        margin-bottom: 0;
+        height: 60px;
     }
     
     .title {
-        font-size: 1.3rem;
-        margin: 12px 0 15px 0; /* More bottom margin for spacing from tier toggle */
-        text-align: center;
-    }
-    
-    .tierToggle {
-        position: static; /* Not absolute positioned anymore */
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        margin: 0 0 15px 0; /* Add bottom margin for spacing */
-        padding: 0 20px;
-    }
-    
-    .tierButton, .returnButton {
-        width: 240px;
-        max-width: 90%;
-        font-size: 0.9rem;
-        padding: 8px 15px;
-        text-align: center;
-    }
-    
-    .mainContentContainer {
-        margin-top: 0;
-        padding-top: 10px;
-    }
-    
-    .projectDetails {
-        width: 100%; /* Full width on mobile */
-        padding-right: 0; /* Remove right padding on mobile */
-        max-width: none; /* Remove any max-width restrictions */
-        margin-bottom: 12px;
-        display: block; /* Ensure block layout */
-    }
-    
-    /* Give more breathing room to project items */
-    .projectItem {
-        padding: 12px 8px; /* Reduce horizontal padding */
-        margin-bottom: 12px;
-        border-radius: 4px; /* Slightly smaller radius */
-        flex-direction: column;
-        align-items: flex-start;
-        display: block; /* Override flex */
-    }
-    
-    /* Optimize button appearance */
-    .startButton, .completedButton {
-        padding: 10px 0; /* More vertical padding, no horizontal */
-        margin-top: 8px;
-        border-radius: 4px;
-        display: block;
-        align-self: center;
-        width: 100%;
-    }
-    
-    .projectName {
         font-size: 1.1rem;
-        margin-bottom: 8px;
-        word-break: break-word; /* Add word breaking for long titles */
-    }
-    
-    .projectDescription, .effectDescription, .projectCost, .prerequisitesNote {
-        font-size: 0.85rem;
-        margin: 6px 0;
-        line-height: 1.4;
-        word-break: break-word; /* Add word breaking for long text */
-    }
-    
-    .headerImageContainer {
-        height: 100px; /* Smaller header on mobile */
-    }
-    .title {
-        font-size: 1.3rem;
-        margin: 10px 0 5px;
-    }
-    .projectList {
-        padding: 0 10px 10px;
-        display: block; /* Ensure flex or grid isn't used */
-    }
-    
-    /* Style for the main content container */
-    .mainContentContainer {
-        display: block;
-        width: 100%;
-    }
-    
-    /* Force vertical layout for project content */
-    .projectContent {
-        display: block;
-        width: 100%;
-    }
-    
-    /* Force full width buttons */
-    .buttonContainer {
-        width: 100%;
-        margin-left: 0;
-        margin-top: 10px;
-    }
-    
-    .activeProjectSection {
-        margin: 0 0 15px; /* Remove horizontal margins to match projectList */
-        padding: 10px;
-    }
-    .activeProjectSection h3 {
-        font-size: 1rem;
-        line-height: 1.3;
-    }
-    .activeProjectSection p {
-        font-size: 0.85rem;
-        margin: 5px 0;
-        word-break: break-word;
-    }
-    .tierButton {
-        font-size: 0.9rem;
-        padding: 5px 15px;
-    }
-    .tierLockHint {
-        display: block;
-        position: static;
-        text-align: center;
-        margin: 5px auto;
-        width: 100%;
-        max-width: 240px;
-    }
-    /* Fix for completed items also */
-    .completedItem {
-        flex-direction: column;
-        align-items: flex-start;
-        display: block; /* Override flex */
-    }
-    .completedButton {
-        display: block;
-        align-self: center;
-        width: 100%;
-        margin-top: 10px;
-    }
-    /* Fix for completed projects section */
-    .completedProjectsSection {
-        padding: 0 10px 10px;
-    }
-    .completedList {
-        display: block; /* Ensure block display */
-    }
-    
-    /* Make projects use the maximum available width in mobile */
-    .projectList {
-        width: 100%; /* Full width */
-        padding: 0 5px;
-        box-sizing: border-box;
-        max-width: 100%;
-    }
-    
-    .projectItem {
-        width: 100%;
-        margin-left: 0;
-        margin-right: 0;
-        box-sizing: border-box;
-        max-width: 100%;
-    }
-    
-    .projectContent {
-        width: 100%;
-        max-width: 100%;
-    }
-    
-    /* Override any margin/padding that might be limiting width */
-    .projectList, .completedProjectsSection, .activeProjectSection {
-        margin: 0 0 15px 0; /* Remove horizontal margins */
-        padding: 0 5px 10px; /* Minimal horizontal padding */
-        width: 100%;
-        box-sizing: border-box;
+        margin: 8px 0 10px 0;
     }
 }
 
-/* Mobile landscape specific adjustments */
+/* Medium mobile devices (wider than base/small) - 740px is Galaxy S8+ which works fine */
+@media only screen and (min-width: 741px) and (max-width: 800px) {
+    .windowContainer {
+        top: 70px; /* Push further down for medium devices */
+    }
+}
+
+/* Larger mobile devices with >800px width - target S20 Ultra and iPhone Pro Max specifically */
+@media only screen and (min-width: 801px) and (max-width: 950px) {
+    .windowContainer {
+        top: 100px; /* Push much further down for larger devices */
+        max-height: 75vh; /* Reduce height further */
+    }
+    
+    .headerImageContainer {
+        height: 50px; /* Even smaller header */
+    }
+    
+    .title {
+        font-size: 1rem;
+        margin: 6px 0;
+    }
+}
+
+/* Keep landscape styles but adjust positioning for larger landscape devices too */
 @media (orientation: landscape) and (max-height: 500px) { 
     .overlay {
-        padding: 10px; /* Reduce padding to maximize usable space */
+        padding: 0;
     }
     
     .windowContainer {
-        max-height: 90vh; /* Allow a bit more height */
-        flex-direction: row; /* Convert to horizontal layout */
-        max-width: 95vw;
+        position: fixed;
+        top: 40px; /* Less top space in landscape */
+        left: 50%;
+        transform: translateX(-50%);
+        max-height: 85vh;
+        max-width: 95%;
+        flex-direction: row;
     }
     
     /* Left side with header and title */
@@ -674,5 +545,78 @@
         flex: 1; /* Take available space */
         overflow-y: auto;
         padding: 0 5px; /* Add consistent padding with projectList */
+    }
+}
+
+/* Add direct mobile styling to override fixed positioning */
+/* Mobile styles moved to top to ensure priority */
+@media only screen and (max-width: 768px) {
+    .overlay {
+        position: absolute !important; /* Override fixed positioning */
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: auto !important; /* Don't extend to bottom */
+        height: 100% !important;
+        display: block !important; /* Override flex */
+        padding: 0 !important;
+        overflow-y: auto !important;
+        z-index: 2000 !important; /* Even higher z-index */
+    }
+    
+    .windowContainer {
+        position: relative !important;
+        margin: 65px auto 20px auto !important; /* Margin from top and auto center */
+        max-height: 550px !important; /* Specific height for mobile */
+        height: auto !important;
+        max-width: 92% !important;
+        min-height: auto !important; /* Remove min-height */
+        border-radius: 8px !important;
+        overflow-y: auto !important;
+    }
+    
+    .headerImageContainer {
+        height: 70px !important; /* Smaller header image */
+    }
+    
+    .title {
+        font-size: 1.1rem !important;
+        margin: 10px 0 5px 0 !important;
+    }
+    
+    .mainContentContainer {
+        max-height: 400px !important; /* Limit height of content area */
+        min-height: 100px !important; /* Lower min-height */
+        overflow-y: auto !important;
+    }
+    
+    /* Simplify media query to avoid conflicts */
+    .headerSection,
+    .tierButton,
+    .returnButton,
+    .projectList,
+    .projectItem,
+    .buttonContainer {
+        transform: none !important; /* Reset any transforms */
+    }
+}
+
+/* Medium mobile devices (Galaxy S8 specific adjustment) */
+@media only screen and (min-width: 730px) and (max-width: 750px) {
+    .overlay {
+        display: flex;
+        align-items: flex-start; /* Align to top instead of center */
+        justify-content: flex-start; /* Align to left instead of center */
+        padding: 15px 0 0 15px; /* Add padding to top and left */
+    }
+    
+    .windowContainer {
+        position: relative; /* Use relative instead of fixed for S8 */
+        top: auto;
+        left: auto;
+        transform: none; /* Remove transform */
+        margin: 0; /* No margins */
+        max-width: 700px; /* Wider than default */
+        max-height: 90vh; /* Allow more height */
     }
 } 

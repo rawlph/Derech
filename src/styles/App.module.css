@@ -4,7 +4,17 @@
   height: 100%;
   position: relative; /* Needed for absolute positioning of children */
   background-color: #111; /* Fallback background */
-  overflow: hidden; /* Prevent scrollbars */
+  overflow: hidden; /* Prevent scrollbars on DESKTOP */
+}
+
+/* Allow scrolling on mobile */
+@media (max-width: 768px) {
+  .appContainer {
+    overflow-y: auto; /* Allow vertical scroll on mobile */
+    height: auto; /* Let height adjust to content */
+    min-height: 100%; /* Ensure it takes at least full height */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling */
+  }
 }
 
 /* Canvas container sits behind the UI */
