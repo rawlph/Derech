@@ -71,48 +71,35 @@ const ResearchWindow: React.FC<ResearchWindowProps> = ({ isVisible, onClose }) =
                     </div>
 
                     <h2 className={styles.title}>Research Projects</h2>
-                </div>
-                
-                {/* Add tier toggle button */}
-                <div className={styles.tierToggle}>
-                    {currentTier === 1 ? (
-                        <>
-                            <button 
-                                onClick={toggleTier}
-                                className={`${styles.tierButton} ${styles.activeTier}`}
-                                disabled={!isTier2Unlocked}
-                            >
-                                TIER 1
-                            </button>
-                            {!isTier2Unlocked && (
-                                <span className={styles.tierLockHint}>
-                                    Complete 3 research projects to unlock Tier 2
-                                </span>
-                            )}
-                            {isTier2Unlocked && (
+                    
+                    {/* Tier toggle button now inside headerSection */}
+                    <div className={styles.tierToggle}>
+                        {currentTier === 1 ? (
+                            <>
                                 <button 
                                     onClick={toggleTier}
                                     className={`${styles.tierButton} ${styles.tier2Button}`}
+                                    disabled={!isTier2Unlocked}
                                 >
-                                    View Tier 2
+                                    View Tier 2 Projects
                                 </button>
-                            )}
-                        </>
-                    ) : (
-                        <>
+                                {!isTier2Unlocked && (
+                                    <div className={styles.tierLockMessage}>
+                                        Complete 3 research projects first
+                                    </div>
+                                )}
+                            </>
+                        ) : (
                             <button 
                                 onClick={toggleTier}
                                 className={`${styles.returnButton}`}
                             >
                                 ← Return to Tier 1
                             </button>
-                            <span className={styles.currentTierIndicator}>
-                                Currently viewing: Tier 2 Projects
-                            </span>
-                        </>
-                    )}
+                        )}
+                    </div>
                 </div>
-
+                
                 {/* Main content container for mobile layout control */}
                 <div className={styles.mainContentContainer}>
                     {/* Show active research if any */}

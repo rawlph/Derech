@@ -108,9 +108,12 @@
     border-radius: 10px; /* Slightly larger radius */
     width: 90%; /* More responsive width */
     max-width: 300px; /* Reduced max-width from 320px */
+    max-height: calc(80vh - 90px); /* Further reduced height to avoid overlap with header */
+    overflow-y: auto; /* Add scrolling for overflow content */
     border: 1px solid #555; /* Slightly more prominent border */
     margin-left: 1rem; /* Add some margin from the edge */
     margin-bottom: 1rem;
+    margin-top: 70px; /* Add some margin from the top to avoid header overlap */
     font-size: 1em; /* Base font size for the box */
     position: relative; /* Needed for absolute positioning of warnings */
 }
@@ -277,11 +280,11 @@
         max-width: 90%; /* Take more width */
         align-self: center; /* Center on mobile */
         margin-left: 0; /* Remove left margin */
-        margin-top: 70px; /* Add space below header to prevent overlap */
+        margin-top: 0; /* Reset top margin (position fixed handles this) */
         margin-bottom: 80px; /* Increased space if overlapping with potential mobile controls */
         padding: 1rem; /* Adjust padding */
         font-size: 0.95em; /* Adjust base font */
-        max-height: calc(60vh - 50px); /* Limit height to avoid taking up too much space */
+        max-height: calc(70vh - 80px); /* Further reduced height to avoid overlap with header */
         overflow-y: auto; /* Add scrolling for overflow content */
         position: fixed; /* Fix position to better control placement */
         top: 60px; /* Position below the header */
@@ -350,7 +353,8 @@
         bottom: 0; /* Extend to bottom */
         width: 220px; /* Fixed width sidebar */
         max-width: none; /* Override max-width */
-        max-height: none; /* Override max-height */
+        height: calc(100vh - 70px); /* Further reduced height to avoid header overlap */
+        max-height: calc(100vh - 90px); /* Further reduced height to avoid header overlap */
         margin: 0; /* Remove all margins */
         padding: 0.75rem; /* Adjust padding */
         border-radius: 0 10px 0 0; /* Round only top-right corner */
@@ -386,10 +390,10 @@
         width: 100%; /* Make buttons full width in sidebar */
     }
     
-    /* Make deselect button stick to bottom */
+    /* Deselect button at bottom without being sticky */
     .deselectButton {
-        margin-top: auto;
-        position: sticky;
+        margin-top: auto; /* Push to bottom of flex container */
+        position: relative; /* Normal positioning */
         bottom: 0;
         background-color: #782f1a;
     }

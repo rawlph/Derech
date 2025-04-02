@@ -205,6 +205,14 @@
     opacity: 0.8;
 }
 
+.tierLockMessage {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #FFA500; /* Orange color */
+    margin-top: 5px;
+    font-style: italic;
+}
+
 /* Project list container */
 .projectList {
     padding: 0 5px 20px; /* Reduce side padding */
@@ -382,9 +390,68 @@
 /* Regular mobile portrait adjustments */
 @media (max-width: 768px) {
     .windowContainer {
-        max-width: 98vw; /* Slightly wider container */
+        max-width: 98vw;
         max-height: 85vh;
         overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* More direct mobile-specific styles */
+    .headerSection {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        padding-bottom: 0; /* Remove padding-bottom */
+    }
+    
+    .headerImageContainer {
+        height: 100px; /* Smaller header on mobile */
+        margin-bottom: 0;
+    }
+    
+    .title {
+        font-size: 1.3rem;
+        margin: 12px 0 15px 0; /* More bottom margin for spacing from tier toggle */
+        text-align: center;
+    }
+    
+    .tierToggle {
+        position: static; /* Not absolute positioned anymore */
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        margin: 0 0 15px 0; /* Add bottom margin for spacing */
+        padding: 0 20px;
+    }
+    
+    .tierButton, .returnButton {
+        width: 240px;
+        max-width: 90%;
+        font-size: 0.9rem;
+        padding: 8px 15px;
+        text-align: center;
+    }
+    
+    .mainContentContainer {
+        margin-top: 0;
+        padding-top: 10px;
+    }
+    
+    .tierButton, .returnButton {
+        width: 240px;
+        max-width: 90%;
+        margin: 0 auto;
+        font-size: 0.9rem;
+        padding: 8px 15px;
+        text-align: center;
+        display: block;
+    }
+    
+    /* Main content container comes last */
+    .mainContentContainer {
+        width: 100%;
+        order: 3; /* Ensure content comes after tier toggle */
     }
     
     /* Make projects use the maximum available width in mobile */
@@ -459,10 +526,6 @@
     .headerImageContainer {
         height: 100px; /* Smaller header on mobile */
     }
-    .title {
-        font-size: 1.3rem;
-        margin: 10px 0;
-    }
     .projectList {
         padding: 0 10px 10px;
         display: block; /* Ensure flex or grid isn't used */
@@ -500,15 +563,13 @@
         margin: 5px 0;
         word-break: break-word;
     }
-    .tierButton {
-        font-size: 0.9rem;
-        padding: 5px 15px;
-    }
     .tierLockHint {
         display: block;
         position: static;
         text-align: center;
-        margin-top: 5px;
+        margin: 5px auto;
+        width: 100%;
+        max-width: 240px;
     }
     /* Fix for completed items also */
     .completedItem {
@@ -549,6 +610,8 @@
         display: flex;
         flex-direction: column;
         border-right: 1px solid rgba(217, 119, 93, 0.4);
+        position: relative;
+        padding-bottom: 0;
     }
     
     .headerImageContainer {
@@ -558,8 +621,9 @@
     
     .title {
         font-size: 1.2rem;
-        margin: 8px 0;
+        margin: 8px 0 12px 0; /* Add bottom margin for spacing from toggle */
         padding: 0 10px;
+        text-align: center;
     }
     
     /* Right side with content */
@@ -578,16 +642,27 @@
     }
     
     .tierToggle {
-        position: absolute;
-        top: 5px;
-        left: 35%; /* Position in the middle of right content side */
-        transform: translateX(-50%);
-        margin: 0;
+        position: static; /* Not absolutely positioned */
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0 0 10px 0;
+        padding: 0 10px;
     }
     
     .tierButton {
         font-size: 0.8rem;
         padding: 3px 12px;
+        width: 90%;
+        max-width: 90%;
+    }
+
+    .returnButton {
+        font-size: 0.8rem;
+        padding: 3px 12px;
+        width: 90%;
+        max-width: 90%;
     }
     
     .tierLockHint {
