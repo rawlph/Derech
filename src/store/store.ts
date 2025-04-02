@@ -23,6 +23,15 @@ export interface GridTiles {
   [key: string]: TileData; // Key is "q,r"
 }
 
+// Track resource changes from previous round
+export interface ResourceTrends {
+  power: 'up' | 'down' | 'same' | null;
+  water: 'up' | 'down' | 'same' | null;
+  minerals: 'up' | 'down' | 'same' | null;
+  colonyGoods: 'up' | 'down' | 'same' | null;
+  researchPoints: 'up' | 'down' | 'same' | null;
+}
+
 // --- Task Management ---
 export interface TaskState {
   id: string; // Unique ID, e.g., "mining-q-r"
@@ -84,6 +93,18 @@ interface GameState {
   researchPoints: number;
   colonyGoods: number;
   minerals: number; // NEW: Raw minerals resource
+
+  // --- Previous Round Resources ---
+  previousRoundResources: {
+    power: number;
+    water: number;
+    minerals: number;
+    colonyGoods: number;
+    researchPoints: number;
+  };
+  
+  // --- Resource Trends ---
+  resourceTrends: ResourceTrends;
 
   // --- Workforce ---
   totalWorkforce: number; // NEW: Calculated from population
@@ -380,6 +401,24 @@ export const useGameStore = create<GameState>((set, get) => ({
     colonyGoodsSufficient: true, // Start assuming sufficient goods
   },
 
+  // --- Previous Round Resources ---
+  previousRoundResources: {
+    power: 100,
+    water: 100,
+    minerals: 20,
+    colonyGoods: 50,
+    researchPoints: 0
+  },
+  
+  // --- Resource Trends ---
+  resourceTrends: {
+    power: 'same',
+    water: 'same',
+    minerals: 'same',
+    colonyGoods: 'same',
+    researchPoints: 'same'
+  },
+
   // --- Actions ---
   addPower: (amount) => set((state) => ({ power: state.power + amount })),
   addWater: (amount) => set((state) => ({ water: state.water + amount })),
@@ -426,9 +465,19 @@ export const useGameStore = create<GameState>((set, get) => ({
     // Clear any existing resource generations to avoid accumulation
     set({ roundResourceGenerations: [] });
     
-    const { completedResearch, completedProductionProjects } = get(); // Get completed projects
-
-    // Calculate and Deduct Power Consumption
+    // Initialize resource change tracking
+    const resourceChanges = {
+      power: 0,
+      water: 0,
+      minerals: 0,
+      colonyGoods: 0,
+      researchPoints: 0
+    };
+    
+    // ----- STEP 1: Calculate ALL resource consumption -----
+    const { completedResearch, completedProductionProjects, population } = get();
+    
+    // Calculate power consumption from buildings
     let totalPowerConsumed = 0;
     const currentTasks = get().activeTasks;
     Object.values(currentTasks).forEach(task => {
@@ -436,82 +485,220 @@ export const useGameStore = create<GameState>((set, get) => ({
         const taskConfig = getTaskConfig(task.type);
         if (taskConfig?.powerConsumption && taskConfig.powerConsumption > 0) {
           let consumption = taskConfig.powerConsumption;
-          // --- APPLY PROJECT EFFECTS: Power Consumption ---
-          // Thermal Vapor Extractors: -25% Power consumption for Water Wells
+          
+          // Apply project effects for power consumption
           if (task.type === 'build-waterwell' && completedProductionProjects.includes('thermal-extractors')) {
             consumption *= 0.75; // Apply 25% reduction
-            console.log(`Thermal Extractors: Reduced power consumption for ${task.id} to ${consumption.toFixed(2)}`);
           }
-          // --- END PROJECT EFFECTS ---
+          
           totalPowerConsumed += consumption;
         }
       }
     });
-    // Add base colony power consumption (optional, can be adjusted)
-    totalPowerConsumed += 2; // Example: Base consumption for domes/life support
+    
+    // Add base colony power consumption
+    totalPowerConsumed += 2; // Base consumption for domes/life support
+    resourceChanges.power -= totalPowerConsumed;
     console.log(`Total Power Consumption this round: ${totalPowerConsumed.toFixed(2)}`);
-    set(state => ({ power: state.power - totalPowerConsumed }));
-
+    
+    // Calculate water consumption
+    let waterConsumed = population * 1;
+    
+    // Apply research effects for water consumption
+    if (completedResearch.includes('detoxifying-bacteria')) {
+      waterConsumed *= 0.85; // Apply 15% reduction
+    }
+    
+    resourceChanges.water -= waterConsumed;
+    console.log(`Total Water Consumption this round: ${waterConsumed.toFixed(2)}`);
+    
+    // ----- STEP 2: Calculate ALL resource generation -----
+    
+    // Base power production
+    const powerProduced = 5; // Base power production
+    resourceChanges.power += powerProduced;
+    
+    // Calculate shutdown power savings
+    let shutdownPowerSavings = 0;
+    Object.values(currentTasks).forEach(task => {
+      if (task.status === 'shutdown') {
+        const taskConfig = getTaskConfig(task.type);
+        if (taskConfig?.powerConsumption && taskConfig.powerConsumption > 0) {
+          let operationalConsumption = taskConfig.powerConsumption;
+          // Apply consumption reduction effects even when calculating savings
+          if (task.type === 'build-waterwell' && completedProductionProjects.includes('thermal-extractors')) {
+            operationalConsumption *= 0.75;
+          }
+          const savedPower = Math.round(operationalConsumption * 0.8);
+          shutdownPowerSavings += savedPower;
+        } else if (taskConfig?.cost.power) {
+          // Fallback for older logic if needed
+          const normalOperationPowerCost = Math.round(taskConfig.cost.power * 0.25);
+          const savedPower = Math.round(normalOperationPowerCost * 0.8);
+          shutdownPowerSavings += savedPower;
+        }
+      }
+    });
+    resourceChanges.power += shutdownPowerSavings;
+    console.log(`Shutdown Power Savings: ${shutdownPowerSavings.toFixed(2)}`);
+    
+    // ----- STEP 3: Collect resource generations from buildings -----
+    
+    // Check for resource penalties first
+    const lowWaterPenalty = get().water < 0;
+    const lowPowerPenalty = get().power < 0;
+    
+    // Track individual building resource generation for visual effects
+    const resourceGenerations: ResourceGeneration[] = [];
+    
+    Object.values(currentTasks).forEach(task => {
+      if (task.status === 'operational') {
+        const taskConfig = getTaskConfig(task.type);
+        const tile = get().gridTiles[task.targetTileKey];
+        if (taskConfig?.resourceYield && tile) {
+          const resourceType = taskConfig.resourceYield.resource;
+          let yieldAmount = taskConfig.resourceYield.baseAmount;
+          let generateResource = true; // Flag to control generation
+          
+          // Apply penalties (Power penalty check first)
+          if (lowPowerPenalty && (resourceType === 'minerals' || resourceType === 'researchPoints')) {
+            generateResource = false;
+          } else if (lowWaterPenalty && (resourceType === 'minerals' || resourceType === 'researchPoints')) {
+            generateResource = false;
+          }
+          
+          // Apply project bonuses if resource generation is not skipped
+          if (generateResource) {
+            // Apply project effects for resource generation
+            if (resourceType === 'minerals' && task.type === 'deploy-mining') {
+              if (completedResearch.includes('improved-extraction')) {
+                yieldAmount *= 1.25; // +25%
+              }
+              // Apply mountain height bonus after research bonus
+              if (tile.type === 'Mountain') {
+                const heightBonus = tile.height * 0.5;
+                yieldAmount *= (1 + heightBonus);
+              }
+            } else if (resourceType === 'water' && task.type === 'build-waterwell') {
+              if (completedResearch.includes('water-reclamation-1')) {
+                yieldAmount *= 1.20; // +20%
+              }
+              if (completedProductionProjects.includes('thermal-extractors')) {
+                yieldAmount *= 1.10; // +10% (multiplicative)
+              }
+            } else if (resourceType === 'researchPoints' && task.type === 'deploy-scout') {
+              if (completedResearch.includes('embodiment-prelim')) {
+                yieldAmount *= 1.15; // +15%
+              }
+            } else if (resourceType === 'power' && task.type === 'build-geothermal') {
+              if (completedResearch.includes('seismic-mapping')) {
+                yieldAmount *= 1.30; // +30%
+              }
+            }
+            
+            // Floor the yield after all bonuses
+            yieldAmount = Math.floor(yieldAmount);
+            
+            // Add to individual generation tracking for visualization
+            resourceGenerations.push({
+              taskId: task.id,
+              targetTileKey: task.targetTileKey,
+              type: task.type,
+              resourceType,
+              amount: yieldAmount
+            });
+            
+            // Add to resource changes
+            switch (resourceType) {
+              case 'minerals':
+                resourceChanges.minerals += yieldAmount;
+                break;
+              case 'researchPoints':
+                resourceChanges.researchPoints += yieldAmount;
+                break;
+              case 'power':
+                resourceChanges.power += yieldAmount;
+                break;
+              case 'water':
+                resourceChanges.water += yieldAmount;
+                break;
+              case 'colonyGoods':
+                resourceChanges.colonyGoods += yieldAmount;
+                break;
+            }
+          }
+        }
+      }
+    });
+    
+    // ----- STEP 4: Calculate dome-based resource generation -----
+    
+    const { colonyGoodsCycle, colonyGoodsBaseAmount, researchCycle, researchBaseAmount } = get().domeGeneration;
+    let updatedColonyGoodsCycle = colonyGoodsCycle + 1;
+    let updatedResearchCycle = researchCycle + 1;
+    let colonyGoodsGenerated = 0;
+    let researchPointsGenerated = 0;
+    
+    // Production Dome: Generate colony goods every 5 rounds
+    if (updatedColonyGoodsCycle >= 5) {
+      colonyGoodsGenerated = colonyGoodsBaseAmount;
+      updatedColonyGoodsCycle = 0;
+      
+      // Add to resource changes
+      resourceChanges.colonyGoods += colonyGoodsGenerated;
+      
+      // Add to resource generations for visualization
+      resourceGenerations.push({
+        taskId: 'production-dome',
+        targetTileKey: '1,0', // Production Dome is at 1,0
+        type: 'production-dome',
+        resourceType: 'colonyGoods',
+        amount: colonyGoodsGenerated
+      });
+    }
+    
+    // Research Dome: Generate research points every 4 rounds
+    if (updatedResearchCycle >= 4) {
+      researchPointsGenerated = researchBaseAmount;
+      updatedResearchCycle = 0;
+      
+      // Add to resource changes
+      resourceChanges.researchPoints += researchPointsGenerated;
+      
+      // Add to resource generations for visualization
+      resourceGenerations.push({
+        taskId: 'research-dome',
+        targetTileKey: '-1,0', // Research Dome is at -1,0
+        type: 'research-dome',
+        resourceType: 'researchPoints',
+        amount: researchPointsGenerated
+      });
+    }
+    
+    // Save dome generation cycle updates
+    set(state => ({
+      domeGeneration: {
+        ...state.domeGeneration,
+        colonyGoodsCycle: updatedColonyGoodsCycle,
+        researchCycle: updatedResearchCycle
+      },
+      // Add resource generations for visualization
+      roundResourceGenerations: resourceGenerations
+    }));
+    
+    // Log resource changes
+    console.log(`Resource changes this round - Power: ${resourceChanges.power.toFixed(2)}, Water: ${resourceChanges.water.toFixed(2)}, Minerals: ${resourceChanges.minerals}, RP: ${resourceChanges.researchPoints}, Goods: ${resourceChanges.colonyGoods}`);
+    
+    // ----- STEP 5: Process the rest of round logic -----
+    
     // 1. Update Task Progress & Status
     const taskCompletedMessageShown = get().updateTaskProgress();
     if (taskCompletedMessageShown) {
       dialogueShownThisRound = true;
     }
-
-    // 2. Generate Resources from Operational Tasks (now keeps track per building)
-    // This populates roundResourceGenerations in the store
-    get().generateTaskResources();
     
-    // 2a. Generate resources from domes (new passive generation)
-    get().generateDomeResources();
-
-    // 3. Basic Resource Consumption/Production
-    const { population, power, activeTasks } = get(); // Re-get state
-    let waterConsumed = population * 1;
-
-    // --- APPLY PROJECT EFFECTS: Water Consumption ---
-    // Regolith Detoxifying Bacteria: -15% Water consumption per population
-    if (completedResearch.includes('detoxifying-bacteria')) {
-        const originalConsumption = waterConsumed;
-        waterConsumed *= 0.85; // Apply 15% reduction
-        console.log(`Detoxifying Bacteria: Reduced water consumption from ${originalConsumption} to ${waterConsumed.toFixed(2)}`);
-    }
-    // --- END PROJECT EFFECTS ---
-
-    const powerProduced = 5; // Base power production
-
-    // 3a. Calculate shutdown power savings
-    let shutdownPowerSavings = 0;
-    Object.values(activeTasks).forEach(task => {
-      if (task.status === 'shutdown') {
-        const taskConfig = getTaskConfig(task.type);
-        if (taskConfig?.powerConsumption && taskConfig.powerConsumption > 0) {
-            let operationalConsumption = taskConfig.powerConsumption;
-            // Apply consumption reduction effects even when calculating savings
-            if (task.type === 'build-waterwell' && completedProductionProjects.includes('thermal-extractors')) {
-                operationalConsumption *= 0.75;
-            }
-            const savedPower = Math.round(operationalConsumption * 0.8);
-            shutdownPowerSavings += savedPower;
-            console.log(`Shutdown ${task.type} saving ${savedPower} power (Base Op Consumption: ${operationalConsumption.toFixed(2)}).`);
-        } else if (taskConfig?.cost.power) {
-          // Fallback for older logic if needed, but prefer powerConsumption
-          const normalOperationPowerCost = Math.round(taskConfig.cost.power * 0.25);
-          const savedPower = Math.round(normalOperationPowerCost * 0.8);
-          shutdownPowerSavings += savedPower;
-          console.log(`Shutdown ${task.type} saving ${savedPower} power (using cost fallback).`);
-        }
-      }
-    });
-
     // 4. Trigger Random Events (placeholder, remains disabled)
-    // TEMPORARILY DISABLED: Events are disabled for now but the infrastructure remains for future implementation
-    Object.values(get().activeTasks).forEach(task => {
-      if (task.status === 'operational' && Math.random() < 0) { // Temporarily disabled by setting chance to 0
-        console.log(`Event triggered for task ${task.id}!`);
-        get().triggerTaskEvent(task.id, 'generic_event'); // Pass generic event type for now
-      }
-    });
+    // TEMPORARILY DISABLED: Events are disabled for now
 
     // 5. Check for Building Issues
     get().checkForNewIssues();
@@ -565,37 +752,53 @@ export const useGameStore = create<GameState>((set, get) => ({
       dialogueShownThisRound = true;
     }
 
-    // --- Set next round state (after a short delay to allow for visuals) ---
-    // The resource generation numbers will show briefly before the state update
+    // ----- STEP 6: Apply all resource changes at once -----
     setTimeout(() => {
       set((state) => {
-        // Calculate final resource values for the *end* of the round
-        const newWater = state.water - waterConsumed;
-        const newPower = state.power + powerProduced + shutdownPowerSavings;
-
-        // --- Check and apply low POWER penalty status --- (Do this BEFORE water check to prioritize power warning)
+        // Store current resource values before applying changes
+        const previousValues = {
+          power: state.power,
+          water: state.water,
+          minerals: state.minerals,
+          colonyGoods: state.colonyGoods,
+          researchPoints: state.researchPoints
+        };
+        
+        // Calculate new resource values based on current values plus changes
+        const newPower = state.power + resourceChanges.power;
+        const newWater = state.water + resourceChanges.water;
+        const newMinerals = state.minerals + resourceChanges.minerals;
+        const newColonyGoods = state.colonyGoods + resourceChanges.colonyGoods;
+        const newResearchPoints = state.researchPoints + resourceChanges.researchPoints;
+        
+        // Calculate resource trends
+        const newResourceTrends: ResourceTrends = {
+          power: newPower > previousValues.power ? 'up' : newPower < previousValues.power ? 'down' : 'same',
+          water: newWater > previousValues.water ? 'up' : newWater < previousValues.water ? 'down' : 'same',
+          minerals: newMinerals > previousValues.minerals ? 'up' : newMinerals < previousValues.minerals ? 'down' : 'same',
+          colonyGoods: newColonyGoods > previousValues.colonyGoods ? 'up' : newColonyGoods < previousValues.colonyGoods ? 'down' : 'same',
+          researchPoints: newResearchPoints > previousValues.researchPoints ? 'up' : newResearchPoints < previousValues.researchPoints ? 'down' : 'same'
+        };
+        
+        // --- Check penalty states based on new values ---
         const wasPowerPenaltyActive = state.isLowPowerPenaltyActive;
         const isPowerPenaltyNowActive = newPower < 0;
         if (isPowerPenaltyNowActive && !wasPowerPenaltyActive && !dialogueShownThisRound) {
-            get().showDialogue(
-                "Critical Alert: Power reserves empty! Non-essential systems shutting down. Production and research capabilities severely impacted.",
-                '/Derech/avatars/ColonistAvatarMal5.jpg'
-            );
-            dialogueShownThisRound = true;
+          get().showDialogue(
+            "Critical Alert: Power reserves empty! Non-essential systems shutting down. Production and research capabilities severely impacted.",
+            '/Derech/avatars/ColonistAvatarMal5.jpg'
+          );
+          dialogueShownThisRound = true;
         }
-        // --- END Power Penalty Check ---
 
-        // --- Check and apply low WATER penalty status ---
         const wasWaterPenaltyActive = state.isLowWaterPenaltyActive;
         const isWaterPenaltyNowActive = newWater < 0;
         if (isWaterPenaltyNowActive && !wasWaterPenaltyActive && !dialogueShownThisRound) {
-            get().showDialogue(
-                "Warning: Water reserves depleted! Critical systems diverting resources. Mineral and Research output may be affected.",
-                '/Derech/avatars/ColonistAvatarFem2.jpg'
-            );
-            // dialogueShownThisRound = true; // No need to set flag again if power already showed
+          get().showDialogue(
+            "Warning: Water reserves depleted! Critical systems diverting resources. Mineral and Research output may be affected.",
+            '/Derech/avatars/ColonistAvatarFem2.jpg'
+          );
         }
-        // --- END Water Penalty Check ---
 
         // Recalculate workforce
         const newTotalWorkforce = Math.floor(state.population * 0.8);
@@ -604,8 +807,13 @@ export const useGameStore = create<GameState>((set, get) => ({
 
         return {
           currentRound: state.currentRound + 1,
-          water: newWater,
           power: newPower,
+          water: newWater,
+          minerals: newMinerals,
+          colonyGoods: newColonyGoods,
+          researchPoints: newResearchPoints,
+          previousRoundResources: previousValues,
+          resourceTrends: newResourceTrends,
           selectedTile: null,
           totalWorkforce: newTotalWorkforce,
           availableWorkforce: newAvailableWorkforce,
@@ -614,11 +822,11 @@ export const useGameStore = create<GameState>((set, get) => ({
           isEndingRound: false // Reset the flag when done
         };
       });
+      
       console.log("Round Ended. New Round:", get().currentRound);
-      console.log("Resources - Power:", get().power.toFixed(2), "Water:", get().water.toFixed(2));
+      console.log(`Resources - Power: ${get().power.toFixed(2)}, Water: ${get().water.toFixed(2)}, Minerals: ${get().minerals}, Colony Goods: ${get().colonyGoods}, Research: ${get().researchPoints}`);
       console.log(`Penalties - Power: ${get().isLowPowerPenaltyActive}, Water: ${get().isLowWaterPenaltyActive}`);
       console.log("Available Workforce:", get().availableWorkforce, "/", get().totalWorkforce);
-      console.log("Active Tasks:", get().activeTasks);
     }, 500); // Short delay to allow for visuals
   },
 
@@ -701,11 +909,98 @@ export const useGameStore = create<GameState>((set, get) => ({
       isIssueWindowVisible: false,
       isLowWaterPenaltyActive: false, // Initialize penalty flag
       isLowPowerPenaltyActive: false, // NEW: Initialize power penalty flag
+      previousRoundResources: {
+        power: 100,
+        water: 100,
+        minerals: 20,
+        colonyGoods: 50,
+        researchPoints: 0
+      },
+      resourceTrends: {
+        power: 'same',
+        water: 'same',
+        minerals: 'same',
+        colonyGoods: 'same',
+        researchPoints: 'same'
+      },
     });
     
     // Initialize a fresh grid with radius 5
     useGameStore.getState().initializeGrid(5);
     console.log("Colony reset. Game state initialized with fresh grid.");
+  },
+
+  emergencyResetColony: () => {
+    console.log("EMERGENCY: Executing colony reset");
+    
+    // Start with collecting the IDs of all operational tasks
+    const activeTasks = get().activeTasks;
+    const taskIdsToRemove: string[] = [];
+    
+    // Identify all active tasks
+    Object.values(activeTasks).forEach(task => {
+      taskIdsToRemove.push(task.id);
+    });
+    
+    // Clean up the grid - remove buildings and taskIds
+    set(state => {
+      const updatedGridTiles = { ...state.gridTiles };
+      
+      // Remove building and taskId from all tiles except the initial domes
+      Object.keys(updatedGridTiles).forEach(key => {
+        if (!['0,0', '1,0', '-1,0'].includes(key)) { 
+          // Keep the initial domes intact
+          updatedGridTiles[key] = {
+            ...updatedGridTiles[key],
+            building: null,
+            taskId: null
+          };
+        }
+      });
+      
+      // Reset resource values and dome generation cycles
+      return {
+        power: 100,
+        water: 100,
+        minerals: 20,
+        colonyGoods: 20,
+        activeTasks: {},
+        gridTiles: updatedGridTiles,
+        isLowWaterPenaltyActive: false,
+        isLowPowerPenaltyActive: false,
+        roundResourceGenerations: [],
+        previousRoundResources: {
+          power: 100,
+          water: 100,
+          minerals: 20,
+          colonyGoods: 20,
+          researchPoints: state.researchPoints
+        },
+        resourceTrends: {
+          power: 'same',
+          water: 'same',
+          minerals: 'same',
+          colonyGoods: 'same',
+          researchPoints: 'same'
+        },
+        domeGeneration: {
+          ...state.domeGeneration,
+          colonyGoodsCycle: 0,
+          researchCycle: 0,
+          populationCycle: 0,
+          waterPositive: true,
+          colonyGoodsSufficient: true
+        }
+      };
+    });
+    
+    // Show a dialogue with recovery information
+    get().showDialogue(
+      "Emergency recovery completed. All buildings have been deconstructed and resources have been reset. The colony can now rebuild.",
+      '/Derech/avatars/AiHelper.jpg'
+    );
+    
+    console.log("Emergency reset complete - resources restored and buildings removed");
   },
 
   // --- Task Management Actions Implementation ---
@@ -1560,66 +1855,6 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   clearResourceGenerations: () => set({ roundResourceGenerations: [] }),
 
-  emergencyResetColony: () => {
-    console.log("EMERGENCY: Executing colony reset");
-    
-    // Start with collecting the IDs of all operational tasks
-    const activeTasks = get().activeTasks;
-    const taskIdsToRemove: string[] = [];
-    
-    // Identify all active tasks
-    Object.values(activeTasks).forEach(task => {
-      taskIdsToRemove.push(task.id);
-    });
-    
-    // Clean up the grid - remove buildings and taskIds
-    set(state => {
-      const updatedGridTiles = { ...state.gridTiles };
-      
-      // Remove building and taskId from all tiles except the initial domes
-      Object.keys(updatedGridTiles).forEach(key => {
-        if (!['0,0', '1,0', '-1,0'].includes(key)) { 
-          // Keep the initial domes intact
-          updatedGridTiles[key] = {
-            ...updatedGridTiles[key],
-            building: null,
-            taskId: null
-          };
-        }
-      });
-      
-      // Reset resource values and dome generation cycles
-      return {
-        power: 100,
-        water: 100,
-        minerals: 20,
-        colonyGoods: 20,
-        activeTasks: {},
-        gridTiles: updatedGridTiles,
-        isLowWaterPenaltyActive: false,
-        isLowPowerPenaltyActive: false,
-        roundResourceGenerations: [],
-        domeGeneration: {
-          ...state.domeGeneration,
-          colonyGoodsCycle: 0,
-          researchCycle: 0,
-          populationCycle: 0,
-          waterPositive: true,
-          colonyGoodsSufficient: true
-        }
-      };
-    });
-    
-    // Show a dialogue with recovery information
-    get().showDialogue(
-      "Emergency recovery completed. All buildings have been deconstructed and resources have been reset. The colony can now rebuild.",
-      '/Derech/avatars/AiHelper.jpg'
-    );
-    
-    console.log("Emergency reset complete - resources restored and buildings removed");
-  },
-
-  // Generate resources from dome buildings
   generateDomeResources: () => {
     const { colonyGoodsCycle, colonyGoodsBaseAmount, researchCycle, researchBaseAmount } = get().domeGeneration;
     let updatedColonyGoodsCycle = colonyGoodsCycle + 1;
@@ -1681,7 +1916,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         researchCycle: updatedResearchCycle
       },
       // Add resource generations to the existing ones
-      roundResourceGenerations: [...state.roundResourceGenerations, ...resourceGenerations]
+      roundResourceGenerations: resourceGenerations
     }));
   },
   

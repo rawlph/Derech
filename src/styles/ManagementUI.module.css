@@ -327,4 +327,34 @@
         padding: 0.2em 0.4em;
     }
     /* --- End of Updated Selected Tile Info Landscape Styles --- */
+}
+
+/* Add resource trend indicator styles */
+.resourceTrend {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.trendUp {
+  color: #4caf50;
+}
+
+.trendDown {
+  color: #f44336;
+}
+
+.trendSame {
+  color: #ffc107;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 } 

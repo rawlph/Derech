@@ -31,6 +31,8 @@ const ManagementUI = () => {
         // --- NEW: Import issue actions ---
         buildingIssues,
         showIssueWindow,
+        // --- NEW: Import resource trends ---
+        resourceTrends,
         // --- --- 
     } = useGameStore();
 
@@ -44,6 +46,18 @@ const ManagementUI = () => {
     // --- State for Portal Room Confirmation ---
     const [showPortalConfirm, setShowPortalConfirm] = useState(false);
     // --- ---
+
+    // Helper to render resource trend indicators
+    const renderTrendIndicator = (trend: 'up' | 'down' | 'same' | null) => {
+        if (trend === 'up') {
+            return <span className={`${styles.resourceTrend} ${styles.trendUp}`}>▲</span>;
+        } else if (trend === 'down') {
+            return <span className={`${styles.resourceTrend} ${styles.trendDown}`}>▼</span>;
+        } else if (trend === 'same') {
+            return <span className={`${styles.resourceTrend} ${styles.trendSame}`}>●</span>;
+        }
+        return null;
+    };
 
     const handleEndRound = () => {
         endRound();
@@ -308,12 +322,12 @@ const ManagementUI = () => {
             {/* Top Bar: Resources & Round */}
             <div className={styles.topBar}>
                 <div className={styles.resourceDisplay}>
-                    <span>⚡ Power: {power}</span>
-                    <span>💧 Water: {water}</span>
-                     <span>⛏️ Minerals: {minerals}</span> {/* Added Minerals */}
+                    <span>⚡ Power: {power}{renderTrendIndicator(resourceTrends.power)}</span>
+                    <span>💧 Water: {water}{renderTrendIndicator(resourceTrends.water)}</span>
+                    <span>⛏️ Minerals: {minerals}{renderTrendIndicator(resourceTrends.minerals)}</span>
                     <span>🧑‍🤝‍🧑 Pop: {population}</span>
-                    <span>🔬 RP: {researchPoints}</span>
-                    <span>📦 Goods: {colonyGoods}</span>
+                    <span>🔬 RP: {researchPoints}{renderTrendIndicator(resourceTrends.researchPoints)}</span>
+                    <span>📦 Goods: {colonyGoods}{renderTrendIndicator(resourceTrends.colonyGoods)}</span>
                     {/* Added Workforce Display */}
                     <span>👷 Wkfc: {availableWorkforce} / {totalWorkforce}</span>
                 </div>
