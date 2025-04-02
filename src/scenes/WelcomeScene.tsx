@@ -1,6 +1,6 @@
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF, OrbitControls, Text, Stars, SpotLight, Plane, Cylinder, Box, Html } from '@react-three/drei';
-import { Suspense, useRef, useEffect, useState, forwardRef, useImperativeHandle, useMemo } from 'react';
+import { Suspense, useRef, useEffect, useState, forwardRef, useImperativeHandle, useMemo, ReactNode } from 'react';
 import * as THREE from 'three';
 import { useGameStore } from '@store/store';
 import MobileControls from '@components/MobileControls';
@@ -10,7 +10,7 @@ import styles from '@styles/WelcomeScene.module.css';
 interface TempleStructureProps {
   position: [number, number, number];
   rotationY?: number;
-  infoText?: string; // Optional prop for the text content
+  infoText?: string | ReactNode; // Updated to accept ReactNode
 }
 
 const TempleStructure = ({ position, rotationY = 0, infoText }: TempleStructureProps) => {
@@ -19,7 +19,7 @@ const TempleStructure = ({ position, rotationY = 0, infoText }: TempleStructureP
   const columnRadius = 0.8;
   const cornerOffset = platformSize[0] / 2 - columnRadius * 1.5; // Offset columns slightly inward
   const tablePosition: [number, number, number] = [0, platformSize[1] + 0.75, 0]; // Center Y of table base
-  const tableArgs: [number, number, number] = [platformSize[0] * 0.6, 9.5, 1]; // Actual table dimensions (W, H, D)
+  const tableArgs: [number, number, number] = [platformSize[0] * 0.6, 16.5, 1]; // Actual table dimensions (W, H, D)
 
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
@@ -58,24 +58,29 @@ const TempleStructure = ({ position, rotationY = 0, infoText }: TempleStructureP
               metalness={0.1}
            />
           </Box>
-          <Text
-            position={[
-                tablePosition[0], // Same X as table
-                tablePosition[1] + tableArgs[1] / 2 - 0.2, // Position near top edge of table (Center Y + Half Height - Small Offset)
-                tablePosition[2] + tableArgs[2] / 2 + 0.05 // Position slightly in front of table's front face
-            ]}
-            rotation={[0, 0, 0]} // Stand upright
-            fontSize={0.35}
-            color="#FFFFFF"
-            anchorX="center"
-            anchorY="top" // Anchor text block to its top edge
-            maxWidth={tableArgs[0] * 0.9}
-            lineHeight={1.5}
-            whiteSpace="normal"
-            overflowWrap="break-word"
-          >
-            {infoText}
-          </Text>
+          {typeof infoText === 'string' ? (
+            <Text
+              position={[
+                  tablePosition[0], // Same X as table
+                  tablePosition[1] + tableArgs[1] / 2 - 0.2, // Position near top edge of table
+                  tablePosition[2] + tableArgs[2] / 2 + 0.05 // Position slightly in front of table's front face
+              ]}
+              rotation={[0, 0, 0]} // Stand upright
+              fontSize={0.35}
+              color="#FFFFFF"
+              anchorX="center"
+              anchorY="top" // Anchor text block to its top edge
+              maxWidth={tableArgs[0] * 0.9}
+              lineHeight={1.5}
+              whiteSpace="normal"
+              overflowWrap="break-word"
+            >
+              {infoText}
+            </Text>
+          ) : (
+            // If it's a ReactNode, just render it directly
+            infoText
+          )}
         </>
       )}
     </group>
@@ -89,23 +94,66 @@ const MuseumEnvironment = () => {
   const wallHeight = 30;
 
   // Define the text content for each temple
-  const leftTempleText = `[GAMEPLAY]
-- Start New Colony
-- 3 Main Buildings, 5 buildables
-- Balance Power/Water and various resources
-- accumulate Research Points (=RP)
-- unlock upgrades
-- SOON: 3d Puzzle Area & Flavor`;
+  const leftTempleText = (
+    <Html transform position={[0, 5.5, 0.55]} className="content" style={{ width: '270px', pointerEvents: 'auto' }}>
+      <div style={{ 
+        color: 'white', 
+        fontSize: '14px', 
+        lineHeight: '1.5',
+        textAlign: 'left',
+        padding: '10px'
+      }}>
+        <h3 style={{ marginBottom: '10px', fontSize: '16px' }}>[GAMEPLAY]</h3>
+        <ul style={{ paddingLeft: '20px', fontSize: '13px' }}>
+          <li>Start New Colony</li>
+          <li>3 Main Buildings, 5 buildables</li>
+          <li>Balance Power/Water and various resources</li>
+          <li>accumulate Research Points (=RP)</li>
+          <li>unlock upgrades</li>
+          <li>SOON: 3d Puzzle Area & Flavor</li>
+        </ul>
+      </div>
+    </Html>
+  );
 
-  const rightTempleText = `[PLANNED NEXT]
-- Refine game balance
-- Add story progression (AI Embodiment)
-
-[SCOPE]
-- Research embodiment 3D puzzles
-- AI progressively embodies
-- AI can help colony more efficiently
-- Unlock more game complexity`;
+  const rightTempleText = (
+    <Html transform position={[0, 5.5, 0.55]} className="content" style={{ width: '270px', pointerEvents: 'auto' }}>
+      <div style={{ 
+        color: 'white', 
+        fontSize: '14px', 
+        lineHeight: '1.5',
+        textAlign: 'left',
+        padding: '10px'
+      }}>
+        <h3 style={{ marginBottom: '10px', fontSize: '16px' }}>
+          <a 
+            href="./changes.html" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ 
+              color: '#3498db', 
+              textDecoration: 'underline',
+              fontWeight: 'bold'
+            }}
+          >
+            CLICK HERE FOR RECENT CHANGES
+          </a>
+        </h3>
+        
+        <p style={{ marginBottom: '15px', fontSize: '13px' }}>
+          Latest update: Mobile Responsiveness Enhancement - Updated the mobile UI experience across multiple components including improved viewport settings for better scaling on mobile devices.
+        </p>
+        
+        <h3 style={{ marginTop: '20px', marginBottom: '10px', fontSize: '16px' }}>[SCOPE]</h3>
+        <ul style={{ paddingLeft: '20px', fontSize: '13px' }}>
+          <li>Research embodiment 3D puzzles</li>
+          <li>AI progressively embodies</li>
+          <li>AI can help colony more efficiently</li>
+          <li>Unlock more game complexity</li>
+        </ul>
+      </div>
+    </Html>
+  );
 
   return (
     <group>
