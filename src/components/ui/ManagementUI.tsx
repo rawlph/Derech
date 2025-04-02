@@ -332,13 +332,15 @@ const ManagementUI = () => {
                     <span>👷 Wkfc: {availableWorkforce} / {totalWorkforce}</span>
                 </div>
                 <div className={styles.roundDisplay}>
-                    <span>Round: {currentRound}</span>
-                    <button onClick={handleEndRound} className={styles.actionButton}>
-                        End Round
-                    </button>
-                    <button onClick={handleGoToWelcome} className={`${styles.actionButton} ${styles.portalButton}`}>
-                        PORTAL ROOM
-                    </button>
+                    <span className={styles.roundCounter}>Round: {currentRound}</span>
+                    <div className={styles.roundButtons}>
+                        <button onClick={handleEndRound} className={styles.actionButton}>
+                            End Round
+                        </button>
+                        <button onClick={handleGoToWelcome} className={`${styles.actionButton} ${styles.portalButton}`}>
+                            PORTAL ROOM
+                        </button>
+                    </div>
                 </div>
             </div>
 

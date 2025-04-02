@@ -210,46 +210,71 @@
 
 /* Basic Mobile Responsiveness (Portrait Focus or Small Screens) */
 @media (max-width: 768px) {
-    /* --- Restored Top Bar Mobile Styles --- */
+    /* --- Updated Top Bar Mobile Styles --- */
     .uiOverlay {
         padding: 0.5rem; /* Reduce padding on small screens */
     }
     .topBar {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-direction: row; /* Keep as row instead of column */
+        justify-content: space-between; /* Push content to opposite sides */
+        align-items: center;
         gap: 0.5rem;
         padding: 0.5rem;
+        flex-wrap: wrap; /* Allow wrapping on very small screens */
     }
     .resourceDisplay {
         gap: 0.5rem;
+        flex: 1; /* Take available space */
+        justify-content: flex-start; /* Align resources to the left */
+        max-width: 60%; /* Limit width to prevent pushing round display off screen */
     }
     .resourceDisplay span {
        font-size: 0.8em;
        padding: 0.2rem 0.4rem;
     }
     .roundDisplay {
-        width: 100%;
-        justify-content: space-between; /* Space out round# and button */
-        margin-top: 0.5rem; /* Add space when stacked */
+        display: flex;
+        flex-direction: column; /* Stack counter and buttons vertically */
+        align-items: flex-end; /* Align everything to the right */
+        gap: 0.3rem;
+        min-width: 120px; /* Ensure minimum width */
+    }
+    .roundCounter {
+        margin-right: 0; /* Remove right margin when stacked */
+        font-size: 0.9em;
+    }
+    .roundButtons {
+        display: flex;
+        gap: 5px; /* Smaller gap for buttons */
+        justify-content: flex-end; /* Align buttons to the right */
     }
     .actionButton {
-        font-size: 0.85em;
-        padding: 0.4em 0.8em;
+        font-size: 0.75em; /* Smaller text */
+        padding: 0.4em 0.6em; /* Smaller padding */
+        min-width: 0; /* Allow button to shrink */
     }
     /* Ensure portal button inherits base button adjustments */
     .portalButton {
-       /* No specific overrides needed here unless desired */
+        font-size: 0.75em; /* Smaller text */
     }
-    /* --- End of Restored Top Bar Mobile Styles --- */
+    /* --- End of Updated Top Bar Mobile Styles --- */
 
     /* --- Updated Selected Tile Info Mobile Styles --- */
-     .selectedTileInfo {
+    .selectedTileInfo {
         max-width: 90%; /* Take more width */
         align-self: center; /* Center on mobile */
         margin-left: 0; /* Remove left margin */
+        margin-top: 70px; /* Add space below header to prevent overlap */
         margin-bottom: 80px; /* Increased space if overlapping with potential mobile controls */
         padding: 1rem; /* Adjust padding */
         font-size: 0.95em; /* Adjust base font */
+        max-height: calc(60vh - 50px); /* Limit height to avoid taking up too much space */
+        overflow-y: auto; /* Add scrolling for overflow content */
+        position: fixed; /* Fix position to better control placement */
+        top: 60px; /* Position below the header */
+        left: 50%; /* Center horizontally */
+        transform: translateX(-50%); /* Center trick */
+        z-index: 10; /* Ensure proper stacking */
     }
     .selectedTileInfo h4 {
         font-size: 1.15em;
@@ -266,7 +291,7 @@
 
 /* Mobile Landscape Specific Adjustments */
 @media (orientation: landscape) and (max-height: 500px) {
-    /* --- Restored Top Bar Landscape Styles --- */
+    /* --- Top Bar Landscape Styles --- */
     .uiOverlay {
         padding: 0.5rem; /* Keep reduced padding */
     }
@@ -276,6 +301,12 @@
         align-items: center;
         padding: 0.3rem 0.5rem; /* Further reduce padding */
         gap: 0.5rem; /* Reduce gap */
+        width: 100%; /* Ensure full width */
+        position: fixed; /* Fix at top */
+        top: 0;
+        left: 0;
+        z-index: 20; /* Above everything */
+        background-color: rgba(0, 0, 0, 0.5); /* Ensure background */
     }
     .resourceDisplay {
         gap: 0.5rem; /* Smaller gap */
@@ -296,37 +327,59 @@
         font-size: 0.75em;
         padding: 0.3em 0.6em;
     }
-    /* Ensure portal button inherits base button adjustments */
-    .portalButton {
-        /* No specific overrides needed here unless desired */
-    }
-    /* --- End of Restored Top Bar Landscape Styles --- */
+    /* --- End of Top Bar Landscape Styles --- */
 
-
-    /* --- Updated Selected Tile Info Landscape Styles --- */
+    /* --- Sidebar Selected Tile Info Layout --- */
     .selectedTileInfo {
-        position: fixed; /* Use fixed to detach from flex flow */
-        bottom: 10px; /* Position near bottom */
-        left: 10px;
-        max-width: 260px; /* Reduced landscape max-width as well */
-        max-height: calc(100vh - 70px); /* Limit height based on viewport, leave space for top bar */
-        padding: 0.75rem; /* Reduce padding */
+        position: fixed; /* Fix position */
+        top: 50px; /* Position below header (adjust based on header height) */
+        left: 0; /* Align to left edge */
+        bottom: 0; /* Extend to bottom */
+        width: 220px; /* Fixed width sidebar */
+        max-width: none; /* Override max-width */
+        max-height: none; /* Override max-height */
+        margin: 0; /* Remove all margins */
+        padding: 0.75rem; /* Adjust padding */
+        border-radius: 0 10px 0 0; /* Round only top-right corner */
         font-size: 0.85em; /* Smaller font */
-        overflow-y: auto; /* Allow scrolling if content overflows */
-        margin-bottom: 0; /* Override margin */
-        align-self: flex-start; /* Align to left */
-        z-index: 11; /* Ensure it's above canvas but potentially below popups */
+        overflow-y: auto; /* Enable scrolling */
+        background-color: rgba(0, 0, 0, 0.8); /* Make background darker for better contrast */
+        border-right: 1px solid #555; /* Add border on right side */
+        transform: none; /* Remove any transforms */
+        z-index: 15; /* Below header but above scene */
     }
+    
+    /* Adjust content within sidebar */
     .selectedTileInfo h4 {
-        margin-bottom: 0.3rem;
-        padding-bottom: 0.2rem;
-        font-size: 1.1em; /* Make header slightly larger relative to text */
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.3rem;
+        font-size: 1rem;
+        border-bottom: 1px solid #666;
     }
+    
+    .selectedTileInfo p {
+        margin: 0.3rem 0;
+        font-size: 0.9rem;
+    }
+    
+    .actionsContainer {
+        margin-top: 0.5rem;
+        gap: 0.4rem;
+    }
+    
     .actionButtonSmall {
         font-size: 0.7em;
-        padding: 0.2em 0.4em;
+        padding: 0.3em 0.6em;
+        width: 100%; /* Make buttons full width in sidebar */
     }
-    /* --- End of Updated Selected Tile Info Landscape Styles --- */
+    
+    /* Make deselect button stick to bottom */
+    .deselectButton {
+        margin-top: auto;
+        position: sticky;
+        bottom: 0;
+        background-color: #782f1a;
+    }
 }
 
 /* Add resource trend indicator styles */
@@ -357,4 +410,15 @@
   to {
     opacity: 1;
   }
+}
+
+.roundCounter {
+  margin-right: 8px;
+  white-space: nowrap;
+}
+
+.roundButtons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 } 

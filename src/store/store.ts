@@ -461,7 +461,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     
     console.log("--- Ending Round", get().currentRound, "---");
     let dialogueShownThisRound = false; // Flag to prevent multiple popups
-    
+
     // Clear any existing resource generations to avoid accumulation
     set({ roundResourceGenerations: [] });
     
@@ -754,7 +754,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     // ----- STEP 6: Apply all resource changes at once -----
     setTimeout(() => {
-      set((state) => {
+    set((state) => {
         // Store current resource values before applying changes
         const previousValues = {
           power: state.power,
@@ -801,12 +801,12 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
 
         // Recalculate workforce
-        const newTotalWorkforce = Math.floor(state.population * 0.8);
-        const currentAssigned = Object.values(state.activeTasks).reduce((sum, task) => sum + task.assignedWorkforce, 0);
-        const newAvailableWorkforce = Math.max(0, newTotalWorkforce - currentAssigned);
+      const newTotalWorkforce = Math.floor(state.population * 0.8);
+      const currentAssigned = Object.values(state.activeTasks).reduce((sum, task) => sum + task.assignedWorkforce, 0);
+      const newAvailableWorkforce = Math.max(0, newTotalWorkforce - currentAssigned);
 
-        return {
-          currentRound: state.currentRound + 1,
+      return {
+        currentRound: state.currentRound + 1,
           power: newPower,
           water: newWater,
           minerals: newMinerals,
@@ -815,18 +815,18 @@ export const useGameStore = create<GameState>((set, get) => ({
           previousRoundResources: previousValues,
           resourceTrends: newResourceTrends,
           selectedTile: null,
-          totalWorkforce: newTotalWorkforce,
-          availableWorkforce: newAvailableWorkforce,
+        totalWorkforce: newTotalWorkforce,
+        availableWorkforce: newAvailableWorkforce,
           isLowWaterPenaltyActive: isWaterPenaltyNowActive,
           isLowPowerPenaltyActive: isPowerPenaltyNowActive,
           isEndingRound: false // Reset the flag when done
-        };
-      });
+      };
+    });
       
-      console.log("Round Ended. New Round:", get().currentRound);
+    console.log("Round Ended. New Round:", get().currentRound);
       console.log(`Resources - Power: ${get().power.toFixed(2)}, Water: ${get().water.toFixed(2)}, Minerals: ${get().minerals}, Colony Goods: ${get().colonyGoods}, Research: ${get().researchPoints}`);
       console.log(`Penalties - Power: ${get().isLowPowerPenaltyActive}, Water: ${get().isLowWaterPenaltyActive}`);
-      console.log("Available Workforce:", get().availableWorkforce, "/", get().totalWorkforce);
+    console.log("Available Workforce:", get().availableWorkforce, "/", get().totalWorkforce);
     }, 500); // Short delay to allow for visuals
   },
 
@@ -1222,7 +1222,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     
     // Track individual building resource generation
     const resourceGenerations: ResourceGeneration[] = [];
-
+    
     Object.values(state.activeTasks).forEach(task => {
       if (task.status === 'operational') {
         const taskConfig = getTaskConfig(task.type);
@@ -1253,7 +1253,7 @@ export const useGameStore = create<GameState>((set, get) => ({
               }
               // Apply mountain height bonus *after* research bonus
               if (tile.type === 'Mountain') {
-                const heightBonus = tile.height * 0.5;
+            const heightBonus = tile.height * 0.5;
                 yieldAmount *= (1 + heightBonus);
               }
             } else if (resourceType === 'water' && task.type === 'build-waterwell') {
@@ -1295,13 +1295,13 @@ export const useGameStore = create<GameState>((set, get) => ({
 
             // Add to totals
             if (resourceType === 'minerals') {
-              totalMineralsGenerated += yieldAmount;
-            } else if (resourceType === 'researchPoints') {
-              totalResearchPointsGenerated += yieldAmount;
-            } else if (resourceType === 'power') {
-              totalPowerGenerated += yieldAmount;
-            } else if (resourceType === 'water') {
-              totalWaterGenerated += yieldAmount;
+            totalMineralsGenerated += yieldAmount;
+          } else if (resourceType === 'researchPoints') {
+            totalResearchPointsGenerated += yieldAmount;
+          } else if (resourceType === 'power') {
+            totalPowerGenerated += yieldAmount;
+          } else if (resourceType === 'water') {
+            totalWaterGenerated += yieldAmount;
             }
           }
         }
@@ -1315,7 +1315,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (totalWaterGenerated > 0) set(s => ({ water: s.water + totalWaterGenerated }));
 
     // Store the resource generations for visualization
-    set(state => ({ 
+      set(state => ({ 
       roundResourceGenerations: resourceGenerations
     }));
 
