@@ -23,6 +23,7 @@
     width: 100%;
     max-width: 900px; /* Wider than dialogue */
     max-height: 80vh; /* Limit height */
+    min-height: 500px; /* Set minimum height to prevent tiny content area */
     display: flex;
     flex-direction: column;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
@@ -102,6 +103,8 @@
     max-width: 100%;
     box-sizing: border-box;
     padding: 0; /* No padding to take full width */
+    flex: 1; /* Make it take available space */
+    min-height: 300px; /* Ensure minimum height */
 }
 
 /* Add new styles for project content */
@@ -222,6 +225,7 @@
     width: 100%;
     box-sizing: border-box;
     max-width: 100%;
+    min-height: 200px; /* Ensure minimum height for content */
 }
 
 .projectItem {
