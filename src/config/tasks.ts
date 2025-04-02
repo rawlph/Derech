@@ -11,6 +11,7 @@ export interface TaskConfig {
   duration: number; // Rounds for deployment/construction
   operationalModelPath?: string; // Path to model shown when operational
   resourceYield?: { resource: string; baseAmount: number }; // Resource generated per round when operational
+  powerConsumption?: number; // NEW: Power consumed per round when operational
   scale?: [number, number, number]; // Optional scale for the 3D model
   yOffset?: number; // Vertical position adjustment above tile surface
 }
@@ -22,66 +23,70 @@ export const taskConfigs: Record<string, TaskConfig> = {
     name: 'Deploy Mining Operation',
     description: 'Establish a mining site to extract raw minerals.',
     targetTileType: ['Mountain'], // Can only be built on Mountains
-    cost: { power: 15, colonyGoods: 10 }, // Updated power cost from 20 to 15
-    workforceRequired: 3, // Number of workers needed
-    duration: 2, // Takes 2 rounds to set up
-    operationalModelPath: '/Derech/models/mars_workforce_mining.glb', // Model to show when running
-    resourceYield: { resource: 'minerals', baseAmount: 8 }, // Updated from 5 to 8 minerals per round
-    scale: [0.06, 0.06, 0.06], // Updated scale to match starter buildings
-    yOffset: 0.2, // Updated to match starter buildings
+    cost: { power: 15, colonyGoods: 10 },
+    workforceRequired: 3,
+    duration: 9, // UPDATED: Was 2, factor 3 -> 6, user wants 9
+    operationalModelPath: '/Derech/models/mars_workforce_mining.glb',
+    resourceYield: { resource: 'minerals', baseAmount: 8 },
+    powerConsumption: 5, // NEW
+    scale: [0.06, 0.06, 0.06],
+    yOffset: 0.2,
   },
-  // --- Future Task Examples (Add later) ---
   'deploy-scout': {
     type: 'deploy-scout',
     name: 'Establish Scouting Post',
-    description: 'Sets up an outpost to reveal nearby tiles.',
-    targetTileType: ['Plains', 'Mountain'], // Can be built anywhere except Ice
+    description: 'Sets up an outpost to reveal nearby tiles and generate research points.',
+    targetTileType: ['Plains', 'Mountain'],
     cost: { power: 10, colonyGoods: 5 },
     workforceRequired: 1,
-    duration: 1,
+    duration: 3, // UPDATED: Was 1, factor 3 -> 3
     operationalModelPath: '/Derech/models/mars_building_scout.glb',
-    resourceYield: { resource: 'researchPoints', baseAmount: 4 }, // Updated from 2 to 4
-    scale: [0.04, 0.04, 0.04], // Scout outpost scale
-    yOffset: 0.2, // Base position, will be adjusted in TaskVisuals
+    resourceYield: { resource: 'researchPoints', baseAmount: 4 },
+    powerConsumption: 2, // NEW
+    scale: [0.04, 0.04, 0.04],
+    yOffset: 0.2,
   },
   'build-solar': {
     type: 'build-solar',
-    name: 'Construct Solar Panel',
+    name: 'Construct Solar Array',
     description: 'Builds a solar panel array to generate Power.',
-    targetTileType: ['Plains'], // Typically built on flat ground
-    cost: { minerals: 20, colonyGoods: 5 }, // Updated minerals cost from 15 to 20
+    targetTileType: ['Plains'],
+    cost: { minerals: 20, colonyGoods: 5 },
     workforceRequired: 2,
-    duration: 2, // Reduced from 3 to 2 rounds
+    duration: 6, // UPDATED: Was 2, factor 3 -> 6
     operationalModelPath: '/Derech/models/mars_solar.glb',
-    resourceYield: { resource: 'power', baseAmount: 15 }, // Updated from 10 to 15
-    scale: [0.15, 0.15, 0.15], // Solar panel scale
-    yOffset: 0.01, // Lowered from 0.2 to sit closer to the tile
+    resourceYield: { resource: 'power', baseAmount: 15 },
+    powerConsumption: 0, // Produces power
+    scale: [0.15, 0.15, 0.15],
+    yOffset: 0.01,
   },
   'build-geothermal': {
     type: 'build-geothermal',
     name: 'Construct Geothermal Plant',
-    description: 'Constructs a high-output geothermal power plant, tapping into Mars\' thermal energy.',
-    targetTileType: ['Plains'], // Can only be built on Plains
-    cost: { minerals: 30, colonyGoods: 15 }, // Updated from 25/10 to 30/15
-    workforceRequired: 5, // Takes 5 workforce as requested
-    duration: 3, // Reduced from 4 to 3 rounds
-    operationalModelPath: '/Derech/models/mars_thermal.glb', // New model
-    resourceYield: { resource: 'power', baseAmount: 30 }, // Updated from 25 to 30
-    scale: [0.08, 0.08, 0.08], // Reduced by 20% from original 0.1
-    yOffset: 0.05, // Moderate position above tile
+    description: 'Constructs a high-output geothermal power plant.',
+    targetTileType: ['Plains'],
+    cost: { minerals: 30, colonyGoods: 15 },
+    workforceRequired: 5,
+    duration: 15, // UPDATED: Was 3, factor 3 -> 9, user wants 15
+    operationalModelPath: '/Derech/models/mars_thermal.glb',
+    resourceYield: { resource: 'power', baseAmount: 30 },
+    powerConsumption: 0, // Produces power
+    scale: [0.08, 0.08, 0.08],
+    yOffset: 0.05,
   },
   'build-waterwell': {
     type: 'build-waterwell',
     name: 'Construct Water Well',
-    description: 'Drills into ice deposits to extract water essential for colony operations.',
-    targetTileType: ['Ice Deposit'], // Can only be built on Ice Deposit tiles
-    cost: { power: 15, minerals: 20 }, // Cost to build
-    workforceRequired: 3, // Medium workforce requirement
-    duration: 2, // Reduced from 3 to 2 rounds
-    operationalModelPath: '/Derech/models/mars_waterwell.glb', // Water well model
-    resourceYield: { resource: 'water', baseAmount: 12 }, // Reduced from 15 to 12
-    scale: [0.08, 0.08, 0.08], // Similar scale to geothermal
-    yOffset: 0.15, // Slightly lower than geothermal
+    description: 'Drills into ice deposits to extract water.',
+    targetTileType: ['Ice Deposit'],
+    cost: { power: 15, minerals: 20 },
+    workforceRequired: 3,
+    duration: 6, // UPDATED: Was 2, factor 3 -> 6
+    operationalModelPath: '/Derech/models/mars_waterwell.glb',
+    resourceYield: { resource: 'water', baseAmount: 12 },
+    powerConsumption: 4, // NEW
+    scale: [0.08, 0.08, 0.08],
+    yOffset: 0.15,
   },
 };
 

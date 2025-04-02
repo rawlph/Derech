@@ -36,11 +36,11 @@ export interface Issue {
 
 // Define building issue generation rates (in rounds)
 export const buildingIssueRates: Record<string, number> = {
-    'Mining Operation': 6,
-    'Water Well': 8,
-    'Scout Outpost': 2,
-    'Geothermal Plant': 16,
-    'Solar Array': 4,
+    'Mining Operation': 24,
+    'Water Well': 32,
+    'Scout Outpost': 8,
+    'Geothermal Plant': 64,
+    'Solar Array': 16,
 };
 
 // Define initial issues
@@ -49,8 +49,8 @@ export const issues: Issue[] = [
         id: 'duststorm-basic',
         title: 'Dust Storm Warning',
         description: 'A massive dust storm is approaching your facility. The fine Martian dust particles can damage equipment and reduce efficiency if not addressed properly. Your sensors indicate it will hit in approximately 12 hours.',
-        buildingType: ['Mining Operation', 'Solar Array', 'Geothermal Plant', 'Water Well', 'Scout Outpost'], // Affects all buildings
-        image: '/Derech/images/duststorm.jpg', // Path already correct
+        buildingType: ['Mining Operation', 'Solar Array', 'Geothermal Plant', 'Water Well', 'Scout Outpost'],
+        image: '/Derech/images/duststorm.jpg',
         repeatable: true,
         choices: [
             {
@@ -70,7 +70,8 @@ export const issues: Issue[] = [
                 id: 'dust-shields',
                 text: 'Deploy emergency dust shields and keep operating',
                 cost: {
-                    power: 8, // Reduced cost from 10 to 8
+                    power: 15, // INCREASED from 8
+                    minerals: 5 // ADDED cost
                 },
                 outcomes: {
                     text: 'The emergency shields consume additional power but allow operations to continue at reduced capacity. Some dust still manages to infiltrate sensitive systems.',
@@ -83,10 +84,10 @@ export const issues: Issue[] = [
             },
             {
                 id: 'dust-research',
-                text: 'Apply experimental nanotechnology coating (Costs 8 Power, 5 Minerals)',
+                text: 'Apply experimental nanotechnology coating',
                 cost: {
-                    power: 8,
-                    minerals: 5
+                    power: 12, // INCREASED from 8
+                    minerals: 10 // INCREASED from 5
                 },
                 outcomes: {
                     text: 'The nanomaterial-based coating works better than expected! Not only does it protect against the current storm, but it also yields valuable research data (+12 RP). Your facility continues to operate efficiently despite the dust storm.',
@@ -105,8 +106,8 @@ export const issues: Issue[] = [
         id: 'radiation-surge',
         title: 'Solar Radiation Surge',
         description: 'Long-range sensors have detected a massive solar flare heading toward Mars. Without Earth\'s protective magnetosphere, this facility will be exposed to dangerous radiation levels that could damage sensitive equipment and pose health risks to the crew.',
-        buildingType: ['Mining Operation', 'Solar Array', 'Water Well', 'Scout Outpost'], // Affects most buildings except Geothermal
-        image: '/Derech/images/duststorm.jpg', // Changed from radiation.jpg
+        buildingType: ['Mining Operation', 'Solar Array', 'Water Well', 'Scout Outpost'],
+        image: '/Derech/images/duststorm.jpg',
         repeatable: true,
         choices: [
             {
@@ -126,8 +127,9 @@ export const issues: Issue[] = [
                 id: 'radiation-shield',
                 text: 'Divert power to emergency radiation shielding',
                 cost: {
-                    power: 12, // Reduced cost from 15 to 12
-                    water: 4, // Reduced cost from 5 to 4
+                    power: 20, // INCREASED from 12
+                    water: 8, // INCREASED from 4
+                    colonyGoods: 5 // ADDED cost
                 },
                 outcomes: {
                     text: 'You boost power to the facility\'s radiation shields and use water reserves to create additional protection layers. Operations continue at reduced capacity, but the facility remains online through the radiation storm.',
@@ -141,10 +143,11 @@ export const issues: Issue[] = [
             },
             {
                 id: 'radiation-research',
-                text: 'Deploy experimental ionospheric deflector (Costs 15 Power, 10 Colony Goods)',
+                text: 'Deploy experimental ionospheric deflector',
                 cost: {
-                    power: 15,
-                    colonyGoods: 10
+                    power: 25, // INCREASED from 15
+                    colonyGoods: 15, // INCREASED from 10
+                    minerals: 5 // ADDED cost
                 },
                 outcomes: {
                     text: 'The experimental deflector technology creates a localized magnetic field that mimics Earth\'s natural protection. The radiation is successfully diverted, and your research team collects invaluable scientific data on the technology\'s performance (+25 RP).',
@@ -164,8 +167,8 @@ export const issues: Issue[] = [
         id: 'phobos-alignment',
         title: 'Phobos Power Alignment',
         description: 'A rare orbital alignment of Phobos has created unusual gravitational conditions that are amplifying your facility\'s power systems. Engineers report the potential to harness this natural phenomenon for increased output.',
-        buildingType: ['Solar Array', 'Geothermal Plant'], // Only affects power-generating buildings
-        image: '/Derech/images/duststorm.jpg', // Changed from phobos.jpg
+        buildingType: ['Solar Array', 'Geothermal Plant'],
+        image: '/Derech/images/duststorm.jpg',
         repeatable: true,
         choices: [
             {
@@ -195,9 +198,10 @@ export const issues: Issue[] = [
             },
             {
                 id: 'phobos-research',
-                text: 'Deploy sensors to study the phenomenon (Costs 5 Research Points)',
+                text: 'Deploy sensors to study the phenomenon',
                 cost: {
-                    researchPoints: 5,
+                    researchPoints: 5, // Keep RP cost as is
+                    power: 5 // ADDED small power cost for sensors
                 },
                 outcomes: {
                     text: 'Your research team captures detailed data on the alignment effect. Not only do you gain a power boost, but the collected data significantly advances your understanding of efficient power generation on Mars (+18 RP).',
@@ -217,9 +221,9 @@ export const issues: Issue[] = [
         id: 'martian-discovery',
         title: 'Ancient Martian Discovery',
         description: 'Workers have uncovered what appears to be preserved microfossils in a nearby rock formation. This extraordinary find has sparked excitement throughout the facility as it may represent the first concrete evidence of ancient life on Mars.',
-        buildingType: ['Mining Operation', 'Scout Outpost'], // Only affects exploration-type buildings
-        image: '/Derech/images/duststorm.jpg', // Changed from discovery.jpg
-        repeatable: false, // This is a rare, one-time event
+        buildingType: ['Mining Operation', 'Scout Outpost'],
+        image: '/Derech/images/duststorm.jpg',
+        repeatable: false,
         choices: [
             {
                 id: 'discovery-study',
@@ -249,10 +253,11 @@ export const issues: Issue[] = [
             },
             {
                 id: 'discovery-catalog',
-                text: 'Deploy advanced analysis equipment (Costs 12 Power, 10 Colony Goods)',
+                text: 'Deploy advanced analysis equipment',
                 cost: {
-                    power: 12,
-                    colonyGoods: 10
+                    power: 15, // INCREASED from 12
+                    colonyGoods: 15, // INCREASED from 10
+                    researchPoints: 5 // ADDED small RP cost
                 },
                 outcomes: {
                     text: 'Your thorough scientific documentation creates a treasure trove of data. The site becomes a nexus of inspiration, with teams working extra shifts voluntarily. The discovery may be the breakthrough that transforms our understanding of Martian history (+40 RP).',
@@ -275,18 +280,18 @@ export const issues: Issue[] = [
         id: 'ancient-structure-discovered',
         title: 'Ancient Structure Detected',
         description: 'Your enhanced scout drones have detected an unusual geometric formation beyond the Acidalia Planitia. The high-resolution imagery from the new optics system reveals what appears to be an artificial structure, possibly an abandoned early expedition shelter or equipment cache.',
-        buildingType: ['Scout Outpost'], // Only for Scout Outposts
-        image: '/Derech/images/duststorm.jpg', // Changed from ancient-structure.jpg
-        repeatable: false, // One-time event
-        requiresResearch: 'basic-scouting', // Locked behind Enhanced Rover Optics research
+        buildingType: ['Scout Outpost'],
+        image: '/Derech/images/duststorm.jpg',
+        repeatable: false,
+        requiresResearch: 'basic-scouting',
         choices: [
             {
                 id: 'dispatch-expedition',
                 text: 'Dispatch a manned expedition team to investigate',
                 cost: {
-                    power: 8,  // Reduced from 10 to 8
-                    water: 4,  // Reduced from 5 to 4
-                    colonyGoods: 4  // Reduced from 5 to 4
+                    power: 12,  // INCREASED from 8
+                    water: 6,  // INCREASED from 4
+                    colonyGoods: 8 // INCREASED from 4
                 },
                 outcomes: {
                     text: 'Your expedition team successfully reaches the anomaly, discovering it to be remnants of a failed Chinese mission from the 2030s. The team recovers valuable equipment, mineral samples, and data drives containing research that was presumed lost (+20 RP).',
@@ -300,10 +305,11 @@ export const issues: Issue[] = [
             },
             {
                 id: 'remote-survey',
-                text: 'Deploy autonomous rover with scanning equipment (Costs 10 Power, 5 Colony Goods)',
+                text: 'Deploy autonomous rover with scanning equipment',
                 cost: {
-                    power: 10,
-                    colonyGoods: 5
+                    power: 15, // INCREASED from 10
+                    colonyGoods: 10, // INCREASED from 5
+                    minerals: 5 // ADDED cost
                 },
                 outcomes: {
                     text: 'The autonomous rover completes a thorough survey using advanced imaging and sampling techniques. While the physical materials remain at the site, the scientific data gathered provides significant insights and coordinates for future recovery missions (+30 RP).',
@@ -335,17 +341,18 @@ export const issues: Issue[] = [
         id: 'subsurface-mineral-vein',
         title: 'Rich Subsurface Mineral Vein',
         description: 'The improved seismic sensors from your advanced drilling equipment have detected an unusual formation beneath your mining operation. Analysis suggests a concentrated vein of rare minerals that would typically go undetected with standard equipment. This could be a significant opportunity for resource extraction.',
-        buildingType: ['Mining Operation'], // Only for Mining Operations
-        image: '/Derech/images/duststorm.jpg', // Changed from mineral-vein.jpg
-        repeatable: false, // One-time event
-        requiresResearch: 'improved-extraction', // Locked behind Efficient Mining Drills research
+        buildingType: ['Mining Operation'],
+        image: '/Derech/images/duststorm.jpg',
+        repeatable: false,
+        requiresResearch: 'improved-extraction',
         choices: [
             {
                 id: 'comprehensive-excavation',
                 text: 'Launch comprehensive excavation project',
                 cost: {
-                    power: 18, // Reduced from 20 to 18
-                    colonyGoods: 12 // Reduced from 15 to 12
+                    power: 25, // INCREASED from 18
+                    colonyGoods: 20, // INCREASED from 12
+                    minerals: 5 // ADDED cost
                 },
                 outcomes: {
                     text: 'Your team executes a carefully planned excavation, revealing a substantial deposit of high-grade minerals. The extraction is labor-intensive but extremely productive, yielding materials that will benefit the colony for months to come. The unique mineral composition provides some research value (+5 RP).',
@@ -361,8 +368,9 @@ export const issues: Issue[] = [
                 id: 'targeted-drilling',
                 text: 'Implement targeted drilling at key points',
                 cost: {
-                    power: 8, // Reduced from 10 to 8
-                    colonyGoods: 4 // Reduced from 5 to 4
+                    power: 12, // INCREASED from 8
+                    colonyGoods: 8, // INCREASED from 4
+                    minerals: 3 // ADDED cost
                 },
                 outcomes: {
                     text: 'Using precision drilling techniques, your team extracts the most accessible portions of the mineral vein. This balanced approach yields good results while minimizing disruption to regular operations. The discovered geological patterns offer scientific interest (+8 RP).',
@@ -376,10 +384,11 @@ export const issues: Issue[] = [
             },
             {
                 id: 'train-specialized-team',
-                text: 'Implement research-driven extraction protocol (Costs 10 Power, 8 Colony Goods)',
+                text: 'Implement research-driven extraction protocol',
                 cost: {
-                    power: 10,
-                    colonyGoods: 8
+                    power: 15, // INCREASED from 10
+                    colonyGoods: 12, // INCREASED from 8
+                    researchPoints: 10 // ADDED RP cost
                 },
                 outcomes: {
                     text: 'By applying the latest research techniques, your specialized team develops novel extraction methods that maximize both mineral yield and scientific data. This approach not only delivers exceptional resources but also generates valuable research insights (+20 RP).',
@@ -400,17 +409,18 @@ export const issues: Issue[] = [
         id: 'subterranean-ice-chamber',
         title: 'Subterranean Ice Chamber Discovered',
         description: 'While expanding your water extraction system with the new atmospheric condensation technology, workers have discovered a sealed underground chamber containing a substantial deposit of pristine ice. Initial analysis indicates unusual purity and potential scientific significance due to trapped gases and sediment layers.',
-        buildingType: ['Water Well'], // Only for Water Wells
-        image: '/Derech/images/duststorm.jpg', // Changed from ice-chamber.jpg
-        repeatable: false, // One-time event
-        requiresResearch: 'water-reclamation-1', // Locked behind Atmospheric Water Capture research
+        buildingType: ['Water Well'],
+        image: '/Derech/images/duststorm.jpg',
+        repeatable: false,
+        requiresResearch: 'water-reclamation-1',
         choices: [
             {
                 id: 'scientific-preservation',
-                text: 'Preserve most of the ice for scientific study (Costs 8 Power, 5 Colony Goods)',
+                text: 'Preserve most of the ice for scientific study',
                 cost: {
-                    power: 8,
-                    colonyGoods: 5
+                    power: 12, // INCREASED from 8
+                    colonyGoods: 10, // INCREASED from 5
+                    researchPoints: 5 // ADDED RP cost
                 },
                 outcomes: {
                     text: 'Your research team carefully documents and preserves the ice chamber, extracting cores for detailed analysis. The preserved gases and sediment layers provide unprecedented insights into Mars\' climate history (+30 RP), while still allowing for measured water extraction.',
@@ -425,6 +435,10 @@ export const issues: Issue[] = [
             {
                 id: 'communal-celebration',
                 text: 'Extract water for a colony-wide celebration',
+                cost: { // ADDED cost to celebration
+                    power: 5,
+                    colonyGoods: 5
+                },
                 outcomes: {
                     text: 'You authorize a special water ration for the entire colony. The modest luxury of additional fresh water for personal use creates a tangible boost to morale. Colonists report improved well-being and renewed commitment to the Mars mission.',
                     shutdown: false,
@@ -439,8 +453,9 @@ export const issues: Issue[] = [
                 id: 'hydroponic-expansion',
                 text: 'Direct water to expanded hydroponic systems',
                 cost: {
-                    colonyGoods: 8, // Reduced from 10 to 8
-                    power: 4 // Reduced from 5 to 4
+                    colonyGoods: 12, // INCREASED from 8
+                    power: 8, // INCREASED from 4
+                    minerals: 5 // ADDED cost
                 },
                 outcomes: {
                     text: 'The pure ice is carefully melted and integrated into an expanded hydroponic growing system. The increased crop yield substantially improves food variety and nutrition for all colonists, creating lasting health benefits and resource diversity. Agricultural experiments yield modest research findings (+8 RP).',

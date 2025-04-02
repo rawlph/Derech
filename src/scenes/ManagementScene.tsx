@@ -3,6 +3,8 @@ import HexGrid from '@components/management/HexGrid';
 import { useEffect } from 'react';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
+import FloatingResourceNumbers from '@components/management/FloatingResourceNumbers';
+import RoundTransition from '@components/management/RoundTransition';
 // Removed MainScene.module.css import as it's deleted
 
 // Helper component to handle cleanup when Scene unmounts
@@ -50,6 +52,8 @@ const ManagementScene = () => {
             <color attach="background" args={['#502825']} /> {/* Slightly brighter Mars reddish-brown */}
             <fog attach="fog" args={['#502825', 70, 180]} /> {/* Match background color, slightly increased visible range */}
             <HexGrid />
+            <FloatingResourceNumbers />
+            <RoundTransition />
             <SceneCleanup />
         </Canvas>
     );

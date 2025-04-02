@@ -1,0 +1,138 @@
+import { useEffect, useRef, useState } from 'react';
+import { Text } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
+import { useGameStore } from '@store/store';
+import { axialToWorld, TILE_THICKNESS } from '@utils/hexUtils';
+import * as THREE from 'three';
+
+export interface ResourceGeneration {
+  taskId: string;
+  targetTileKey: string;
+  type: string;
+  resourceType: string;
+  amount: number;
+  position?: THREE.Vector3;
+}
+
+interface FloatingNumberProps {
+  generation: ResourceGeneration;
+  onComplete: () => void;
+}
+
+// Individual floating number component
+const FloatingNumber = ({ generation, onComplete }: FloatingNumberProps) => {
+  const { position, resourceType, amount } = generation;
+  const ref = useRef<any>();
+  const startTime = useRef(Date.now());
+  const duration = 2000; // 2 seconds for the animation
+  
+  // Resource type to color and symbol mapping
+  const resourceColors: Record<string, string> = {
+    power: '#ffe066',      // Yellow for power
+    water: '#66c2ff',      // Blue for water
+    minerals: '#c98949',   // Brown for minerals
+    researchPoints: '#66ffcc', // Teal for research points
+    colonyGoods: '#c266ff', // Purple for colony goods
+  };
+  
+  const resourceSymbols: Record<string, string> = {
+    power: '⚡',
+    water: '💧',
+    minerals: '⛏️',
+    researchPoints: '🔬',
+    colonyGoods: '📦',
+  };
+
+  const color = resourceColors[resourceType] || 'white';
+  const symbol = resourceSymbols[resourceType] || '';
+  const displayText = `${symbol} +${amount}`;
+
+  useFrame(() => {
+    if (!ref.current) return;
+    
+    const elapsed = Date.now() - startTime.current;
+    const progress = Math.min(elapsed / duration, 1);
+    
+    // Move upward and fade out
+    if (ref.current.position && position) {
+      ref.current.position.y = position.y + progress * 1.5; // Float upward 1.5 units
+      ref.current.material.opacity = 1 - progress; // Fade out
+    }
+    
+    // Animation complete
+    if (progress >= 1) {
+      onComplete();
+    }
+  });
+
+  if (!position) return null;
+
+  return (
+    <Text
+      ref={ref}
+      position={[position.x, position.y + 0.5, position.z]} // Start slightly above the building
+      fontSize={0.5}
+      color={color}
+      anchorX="center"
+      anchorY="middle"
+      fontWeight="bold"
+      fillOpacity={1}
+      outlineWidth={0.05}
+      outlineColor="#000000"
+    >
+      {displayText}
+    </Text>
+  );
+};
+
+// Main component that manages all floating resource numbers
+const FloatingResourceNumbers = () => {
+  const [visibleGenerations, setVisibleGenerations] = useState<ResourceGeneration[]>([]);
+  const { roundResourceGenerations, clearResourceGenerations } = useGameStore(state => ({
+    roundResourceGenerations: state.roundResourceGenerations,
+    clearResourceGenerations: state.clearResourceGenerations,
+  }));
+  const gridTiles = useGameStore(state => state.gridTiles);
+
+  // When new resource generations are available, add them to visible list with positions
+  useEffect(() => {
+    if (roundResourceGenerations.length > 0) {
+      const generationsWithPositions = roundResourceGenerations.map(gen => {
+        const tile = gridTiles[gen.targetTileKey];
+        if (!tile) return gen;
+        
+        const tilePos = axialToWorld(tile.q, tile.r);
+        const heightOffset = tile.height * (TILE_THICKNESS * 0.8);
+        const buildingY = heightOffset + TILE_THICKNESS / 2 + 0.5; // Position above building
+        
+        return {
+          ...gen,
+          position: new THREE.Vector3(tilePos.x, buildingY, tilePos.z)
+        };
+      });
+      
+      setVisibleGenerations(prev => [...prev, ...generationsWithPositions]);
+      
+      // Clear the source data after processing
+      clearResourceGenerations();
+    }
+  }, [roundResourceGenerations, gridTiles, clearResourceGenerations]);
+
+  const removeGeneration = (id: string) => {
+    setVisibleGenerations(prev => prev.filter(gen => gen.taskId !== id));
+  };
+
+  return (
+    <group>
+      {visibleGenerations.map((gen) => (
+        <FloatingNumber
+          key={`${gen.taskId}-${gen.resourceType}`}
+          generation={gen}
+          onComplete={() => removeGeneration(gen.taskId)}
+        />
+      ))}
+    </group>
+  );
+};
+
+export default FloatingResourceNumbers;
