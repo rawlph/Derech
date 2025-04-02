@@ -91,7 +91,7 @@ const MuseumEnvironment = () => {
   // Define the text content for each temple
   const leftTempleText = `[GAMEPLAY]
 - Start New Colony
-- 3 Main Buildings, 5 builables
+- 3 Main Buildings, 5 buildables
 - Balance Power/Water and various resources
 - accumulate Research Points (=RP)
 - unlock upgrades
