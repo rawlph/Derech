@@ -89,13 +89,13 @@ const MuseumEnvironment = () => {
   const wallHeight = 30;
 
   // Define the text content for each temple
-  const leftTempleText = `[DERECH MOSES GAMEPLAY]
-- You manage a Mars Colony.
-- Balance Resources
-  (Power, Water, Materials, Goods, Workforce)
-- Acquire RP (Research Points)
-- Unlock upgrades & complexity.
-- TO BE ADDED: immersive puzzles & flavor`;
+  const leftTempleText = `[GAMEPLAY]
+- Start New Colony
+- 3 Main Buildings, 5 builables
+- Balance Power/Water and various resources
+- accumulate Research Points (=RP)
+- unlock upgrades
+- SOON: 3d Puzzle Area & Flavor`;
 
   const rightTempleText = `[PLANNED NEXT]
 - Refine game balance
@@ -947,7 +947,7 @@ const SceneContent = forwardRef<
 
     const instructionsText = `[INSTRUCTIONS]
 1. START COLONY MISSION: Enter Management Mode.
-2. RETURN TO 3D AREA: Use the Research Center in Management Mode.`;
+2. RETURN TO 3D AREA: Use the PORTAL ROOM button.`;
 
     return (
         <>
