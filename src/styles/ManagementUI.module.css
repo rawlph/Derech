@@ -287,7 +287,7 @@
         max-height: calc(70vh - 80px); /* Further reduced height to avoid overlap with header */
         overflow-y: auto; /* Add scrolling for overflow content */
         position: fixed; /* Fix position to better control placement */
-        top: 60px; /* Position below the header */
+        top: 100px; /* Increased from 60px to move it further down below the header */
         left: 50%; /* Center horizontally */
         transform: translateX(-50%); /* Center trick */
         z-index: 10; /* Ensure proper stacking */

@@ -352,6 +352,13 @@ const ManagementUI = () => {
                                     colonyGoods: state.colonyGoods + 500,
                                     researchPoints: state.researchPoints + 500
                                 }));
+                                
+                                // Show dialogue message
+                                useGameStore.getState().showDialogue(
+                                    "For your simulation, we've added +500 to each of your working resources. This should help you test more advanced colony configurations without waiting for resource accumulation.", 
+                                    '/Derech/avatars/AiHelper.jpg'
+                                );
+                                
                                 console.log("TEST MODE: Added 500 of each resource");
                             }} 
                             className={`${styles.actionButton} ${styles.testButton}`}
