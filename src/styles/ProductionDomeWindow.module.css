@@ -304,9 +304,9 @@
     background-color: rgba(55, 30, 15, 0.7);
     border: 1px solid rgba(217, 119, 93, 0.5);
     border-radius: 5px;
-    margin: 0 20px 15px;
+    margin: 0 0 15px; /* Remove horizontal margins to match projectList */
     padding: 15px;
-    width: calc(100% - 40px); /* Account for margins */
+    width: 100%; /* Full width to match projectList */
     box-sizing: border-box;
 }
 
@@ -466,7 +466,7 @@
     }
     
     .activeProjectSection {
-        margin: 0 10px 15px;
+        margin: 0 0 15px; /* Remove horizontal margins to match projectList */
         padding: 10px;
     }
     .activeProjectSection h3 {
@@ -604,5 +604,6 @@
     .mainContentContainer {
         flex: 1; /* Take available space */
         overflow-y: auto;
+        padding: 0 5px; /* Add consistent padding with projectList */
     }
 } 
