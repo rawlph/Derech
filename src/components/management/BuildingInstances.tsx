@@ -11,7 +11,8 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 
 // Set up Draco loader to be used by GLTFLoader
 const dracoLoader = new DRACOLoader();
-dracoLoader.setDecoderPath('/Derech/draco/'); // Path to the Draco decoder files
+// Avoid leading slash to make it relative to current path
+dracoLoader.setDecoderPath('./draco/'); // Path to the Draco decoder files
 
 // Prepare GLTFLoader with Draco support
 const gltfLoader = new GLTFLoader();
