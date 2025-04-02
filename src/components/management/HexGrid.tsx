@@ -1,4 +1,4 @@
-import { Environment, OrbitControls, Stats, useGLTF } from '@react-three/drei';
+import { Environment, OrbitControls, useGLTF } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useRef, useEffect, useMemo } from 'react';
 import ColonyCameraSetup from './ColonyCamera';
@@ -94,8 +94,6 @@ const HexGrid = () => {
             
             {/* Temporarily remove Environment */}
             {/* <Environment preset="sunset" /> */}
-
-            <Stats />
         </>
     );
 };
