@@ -10,6 +10,7 @@ const RoundTransition = () => {
   const duration = 2000; // Animation duration in milliseconds
   const currentRound = useGameStore(state => state.currentRound);
   const resourceGenerations = useGameStore(state => state.roundResourceGenerations);
+  const clearResourceGenerations = useGameStore(state => state.clearResourceGenerations);
   
   // Start animation when resource generations are available
   useEffect(() => {
@@ -20,10 +21,33 @@ const RoundTransition = () => {
     }
   }, [resourceGenerations, isAnimating]);
 
-  // Reset on round change
+  // Reset on round change and force clear any pending resource generations
   useEffect(() => {
     setIsAnimating(false);
-  }, [currentRound]);
+    
+    // Clean up any lingering resource generations
+    if (resourceGenerations.length > 0) {
+      console.log(`Cleaning up ${resourceGenerations.length} lingering resource generations on round change`);
+      clearResourceGenerations();
+    }
+  }, [currentRound, resourceGenerations.length, clearResourceGenerations]);
+  
+  // Force cleanup after 5 seconds of animation
+  useEffect(() => {
+    if (isAnimating) {
+      const forceCleanupTimeout = setTimeout(() => {
+        console.log("Force ending round transition animation");
+        setIsAnimating(false);
+        
+        // Also clear any remaining resource generations
+        if (resourceGenerations.length > 0) {
+          clearResourceGenerations();
+        }
+      }, 5000); // Backup cleanup after 5 seconds
+      
+      return () => clearTimeout(forceCleanupTimeout);
+    }
+  }, [isAnimating, resourceGenerations.length, clearResourceGenerations]);
 
   useFrame(() => {
     if (!isAnimating) return;

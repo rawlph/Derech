@@ -1,0 +1,106 @@
+.domeInfoPanel {
+  background-color: rgba(30, 20, 15, 0.8);
+  border: 1px solid rgba(217, 119, 93, 0.6);
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 10px;
+  color: #ddd;
+  max-width: 100%;
+}
+
+.domeInfoPanel h4 {
+  margin: 0 0 10px 0;
+  color: #ffa048;
+  border-bottom: 1px solid rgba(217, 119, 93, 0.4);
+  padding-bottom: 5px;
+  font-size: 1rem;
+}
+
+.infoRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.resourceLabel {
+  flex: 0 0 auto;
+  min-width: 120px;
+  font-size: 0.9rem;
+}
+
+.progressBar {
+  flex: 1;
+  height: 10px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background-color: #4fa57b;
+  transition: width 0.3s ease;
+}
+
+.cycleValue {
+  flex: 0 0 auto;
+  min-width: 70px;
+  text-align: right;
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+.generationInfo {
+  font-size: 0.85rem;
+  color: #bbb;
+  margin-top: 5px;
+  padding-left: 5px;
+}
+
+.conditions {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 10px;
+  font-size: 0.85rem;
+}
+
+.conditionMet, .conditionFailed {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.conditionMet {
+  color: #8be4b9;
+}
+
+.conditionFailed {
+  color: #e48b8b;
+}
+
+.indicator {
+  font-weight: bold;
+}
+
+/* Media queries for smaller screens */
+@media (max-width: 768px) {
+  .domeInfoPanel {
+    padding: 8px;
+  }
+  
+  .resourceLabel {
+    min-width: 90px;
+    font-size: 0.8rem;
+  }
+  
+  .cycleValue {
+    min-width: 60px;
+    font-size: 0.8rem;
+  }
+  
+  .conditions {
+    font-size: 0.8rem;
+  }
+} 

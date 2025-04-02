@@ -63,6 +63,18 @@ export interface ActiveResearch {
   type: 'research' | 'production' | 'living'; // Type of project
 }
 
+// Interface for dome specific generation values and cycles
+export interface DomeGenerationValues {
+  colonyGoodsCycle: number; // Production dome: Counts up to 5 rounds
+  colonyGoodsBaseAmount: number; // Production dome: Base production amount
+  researchCycle: number; // Research dome: Counts up to 4 rounds
+  researchBaseAmount: number; // Research dome: Base production amount
+  populationCycle: number; // Living dome: Counts up to 10 rounds with sufficient resources
+  populationGrowthThreshold: number; // Living dome: Number of consecutive rounds with sufficient resources
+  waterPositive: boolean; // Was water positive last round?
+  colonyGoodsSufficient: boolean; // Were colony goods sufficient last round?
+}
+
 // Define the store state interface
 interface GameState {
   // --- Resources ---
@@ -120,6 +132,9 @@ interface GameState {
 
   // --- Resource Generation Tracking ---
   roundResourceGenerations: ResourceGeneration[];
+
+  // --- Dome Generation Tracking ---
+  domeGeneration: DomeGenerationValues;
 
   // --- Actions ---
   // Resource Management
@@ -184,6 +199,16 @@ interface GameState {
 
   // --- NEW: Resource Generation Actions ---
   clearResourceGenerations: () => void;
+
+  // --- NEW: Emergency Reset Colony ---
+  emergencyResetColony: () => void;
+
+  // --- NEW: Dome Resource Generation Actions ---
+  generateDomeResources: () => void;
+  checkPopulationGrowth: () => boolean; // Returns true if population increased
+
+  // Add a flag to prevent endRound spam
+  isEndingRound: boolean;
 }
 
 // Define return types for assignWorkforceToTask
@@ -343,6 +368,18 @@ export const useGameStore = create<GameState>((set, get) => ({
   // --- Resource Generation Tracking ---
   roundResourceGenerations: [],
 
+  // --- Dome Generation Tracking ---
+  domeGeneration: {
+    colonyGoodsCycle: 0,
+    colonyGoodsBaseAmount: 3, // Base: +3 every 5 rounds
+    researchCycle: 0,
+    researchBaseAmount: 1, // Base: +1 every 4 rounds
+    populationCycle: 0,
+    populationGrowthThreshold: 10, // Need 10 consecutive rounds with sufficient resources
+    waterPositive: true, // Start assuming positive water
+    colonyGoodsSufficient: true, // Start assuming sufficient goods
+  },
+
   // --- Actions ---
   addPower: (amount) => set((state) => ({ power: state.power + amount })),
   addWater: (amount) => set((state) => ({ water: state.water + amount })),
@@ -370,9 +407,25 @@ export const useGameStore = create<GameState>((set, get) => ({
     return false;
   },
 
+  // Add flag for debouncing endRound calls
+  isEndingRound: false,
+
   endRound: () => {
+    // Prevent multiple simultaneous endRound calls
+    if (get().isEndingRound) {
+      console.log("Ignoring endRound call - already processing a round end");
+      return;
+    }
+    
+    // Set flag to prevent further calls
+    set({ isEndingRound: true });
+    
     console.log("--- Ending Round", get().currentRound, "---");
     let dialogueShownThisRound = false; // Flag to prevent multiple popups
+    
+    // Clear any existing resource generations to avoid accumulation
+    set({ roundResourceGenerations: [] });
+    
     const { completedResearch, completedProductionProjects } = get(); // Get completed projects
 
     // Calculate and Deduct Power Consumption
@@ -408,6 +461,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     // 2. Generate Resources from Operational Tasks (now keeps track per building)
     // This populates roundResourceGenerations in the store
     get().generateTaskResources();
+    
+    // 2a. Generate resources from domes (new passive generation)
+    get().generateDomeResources();
 
     // 3. Basic Resource Consumption/Production
     const { population, power, activeTasks } = get(); // Re-get state
@@ -503,6 +559,12 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
     }
 
+    // Check population growth conditions and update cycle
+    const populationGrew = get().checkPopulationGrowth();
+    if (populationGrew) {
+      dialogueShownThisRound = true;
+    }
+
     // --- Set next round state (after a short delay to allow for visuals) ---
     // The resource generation numbers will show briefly before the state update
     setTimeout(() => {
@@ -549,6 +611,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           availableWorkforce: newAvailableWorkforce,
           isLowWaterPenaltyActive: isWaterPenaltyNowActive,
           isLowPowerPenaltyActive: isPowerPenaltyNowActive,
+          isEndingRound: false // Reset the flag when done
         };
       });
       console.log("Round Ended. New Round:", get().currentRound);
@@ -1496,6 +1559,198 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   clearResourceGenerations: () => set({ roundResourceGenerations: [] }),
+
+  emergencyResetColony: () => {
+    console.log("EMERGENCY: Executing colony reset");
+    
+    // Start with collecting the IDs of all operational tasks
+    const activeTasks = get().activeTasks;
+    const taskIdsToRemove: string[] = [];
+    
+    // Identify all active tasks
+    Object.values(activeTasks).forEach(task => {
+      taskIdsToRemove.push(task.id);
+    });
+    
+    // Clean up the grid - remove buildings and taskIds
+    set(state => {
+      const updatedGridTiles = { ...state.gridTiles };
+      
+      // Remove building and taskId from all tiles except the initial domes
+      Object.keys(updatedGridTiles).forEach(key => {
+        if (!['0,0', '1,0', '-1,0'].includes(key)) { 
+          // Keep the initial domes intact
+          updatedGridTiles[key] = {
+            ...updatedGridTiles[key],
+            building: null,
+            taskId: null
+          };
+        }
+      });
+      
+      // Reset resource values and dome generation cycles
+      return {
+        power: 100,
+        water: 100,
+        minerals: 20,
+        colonyGoods: 20,
+        activeTasks: {},
+        gridTiles: updatedGridTiles,
+        isLowWaterPenaltyActive: false,
+        isLowPowerPenaltyActive: false,
+        roundResourceGenerations: [],
+        domeGeneration: {
+          ...state.domeGeneration,
+          colonyGoodsCycle: 0,
+          researchCycle: 0,
+          populationCycle: 0,
+          waterPositive: true,
+          colonyGoodsSufficient: true
+        }
+      };
+    });
+    
+    // Show a dialogue with recovery information
+    get().showDialogue(
+      "Emergency recovery completed. All buildings have been deconstructed and resources have been reset. The colony can now rebuild.",
+      '/Derech/avatars/AiHelper.jpg'
+    );
+    
+    console.log("Emergency reset complete - resources restored and buildings removed");
+  },
+
+  // Generate resources from dome buildings
+  generateDomeResources: () => {
+    const { colonyGoodsCycle, colonyGoodsBaseAmount, researchCycle, researchBaseAmount } = get().domeGeneration;
+    let updatedColonyGoodsCycle = colonyGoodsCycle + 1;
+    let updatedResearchCycle = researchCycle + 1;
+    let colonyGoodsGenerated = 0;
+    let researchPointsGenerated = 0;
+    
+    // Tracking for resource visualizations
+    const resourceGenerations: ResourceGeneration[] = [];
+    
+    // Production Dome: Generate colony goods every 5 rounds
+    if (updatedColonyGoodsCycle >= 5) {
+      colonyGoodsGenerated = colonyGoodsBaseAmount;
+      updatedColonyGoodsCycle = 0;
+      
+      // Add to resource generations for visualization
+      resourceGenerations.push({
+        taskId: 'production-dome',
+        targetTileKey: '1,0', // Production Dome is at 1,0
+        type: 'production-dome',
+        resourceType: 'colonyGoods',
+        amount: colonyGoodsGenerated
+      });
+      
+      console.log(`Production Dome generated ${colonyGoodsGenerated} colony goods`);
+    }
+    
+    // Research Dome: Generate research points every 4 rounds
+    if (updatedResearchCycle >= 4) {
+      researchPointsGenerated = researchBaseAmount;
+      updatedResearchCycle = 0;
+      
+      // Add to resource generations for visualization
+      resourceGenerations.push({
+        taskId: 'research-dome',
+        targetTileKey: '-1,0', // Research Dome is at -1,0
+        type: 'research-dome',
+        resourceType: 'researchPoints',
+        amount: researchPointsGenerated
+      });
+      
+      console.log(`Research Dome generated ${researchPointsGenerated} research points`);
+    }
+    
+    // Update store with generated resources
+    if (colonyGoodsGenerated > 0) {
+      set(state => ({ colonyGoods: state.colonyGoods + colonyGoodsGenerated }));
+    }
+    
+    if (researchPointsGenerated > 0) {
+      set(state => ({ researchPoints: state.researchPoints + researchPointsGenerated }));
+    }
+    
+    // Update dome generation cycles
+    set(state => ({
+      domeGeneration: {
+        ...state.domeGeneration,
+        colonyGoodsCycle: updatedColonyGoodsCycle,
+        researchCycle: updatedResearchCycle
+      },
+      // Add resource generations to the existing ones
+      roundResourceGenerations: [...state.roundResourceGenerations, ...resourceGenerations]
+    }));
+  },
+  
+  // Check and apply population growth
+  checkPopulationGrowth: () => {
+    const { water, colonyGoods, population, domeGeneration } = get();
+    const { populationCycle, populationGrowthThreshold } = domeGeneration;
+    
+    // Check if conditions are met:
+    // 1. Water must be positive
+    const waterPositive = water > 0;
+    
+    // 2. Colony goods must be at least 2x population
+    const goodsThreshold = population * 2;
+    const goodsSufficient = colonyGoods >= goodsThreshold;
+    
+    // Update condition tracking in state
+    set(state => ({
+      domeGeneration: {
+        ...state.domeGeneration,
+        waterPositive,
+        colonyGoodsSufficient: goodsSufficient
+      }
+    }));
+    
+    // If either condition isn't met, reset the cycle counter
+    if (!waterPositive || !goodsSufficient) {
+      set(state => ({
+        domeGeneration: {
+          ...state.domeGeneration,
+          populationCycle: 0
+        }
+      }));
+      return false;
+    }
+    
+    // Both conditions met, increment cycle counter
+    const newCycle = populationCycle + 1;
+    set(state => ({
+      domeGeneration: {
+        ...state.domeGeneration,
+        populationCycle: newCycle
+      }
+    }));
+    
+    // Check if we've reached the threshold for population growth
+    if (newCycle >= populationGrowthThreshold) {
+      // Increase population by 1
+      set(state => ({
+        population: state.population + 1,
+        domeGeneration: {
+          ...state.domeGeneration,
+          populationCycle: 0 // Reset counter after growth
+        }
+      }));
+      
+      // Show a message about population growth
+      get().showDialogue(
+        `Colony population has increased! A new colonist has been born. The colony now has ${get().population} residents.`, 
+        '/Derech/avatars/ColonistAvatarFem3.jpg'
+      );
+      
+      // Recalculate workforce - we're returning to endRound, which will do this anyway
+      console.log(`Population increased to ${get().population}. Growth cycle reset.`);
+      return true;
+    }
+    
+    return false;
+  },
 
 }));
 

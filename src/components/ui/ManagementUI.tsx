@@ -3,6 +3,8 @@ import styles from '@styles/ManagementUI.module.css'; // Create this CSS module
 import { taskConfigs, getTaskConfig } from '@config/tasks'; // Import task configs
 import { useMemo, useState } from 'react'; // Import useMemo and useState
 import ConfirmationDialog from './ConfirmationDialog'; // Import the new component
+import EmergencyDecisions from './EmergencyDecisions'; // Import the emergency component
+import DomeInfoPanel from './DomeInfoPanel'; // Import the dome info component
 
 const ManagementUI = () => {
     const {
@@ -147,7 +149,9 @@ const ManagementUI = () => {
                     >
                         View Living Projects
                     </button>
-                    {/* Add other Living Dome specific actions here later */}
+                    
+                    {/* Display Living Dome Info Panel */}
+                    <DomeInfoPanel domeType="living" />
                 </div>
             );
         }
@@ -162,12 +166,14 @@ const ManagementUI = () => {
                     >
                         View Production Projects
                     </button>
-                    {/* Add other Production Dome specific actions here later */}
+                    
+                    {/* Display Production Dome Info Panel */}
+                    <DomeInfoPanel domeType="production" />
                 </div>
             );
         }
 
-        // --- Restore Check for Research Dome Action ---
+        // --- Check for Research Dome Action ---
         if (selectedTile.building === 'Research Dome') {
             return (
                 <div>
@@ -178,7 +184,9 @@ const ManagementUI = () => {
                     >
                         View Projects
                     </button>
-                    {/* Add other Research Dome specific actions here later */}
+                    
+                    {/* Display Research Dome Info Panel */}
+                    <DomeInfoPanel domeType="research" />
                 </div>
             );
         }
@@ -292,7 +300,7 @@ const ManagementUI = () => {
 
         return <p>No specific actions available for this tile type.</p>; // No actions
 
-    }, [selectedTile, activeTasks, availableWorkforce, power, minerals, colonyGoods, assignWorkforceToTask, recallWorkforce, setGameView, showResearchWindow, deselectTile, buildingIssues, showIssueWindow, feedbackState]); // Added feedbackState dependency
+    }, [selectedTile, activeTasks, availableWorkforce, power, minerals, colonyGoods, assignWorkforceToTask, recallWorkforce, setGameView, showResearchWindow, showLivingDomeWindow, showProductionDomeWindow, deselectTile, buildingIssues, showIssueWindow, feedbackState]); // Added new dependencies
 
 
     return (
@@ -343,6 +351,9 @@ const ManagementUI = () => {
                 onConfirm={handleConfirmPortal}
                 onCancel={handleCancelPortal}
             />
+
+            {/* Emergency Decisions Component */}
+            <EmergencyDecisions />
 
             {/* Other UI elements like event popups can go here */}
         </div>

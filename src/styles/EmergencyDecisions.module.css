@@ -1,0 +1,168 @@
+.emergencyContainer {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1200;
+  min-width: 300px;
+  pointer-events: auto;
+}
+
+.emergencyButton {
+  background-color: #ff3b3b;
+  color: white;
+  font-weight: bold;
+  font-size: 1rem;
+  padding: 10px 20px;
+  border: 2px solid #b30000;
+  border-radius: 6px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  animation: pulse 2s infinite;
+}
+
+.emergencyButton:hover {
+  background-color: #ff1a1a;
+  transform: scale(1.05);
+}
+
+.emergencyMenu {
+  background-color: rgba(40, 20, 15, 0.95);
+  border: 2px solid #ff3b3b;
+  border-radius: 10px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  animation: slideUp 0.3s ease-out;
+  width: 100%;
+  max-width: 400px;
+  overflow: hidden;
+}
+
+.emergencyHeader {
+  background-color: #b30000;
+  padding: 10px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.emergencyHeader h3 {
+  color: white;
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.closeButton {
+  background-color: transparent;
+  color: white;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.closeButton:hover {
+  transform: scale(1.2);
+}
+
+.emergencyOptions {
+  padding: 15px;
+}
+
+.emergencyOption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: rgba(70, 30, 20, 0.7);
+  border: 1px solid rgba(255, 59, 59, 0.5);
+  border-radius: 6px;
+  padding: 15px;
+  margin-bottom: 10px;
+}
+
+.optionText {
+  flex: 1;
+}
+
+.optionText h4 {
+  color: #ff5e5e;
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+}
+
+.optionText p {
+  color: #ddd;
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.resetButton {
+  background-color: #d13030;
+  color: white;
+  border: 1px solid #9e0000;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  margin-left: 15px;
+  flex-shrink: 0;
+}
+
+.resetButton:hover {
+  background-color: #ff3b3b;
+}
+
+/* Animations */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 59, 59, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 59, 59, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 59, 59, 0);
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .emergencyContainer {
+    min-width: 250px;
+  }
+  
+  .emergencyMenu {
+    max-width: 95vw;
+  }
+  
+  .emergencyOption {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .resetButton {
+    margin-left: 0;
+    margin-top: 10px;
+    padding: 10px;
+  }
+} 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Text } from '@react-three/drei';
+import { Text, Billboard } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useGameStore } from '@store/store';
 import { axialToWorld, TILE_THICKNESS } from '@utils/hexUtils';
@@ -12,6 +12,8 @@ export interface ResourceGeneration {
   resourceType: string;
   amount: number;
   position?: THREE.Vector3;
+  id?: string; // Unique ID for each generation
+  timestamp?: number; // When it was created
 }
 
 interface FloatingNumberProps {
@@ -47,6 +49,16 @@ const FloatingNumber = ({ generation, onComplete }: FloatingNumberProps) => {
   const symbol = resourceSymbols[resourceType] || '';
   const displayText = `${symbol} +${amount}`;
 
+  // Force cleanup after maximum duration of 5 seconds
+  useEffect(() => {
+    const forceCleanupTimeout = setTimeout(() => {
+      console.log("Force cleanup for floating number");
+      onComplete();
+    }, 5000); // Backup cleanup after 5 seconds
+    
+    return () => clearTimeout(forceCleanupTimeout);
+  }, [onComplete]);
+
   useFrame(() => {
     if (!ref.current) return;
     
@@ -68,20 +80,25 @@ const FloatingNumber = ({ generation, onComplete }: FloatingNumberProps) => {
   if (!position) return null;
 
   return (
-    <Text
-      ref={ref}
-      position={[position.x, position.y + 0.5, position.z]} // Start slightly above the building
-      fontSize={0.5}
-      color={color}
-      anchorX="center"
-      anchorY="middle"
-      fontWeight="bold"
-      fillOpacity={1}
-      outlineWidth={0.05}
-      outlineColor="#000000"
+    <Billboard
+      position={[position.x, position.y + 0.5, position.z]} // Position the billboard
+      follow={true} // Always face the camera
     >
-      {displayText}
-    </Text>
+      <Text
+        ref={ref}
+        position={[0, 0, 0]} // Position relative to the billboard (centered)
+        fontSize={0.5}
+        color={color}
+        anchorX="center"
+        anchorY="middle"
+        fontWeight="bold"
+        fillOpacity={1}
+        outlineWidth={0.05}
+        outlineColor="#000000"
+      >
+        {displayText}
+      </Text>
+    </Billboard>
   );
 };
 
@@ -93,10 +110,46 @@ const FloatingResourceNumbers = () => {
     clearResourceGenerations: state.clearResourceGenerations,
   }));
   const gridTiles = useGameStore(state => state.gridTiles);
+  
+  // Force clean all animations every 10 seconds
+  useEffect(() => {
+    const cleanupInterval = setInterval(() => {
+      setVisibleGenerations(prev => {
+        // Remove animations older than 5 seconds
+        const now = Date.now();
+        const filtered = prev.filter(gen => 
+          gen.timestamp && now - gen.timestamp < 5000
+        );
+        
+        // If we removed any, log it
+        if (filtered.length < prev.length) {
+          console.log(`Cleaned up ${prev.length - filtered.length} stale animations`);
+        }
+        
+        return filtered;
+      });
+    }, 10000);
+    
+    return () => clearInterval(cleanupInterval);
+  }, []);
+
+  // When component unmounts, clean everything
+  useEffect(() => {
+    return () => {
+      setVisibleGenerations([]);
+    };
+  }, []);
 
   // When new resource generations are available, add them to visible list with positions
   useEffect(() => {
     if (roundResourceGenerations.length > 0) {
+      // Limit to max 30 visible animations to prevent overload
+      if (visibleGenerations.length > 30) {
+        console.warn("Too many animations, limiting to 30");
+        setVisibleGenerations(prev => prev.slice(-20)); // Keep only the 20 most recent
+      }
+      
+      const now = Date.now();
       const generationsWithPositions = roundResourceGenerations.map(gen => {
         const tile = gridTiles[gen.targetTileKey];
         if (!tile) return gen;
@@ -107,6 +160,8 @@ const FloatingResourceNumbers = () => {
         
         return {
           ...gen,
+          id: `${gen.taskId}-${now}-${Math.random().toString(36).slice(2, 9)}`, // Create truly unique ID
+          timestamp: now,
           position: new THREE.Vector3(tilePos.x, buildingY, tilePos.z)
         };
       });
@@ -116,19 +171,20 @@ const FloatingResourceNumbers = () => {
       // Clear the source data after processing
       clearResourceGenerations();
     }
-  }, [roundResourceGenerations, gridTiles, clearResourceGenerations]);
+  }, [roundResourceGenerations, gridTiles, clearResourceGenerations, visibleGenerations.length]);
 
+  // Remove a single generation by its unique ID
   const removeGeneration = (id: string) => {
-    setVisibleGenerations(prev => prev.filter(gen => gen.taskId !== id));
+    setVisibleGenerations(prev => prev.filter(gen => gen.id !== id));
   };
 
   return (
     <group>
       {visibleGenerations.map((gen) => (
         <FloatingNumber
-          key={`${gen.taskId}-${gen.resourceType}`}
+          key={gen.id || `${gen.taskId}-${gen.resourceType}`}
           generation={gen}
-          onComplete={() => removeGeneration(gen.taskId)}
+          onComplete={() => removeGeneration(gen.id || `${gen.taskId}-${gen.resourceType}`)}
         />
       ))}
     </group>
