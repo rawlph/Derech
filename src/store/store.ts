@@ -106,6 +106,10 @@ interface GameState {
   // --- Resource Trends ---
   resourceTrends: ResourceTrends;
 
+  // --- Audio Settings ---
+  isMuted: boolean;
+  audioVolume: number;
+
   // --- Workforce ---
   totalWorkforce: number; // NEW: Calculated from population
   availableWorkforce: number; // NEW: Workforce not assigned to tasks
@@ -230,6 +234,10 @@ interface GameState {
 
   // Add a flag to prevent endRound spam
   isEndingRound: boolean;
+
+  // --- Audio Actions ---
+  toggleMute: () => void;
+  setVolume: (volume: number) => void;
 }
 
 // Define return types for assignWorkforceToTask
@@ -418,6 +426,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     colonyGoods: 'same',
     researchPoints: 'same'
   },
+
+  // --- Audio Settings ---
+  isMuted: false,
+  audioVolume: 50,
 
   // --- Actions ---
   addPower: (amount) => set((state) => ({ power: state.power + amount })),
@@ -1986,6 +1998,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     
     return false;
   },
+
+  // --- Audio Actions ---
+  toggleMute: () => set(state => ({ isMuted: !state.isMuted })),
+  setVolume: (volume: number) => set(state => ({ audioVolume: volume })),
 
 }));
 

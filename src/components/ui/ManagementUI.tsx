@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react'; // Import useMemo and useState
 import ConfirmationDialog from './ConfirmationDialog'; // Import the new component
 import EmergencyDecisions from './EmergencyDecisions'; // Import the emergency component
 import DomeInfoPanel from './DomeInfoPanel'; // Import the dome info component
+import VolumeControl from './VolumeControl'; // Import the volume control component
 
 const ManagementUI = () => {
     const {
@@ -340,6 +341,7 @@ const ManagementUI = () => {
                         <button onClick={handleGoToWelcome} className={`${styles.actionButton} ${styles.portalButton}`}>
                             PORTAL ROOM
                         </button>
+                        <VolumeControl />
                     </div>
                 </div>
             </div>

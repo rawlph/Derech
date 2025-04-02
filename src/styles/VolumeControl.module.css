@@ -1,0 +1,195 @@
+.volumeContainer {
+  position: relative;
+  display: inline-block;
+  margin-left: 8px;
+}
+
+.volumeButton {
+  background-color: rgba(0, 0, 0, 0.4);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  pointer-events: auto;
+}
+
+.volumeButton:hover {
+  background-color: rgba(0, 0, 0, 0.6);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.05);
+}
+
+.volumeButton svg {
+  width: 20px;
+  height: 20px;
+}
+
+.volumePanel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background-color: rgba(30, 30, 30, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  width: 240px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  pointer-events: auto;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.volumePanel::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: 15px;
+  width: 12px;
+  height: 12px;
+  background-color: rgba(30, 30, 30, 0.95);
+  transform: rotate(45deg);
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.volumeHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+}
+
+.volumeHeader span {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.muteButton {
+  background-color: rgba(60, 60, 60, 0.8);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.muteButton:hover {
+  background-color: rgba(80, 80, 80, 0.8);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.volumeSliderContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.volumeSlider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  outline: none;
+}
+
+.volumeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+}
+
+.volumeSlider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  border: none;
+}
+
+.volumeSlider:disabled {
+  opacity: 0.5;
+}
+
+.volumeSlider:disabled::-webkit-slider-thumb {
+  background: #888;
+}
+
+.volumeSlider:disabled::-moz-range-thumb {
+  background: #888;
+}
+
+.volumeValue {
+  font-size: 0.8rem;
+  min-width: 40px;
+  text-align: right;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .volumeButton {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .volumeButton svg {
+    width: 18px;
+    height: 18px;
+  }
+  
+  .volumePanel {
+    width: 200px;
+    padding: 10px;
+  }
+}
+
+/* Landscape adjustments */
+@media (orientation: landscape) and (max-height: 500px) {
+  .volumeButton {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .volumeButton svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .volumePanel {
+    width: 180px;
+    padding: 8px;
+  }
+  
+  .volumeHeader {
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+  }
+} 

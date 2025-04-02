@@ -9,6 +9,7 @@ import ResearchWindow from '@components/ui/ResearchWindow'
 import LivingDomeWindow from '@components/ui/LivingDomeWindow'
 import ProductionDomeWindow from '@components/ui/ProductionDomeWindow'
 import IssueWindow from '@components/ui/IssueWindow'
+import BackgroundMusic from '@components/audio/BackgroundMusic' // Import the BackgroundMusic component
 
 function App() {
   // Access game state needed at the App level
@@ -74,6 +75,9 @@ function App() {
 
   return (
     <div className={styles.appContainer}>
+      {/* Audio */}
+      <BackgroundMusic />
+      
       {/* Welcome view - new portal welcome scene */}
       {gameView === 'welcome' && (
         <WelcomeScene />
