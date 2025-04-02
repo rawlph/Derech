@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styles from '@styles/ResearchWindow.module.css'; // Create this CSS module next
 import { ResearchProject, getAvailableResearch } from '@config/research';
 import { useGameStore } from '@store/store';
@@ -24,8 +24,16 @@ const ResearchWindow: React.FC<ResearchWindowProps> = ({ isVisible, onClose }) =
         researchPoints: state.researchPoints
     }));
     
-    // Filter out completed research projects
-    const availableProjects = getAvailableResearch(completedResearch);
+    // Add state for the current tier
+    const [currentTier, setCurrentTier] = useState<number>(1);
+    
+    // Get available projects for the current tier
+    const availableProjects = getAvailableResearch(completedResearch, currentTier);
+
+    // Function to toggle between tiers
+    const toggleTier = () => {
+        setCurrentTier(currentTier === 1 ? 2 : 1);
+    };
 
     const handleStartResearch = (project: ResearchProject) => {
         console.log("Attempting to start research:", project.name);
@@ -42,6 +50,9 @@ const ResearchWindow: React.FC<ResearchWindowProps> = ({ isVisible, onClose }) =
         return null;
     }
 
+    // Check if tier 2 is unlocked (requires at least 3 completed research)
+    const isTier2Unlocked = completedResearch.length >= 3;
+
     return (
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.windowContainer} onClick={(e) => e.stopPropagation()}>
@@ -55,6 +66,46 @@ const ResearchWindow: React.FC<ResearchWindowProps> = ({ isVisible, onClose }) =
                     </div>
 
                     <h2 className={styles.title}>Research Projects</h2>
+                </div>
+                
+                {/* Add tier toggle button */}
+                <div className={styles.tierToggle}>
+                    {currentTier === 1 ? (
+                        <>
+                            <button 
+                                onClick={toggleTier}
+                                className={`${styles.tierButton} ${styles.activeTier}`}
+                                disabled={!isTier2Unlocked}
+                            >
+                                TIER 1
+                            </button>
+                            {!isTier2Unlocked && (
+                                <span className={styles.tierLockHint}>
+                                    Complete 3 research projects to unlock Tier 2
+                                </span>
+                            )}
+                            {isTier2Unlocked && (
+                                <button 
+                                    onClick={toggleTier}
+                                    className={`${styles.tierButton} ${styles.tier2Button}`}
+                                >
+                                    View Tier 2
+                                </button>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            <button 
+                                onClick={toggleTier}
+                                className={`${styles.returnButton}`}
+                            >
+                                ← Return to Tier 1
+                            </button>
+                            <span className={styles.currentTierIndicator}>
+                                Currently viewing: Tier 2 Projects
+                            </span>
+                        </>
+                    )}
                 </div>
 
                 {/* Show active research if any */}
@@ -85,6 +136,18 @@ const ResearchWindow: React.FC<ResearchWindowProps> = ({ isVisible, onClose }) =
                                     <p className={styles.effectDescription}>
                                         <strong>Effect:</strong> {project.effectDescription}
                                     </p>
+                                    {project.prerequisites && project.prerequisites.length > 0 && (
+                                        <p className={styles.prerequisitesNote}>
+                                            <strong>Prerequisites:</strong> {
+                                                project.prerequisites.includes('__ANY_THREE_RESEARCH__')
+                                                    ? 'Any three completed research projects'
+                                                    : project.prerequisites.map(prereq => {
+                                                        const prereqProject = Object.values(getAvailableResearch([])).find(p => p.id === prereq);
+                                                        return prereqProject ? prereqProject.name : prereq;
+                                                    }).join(', ')
+                                            }
+                                        </p>
+                                    )}
                                 </div>
                                 <button
                                     className={styles.startButton}
@@ -99,7 +162,13 @@ const ResearchWindow: React.FC<ResearchWindowProps> = ({ isVisible, onClose }) =
                             </li>
                         ))
                     ) : (
-                        <p>No research projects currently available.</p>
+                        <p className={styles.noProjectsMessage}>
+                            {currentTier === 1 
+                                ? "No research projects currently available." 
+                                : (isTier2Unlocked 
+                                    ? "No Tier 2 research projects currently available." 
+                                    : "Complete 3 research projects to unlock Tier 2 research.")}
+                        </p>
                     )}
                 </ul>
 
@@ -109,7 +178,7 @@ const ResearchWindow: React.FC<ResearchWindowProps> = ({ isVisible, onClose }) =
                         <h3>Completed Research</h3>
                         <ul className={styles.completedList}>
                             {completedResearch.map(id => {
-                                const project = getAvailableResearch([]).find(p => p.id === id);
+                                const project = Object.values(getAvailableResearch([])).find(p => p.id === id);
                                 if (!project) return null;
                                 return (
                                     <li key={id} className={styles.completedItem}>

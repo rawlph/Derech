@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styles from '@styles/ProductionDomeWindow.module.css'; // Use the new CSS module
-import { ProductionProject, getAvailableProductionProjects } from '@config/productionProjects'; // Import production config
+import { ProductionProject, getAvailableProductionProjects, checkPrerequisites } from '@config/productionProjects'; // Import production config
 import { useGameStore } from '@store/store';
 
 interface ProductionDomeWindowProps {
@@ -18,18 +18,30 @@ const ProductionDomeWindow: React.FC<ProductionDomeWindowProps> = ({ isVisible, 
         startProductionProject, 
         power,
         minerals,
-        colonyGoods
+        colonyGoods,
+        researchPoints,
+        completedResearch
     } = useGameStore(state => ({
         completedProductionProjects: state.completedProductionProjects,
         activeProductionProject: state.activeProductionProject,
         startProductionProject: state.startProductionProject,
         power: state.power,
         minerals: state.minerals,
-        colonyGoods: state.colonyGoods
+        colonyGoods: state.colonyGoods,
+        researchPoints: state.researchPoints,
+        completedResearch: state.completedResearch
     }));
     
-    // Filter out completed projects
-    const availableProjects = getAvailableProductionProjects(completedProductionProjects);
+    // Add state for the current tier
+    const [currentTier, setCurrentTier] = useState<number>(1);
+    
+    // Get available projects for the current tier
+    const availableProjects = getAvailableProductionProjects(completedProductionProjects, currentTier, completedResearch);
+
+    // Function to toggle between tiers
+    const toggleTier = () => {
+        setCurrentTier(currentTier === 1 ? 2 : 1);
+    };
 
     const handleStartProject = (project: ProductionProject) => {
         console.log("Attempting to start production project:", project.name);
@@ -48,13 +60,17 @@ const ProductionDomeWindow: React.FC<ProductionDomeWindowProps> = ({ isVisible, 
         return (
             (project.cost.power === undefined || power >= project.cost.power) &&
             (project.cost.minerals === undefined || minerals >= project.cost.minerals) &&
-            (project.cost.colonyGoods === undefined || colonyGoods >= project.cost.colonyGoods)
+            (project.cost.colonyGoods === undefined || colonyGoods >= project.cost.colonyGoods) &&
+            (project.cost.researchPoints === undefined || researchPoints >= project.cost.researchPoints)
         );
     };
 
     if (!isVisible) {
         return null;
     }
+
+    // Check if tier 2 is unlocked (requires at least 3 completed research)
+    const isTier2Unlocked = completedResearch.length >= 3;
 
     return (
         <div className={styles.overlay} onClick={onClose}>
@@ -68,6 +84,46 @@ const ProductionDomeWindow: React.FC<ProductionDomeWindowProps> = ({ isVisible, 
                     </div>
 
                     <h2 className={styles.title}>Production Projects</h2>
+                </div>
+                
+                {/* Add tier toggle button */}
+                <div className={styles.tierToggle}>
+                    {currentTier === 1 ? (
+                        <>
+                            <button 
+                                onClick={toggleTier}
+                                className={`${styles.tierButton} ${styles.activeTier}`}
+                                disabled={!isTier2Unlocked}
+                            >
+                                TIER 1
+                            </button>
+                            {!isTier2Unlocked && (
+                                <span className={styles.tierLockHint}>
+                                    Complete 3 research projects to unlock Tier 2
+                                </span>
+                            )}
+                            {isTier2Unlocked && (
+                                <button 
+                                    onClick={toggleTier}
+                                    className={`${styles.tierButton} ${styles.tier2Button}`}
+                                >
+                                    View Tier 2
+                                </button>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            <button 
+                                onClick={toggleTier}
+                                className={`${styles.returnButton}`}
+                            >
+                                ← Return to Tier 1
+                            </button>
+                            <span className={styles.currentTierIndicator}>
+                                Currently viewing: Tier 2 Projects
+                            </span>
+                        </>
+                    )}
                 </div>
                 
                 {/* Show active project if any */}
@@ -101,21 +157,73 @@ const ProductionDomeWindow: React.FC<ProductionDomeWindowProps> = ({ isVisible, 
                                         ))}
                                         {project.duration && `, Duration: ${project.duration} Rounds`}
                                     </p>
+                                    <p className={styles.effectDescription}>
+                                        <strong>Effect:</strong> {project.effectDescription}
+                                    </p>
+                                    {project.prerequisites && project.prerequisites.length > 0 && (
+                                        <p className={styles.prerequisitesNote}>
+                                            <strong>Prerequisites:</strong> {
+                                                project.prerequisites.includes('__ANY_THREE_RESEARCH__')
+                                                    ? 'Any three completed research projects'
+                                                    : project.prerequisites.map(prereq => {
+                                                        // Find the prerequisite project (either in production or other project types)
+                                                        const productionProject = Object.values(getAvailableProductionProjects([], 1)).find(p => p.id === prereq) ||
+                                                                            Object.values(getAvailableProductionProjects([], 2)).find(p => p.id === prereq);
+                                                        return productionProject ? productionProject.name : prereq;
+                                                    }).join(', ')
+                                            }
+                                        </p>
+                                    )}
                                 </div>
                                 <button
                                     className={styles.startButton}
                                     onClick={() => handleStartProject(project)}
-                                    // TODO: Add disabled logic based on resource check
-                                    // disabled={!canAfford(project.cost)}
+                                    disabled={
+                                        activeProductionProject !== null || 
+                                        !canAffordProject(project) ||
+                                        (project.prerequisites && project.prerequisites.length > 0 && !checkPrerequisites(project, completedProductionProjects, completedResearch))
+                                    }
                                 >
                                     Start Project
                                 </button>
                             </li>
                         ))
                     ) : (
-                        <p>No production projects currently available.</p>
+                        <p className={styles.noProjectsMessage}>
+                            {currentTier === 1 
+                                ? "No production projects currently available." 
+                                : (isTier2Unlocked 
+                                    ? "No Tier 2 production projects currently available." 
+                                    : "Complete 3 research projects to unlock Tier 2 projects.")}
+                        </p>
                     )}
                 </ul>
+                
+                {/* Display completed projects */}
+                {completedProductionProjects.length > 0 && (
+                    <div className={styles.completedProjectsSection}>
+                        <h3>Completed Projects</h3>
+                        <ul className={styles.completedList}>
+                            {completedProductionProjects.map(id => {
+                                // Get the project from all tiers
+                                const project = Object.values(getAvailableProductionProjects([], 1)).find(p => p.id === id) ||
+                                              Object.values(getAvailableProductionProjects([], 2)).find(p => p.id === id);
+                                if (!project) return null;
+                                return (
+                                    <li key={id} className={styles.completedItem}>
+                                        <div className={styles.projectDetails}>
+                                            <h3 className={styles.projectName}>{project.name}</h3>
+                                            <p className={styles.effectDescription}>
+                                                <strong>Effect:</strong> {project.effectDescription}
+                                            </p>
+                                        </div>
+                                        <button className={styles.completedButton}>Finished!</button>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </div>
+                )}
             </div>
         </div>
     );

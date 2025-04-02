@@ -6,6 +6,7 @@ export interface ResearchProject {
     duration: number; // Rounds to complete
     prerequisites?: string[]; // Optional: IDs of required completed research
     effectDescription: string; // Description of the gameplay effect when research is completed
+    tier: number; // Add tier property
     // Later: linkToPuzzle?: string; // Identifier for a puzzle game
 }
 
@@ -18,6 +19,7 @@ export const researchProjects: Record<string, ResearchProject> = {
         cost: { researchPoints: 20 },
         duration: 7,
         effectDescription: "Increases Scout Outpost exploration range by 25%. Unlocks Ancient Structure detection capability.",
+        tier: 1,
     },
     'improved-extraction': {
         id: 'improved-extraction',
@@ -27,6 +29,7 @@ export const researchProjects: Record<string, ResearchProject> = {
         duration: 8,
         prerequisites: [],
         effectDescription: "Increases mineral yield from Mining Operations by 25%. Unlocks detection of Rich Subsurface Mineral Veins.",
+        tier: 1,
     },
     'water-reclamation-1': {
         id: 'water-reclamation-1',
@@ -35,6 +38,7 @@ export const researchProjects: Record<string, ResearchProject> = {
         cost: { researchPoints: 35 },
         duration: 9,
         effectDescription: "Increases water production from Water Wells by 20%. Unlocks detection of Subterranean Ice Chambers.",
+        tier: 1,
     },
     'embodiment-prelim': {
         id: 'embodiment-prelim',
@@ -43,6 +47,7 @@ export const researchProjects: Record<string, ResearchProject> = {
         cost: { researchPoints: 60 },
         duration: 10,
         effectDescription: "Increases Research Point generation by 15%. Lays groundwork for advanced human-machine interface technologies.",
+        tier: 1,
         // linkToPuzzle: 'intro-puzzle-1' // Example for future integration
     },
     'detoxifying-bacteria': {
@@ -53,6 +58,7 @@ export const researchProjects: Record<string, ResearchProject> = {
         duration: 8,
         prerequisites: [],
         effectDescription: "Reduces water consumption by 15%. Makes Martian soil safer for growing food and increases overall colony health.",
+        tier: 1,
     },
     'seismic-mapping': {
         id: 'seismic-mapping',
@@ -62,20 +68,54 @@ export const researchProjects: Record<string, ResearchProject> = {
         duration: 9,
         prerequisites: [],
         effectDescription: "Increases power output from Geothermal Plants by 30%. Allows precise placement for maximum energy efficiency.",
+        tier: 1,
+    },
+    // Add Tier 2 Research Projects
+    'upgrade-research-dome': {
+        id: 'upgrade-research-dome',
+        name: "Research Dome Upgrade",
+        description: "Enhance the Research Dome with advanced facilities and lab equipment to increase scientific productivity.",
+        cost: { researchPoints: 40 },
+        duration: 12,
+        prerequisites: ['__ANY_THREE_RESEARCH__'], // Special marker for any 3 completed research
+        effectDescription: "Adds advanced lab equipment model to Research Dome. Increases Research Point generation from Scout Outposts by 30%.",
+        tier: 2,
+    },
+    'optimize-energy-grid': {
+        id: 'optimize-energy-grid',
+        name: "Energy Grid Optimization",
+        description: "Implement cutting-edge energy management algorithms to the colony power grid, resulting in higher efficiency and output.",
+        cost: { researchPoints: 55 },
+        duration: 14,
+        prerequisites: ['upgrade-research-dome'],
+        effectDescription: "Increases overall Power production by 15%. Reduces power fluctuations during dust storms.",
+        tier: 2,
     },
     // Add more projects as needed
 };
 
 // Function to get all available projects, filtering out completed ones
-export const getAvailableResearch = (completedResearchIds: string[]): ResearchProject[] => {
+export const getAvailableResearch = (completedResearchIds: string[], tier: number = 1): ResearchProject[] => {
     // Filter out completed projects
     return Object.values(researchProjects).filter(project => 
-        !completedResearchIds.includes(project.id)
+        !completedResearchIds.includes(project.id) && 
+        project.tier === tier &&
+        checkPrerequisites(project, completedResearchIds)
     );
+};
 
-    // Example of future filtering with prerequisites:
-    // return Object.values(researchProjects).filter(project =>
-    //     !completedResearchIds.includes(project.id) &&
-    //     (project.prerequisites ?? []).every(prereqId => completedResearchIds.includes(prereqId))
-    // );
+// Helper function to check prerequisites
+export const checkPrerequisites = (project: ResearchProject, completedIds: string[]): boolean => {
+    // If no prerequisites, always available
+    if (!project.prerequisites || project.prerequisites.length === 0) {
+        return true;
+    }
+    
+    // Special case: Any three research projects
+    if (project.prerequisites.includes('__ANY_THREE_RESEARCH__')) {
+        return completedIds.length >= 3;
+    }
+    
+    // Standard prerequisite check
+    return project.prerequisites.every(prereqId => completedIds.includes(prereqId));
 }; 

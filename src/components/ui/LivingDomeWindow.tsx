@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styles from '@styles/LivingDomeWindow.module.css'; // Use the new CSS module
-import { LivingAreaProject, getAvailableLivingAreaProjects } from '@config/livingAreaProjects'; // Import living area config
+import { LivingAreaProject, getAvailableLivingAreaProjects, checkPrerequisites } from '@config/livingAreaProjects'; // Import living area config
 import { useGameStore } from '@store/store';
 
 interface LivingDomeWindowProps {
@@ -18,18 +18,30 @@ const LivingDomeWindow: React.FC<LivingDomeWindowProps> = ({ isVisible, onClose 
         startLivingProject, 
         power,
         minerals,
-        colonyGoods
+        colonyGoods,
+        researchPoints,
+        completedResearch
     } = useGameStore(state => ({
         completedLivingProjects: state.completedLivingProjects,
         activeLivingProject: state.activeLivingProject,
         startLivingProject: state.startLivingProject,
         power: state.power,
         minerals: state.minerals,
-        colonyGoods: state.colonyGoods
+        colonyGoods: state.colonyGoods,
+        researchPoints: state.researchPoints,
+        completedResearch: state.completedResearch
     }));
     
-    // Filter out completed projects
-    const availableProjects = getAvailableLivingAreaProjects(completedLivingProjects);
+    // Add state for the current tier
+    const [currentTier, setCurrentTier] = useState<number>(1);
+    
+    // Get available projects for the current tier
+    const availableProjects = getAvailableLivingAreaProjects(completedLivingProjects, currentTier, completedResearch);
+
+    // Function to toggle between tiers
+    const toggleTier = () => {
+        setCurrentTier(currentTier === 1 ? 2 : 1);
+    };
 
     const handleStartProject = (project: LivingAreaProject) => {
         console.log("Attempting to start living area project:", project.name);
@@ -48,13 +60,17 @@ const LivingDomeWindow: React.FC<LivingDomeWindowProps> = ({ isVisible, onClose 
         return (
             (project.cost.power === undefined || power >= project.cost.power) &&
             (project.cost.minerals === undefined || minerals >= project.cost.minerals) &&
-            (project.cost.colonyGoods === undefined || colonyGoods >= project.cost.colonyGoods)
+            (project.cost.colonyGoods === undefined || colonyGoods >= project.cost.colonyGoods) &&
+            (project.cost.researchPoints === undefined || researchPoints >= project.cost.researchPoints)
         );
     };
 
     if (!isVisible) {
         return null;
     }
+
+    // Check if tier 2 is unlocked (requires at least 3 completed research)
+    const isTier2Unlocked = completedResearch.length >= 3;
 
     return (
         <div className={styles.overlay} onClick={onClose}>
@@ -68,6 +84,46 @@ const LivingDomeWindow: React.FC<LivingDomeWindowProps> = ({ isVisible, onClose 
                     </div>
 
                     <h2 className={styles.title}>Living Area Projects</h2>
+                </div>
+                
+                {/* Add tier toggle button */}
+                <div className={styles.tierToggle}>
+                    {currentTier === 1 ? (
+                        <>
+                            <button 
+                                onClick={toggleTier}
+                                className={`${styles.tierButton} ${styles.activeTier}`}
+                                disabled={!isTier2Unlocked}
+                            >
+                                TIER 1
+                            </button>
+                            {!isTier2Unlocked && (
+                                <span className={styles.tierLockHint}>
+                                    Complete 3 research projects to unlock Tier 2
+                                </span>
+                            )}
+                            {isTier2Unlocked && (
+                                <button 
+                                    onClick={toggleTier}
+                                    className={`${styles.tierButton} ${styles.tier2Button}`}
+                                >
+                                    View Tier 2
+                                </button>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            <button 
+                                onClick={toggleTier}
+                                className={`${styles.returnButton}`}
+                            >
+                                ← Return to Tier 1
+                            </button>
+                            <span className={styles.currentTierIndicator}>
+                                Currently viewing: Tier 2 Projects
+                            </span>
+                        </>
+                    )}
                 </div>
                 
                 {/* Show active project if any */}
@@ -104,13 +160,28 @@ const LivingDomeWindow: React.FC<LivingDomeWindowProps> = ({ isVisible, onClose 
                                     <p className={styles.effectDescription}>
                                         <strong>Effect:</strong> {project.effectDescription}
                                     </p>
+                                    {project.prerequisites && project.prerequisites.length > 0 && (
+                                        <p className={styles.prerequisitesNote}>
+                                            <strong>Prerequisites:</strong> {
+                                                project.prerequisites.includes('__ANY_THREE_RESEARCH__')
+                                                    ? 'Any three completed research projects'
+                                                    : project.prerequisites.map(prereq => {
+                                                        // Find the prerequisite project (either in living or other project types)
+                                                        const livingProject = Object.values(getAvailableLivingAreaProjects([], 1)).find(p => p.id === prereq) ||
+                                                                          Object.values(getAvailableLivingAreaProjects([], 2)).find(p => p.id === prereq);
+                                                        return livingProject ? livingProject.name : prereq;
+                                                    }).join(', ')
+                                            }
+                                        </p>
+                                    )}
                                 </div>
                                 <button
                                     className={styles.startButton}
                                     onClick={() => handleStartProject(project)}
                                     disabled={
                                         activeLivingProject !== null || 
-                                        !canAffordProject(project)
+                                        !canAffordProject(project) ||
+                                        (project.prerequisites && project.prerequisites.length > 0 && !checkPrerequisites(project, completedLivingProjects, completedResearch))
                                     }
                                 >
                                     Start Project
@@ -118,7 +189,13 @@ const LivingDomeWindow: React.FC<LivingDomeWindowProps> = ({ isVisible, onClose 
                             </li>
                         ))
                     ) : (
-                        <p>No living area projects currently available.</p>
+                        <p className={styles.noProjectsMessage}>
+                            {currentTier === 1 
+                                ? "No living area projects currently available." 
+                                : (isTier2Unlocked 
+                                    ? "No Tier 2 living area projects currently available." 
+                                    : "Complete 3 research projects to unlock Tier 2 projects.")}
+                        </p>
                     )}
                 </ul>
                 
@@ -128,7 +205,9 @@ const LivingDomeWindow: React.FC<LivingDomeWindowProps> = ({ isVisible, onClose 
                         <h3>Completed Projects</h3>
                         <ul className={styles.completedList}>
                             {completedLivingProjects.map(id => {
-                                const project = getAvailableLivingAreaProjects([]).find(p => p.id === id);
+                                // Get the project from all tiers
+                                const project = Object.values(getAvailableLivingAreaProjects([], 1)).find(p => p.id === id) ||
+                                              Object.values(getAvailableLivingAreaProjects([], 2)).find(p => p.id === id);
                                 if (!project) return null;
                                 return (
                                     <li key={id} className={styles.completedItem}>

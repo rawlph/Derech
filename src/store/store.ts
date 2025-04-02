@@ -351,7 +351,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   population: 10,
   researchPoints: 0,
   colonyGoods: 50,
-  minerals: 20, // Start with some minerals
+  minerals: 50, // Start with more minerals
 
   // Initial Workforce (derived)
   totalWorkforce: 8, // Example: 10 pop * 0.8 = 8
@@ -413,7 +413,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   previousRoundResources: {
     power: 100,
     water: 100,
-    minerals: 20,
+    minerals: 50,
     colonyGoods: 50,
     researchPoints: 0
   },
@@ -924,7 +924,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       previousRoundResources: {
         power: 100,
         water: 100,
-        minerals: 20,
+        minerals: 50,
         colonyGoods: 50,
         researchPoints: 0
       },
