@@ -788,14 +788,14 @@ export interface PlayerHandle {
   getPosition: () => THREE.Vector3;
 }
 
-// Add a new prop type for Player to accept the handle ref
 interface PlayerProps {
     handleRef?: React.Ref<PlayerHandle>;
     position?: [number, number, number];
+    invertLook?: boolean; // Add invert look prop
 }
 
 // Simple player representation - Separated Group ref and Handle ref
-const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], handleRef }, ref) => {
+const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], handleRef, invertLook = false }, ref) => {
     const [playerPosition, setPlayerPosition] = useState(() => new THREE.Vector3(...position));
     const speed = useRef(0.15);
     const lookSensitivity = useRef(0.05); // Sensitivity for look rotation
@@ -853,8 +853,9 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], han
                     // Apply horizontal rotation first (prevents gimbal lock issues)
                     ref.current.rotation.y -= deltaX * mouseLookSensitivity.current;
                     
-                    // Then vertical rotation
-                    ref.current.rotation.x -= deltaY * mouseLookSensitivity.current;
+                    // Then vertical rotation - apply inversion if needed
+                    const verticalDelta = invertLook ? deltaY : -deltaY;
+                    ref.current.rotation.x += verticalDelta * mouseLookSensitivity.current;
                     
                     // Clamp vertical rotation with slightly increased margin
                     const maxVerticalRotation = Math.PI / 2 - 0.15;
@@ -901,7 +902,7 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], han
             document.removeEventListener('mouseup', handleMouseUp);
             document.removeEventListener('mouseleave', handleMouseLeave);
         };
-    }, [ref]);
+    }, [ref, invertLook]); // Add invertLook to dependencies
 
     // Expose custom methods using useImperativeHandle, BUT link it to the SEPARATE handleRef prop
     useImperativeHandle(handleRef, () => ({ // Use handleRef prop here
@@ -912,7 +913,7 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], han
             mobileLookInput.current = data; // Store the look input
         },
         getPosition: () => playerPosition,
-    }), [playerPosition]); 
+    }), [playerPosition]);
 
 
     useFrame((state, delta) => {
@@ -976,7 +977,25 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], han
         if (shouldAutoLevel.current && ref && typeof ref !== 'function' && ref.current) {
             // Smoothly interpolate back to horizontal (0) rotation
             if (Math.abs(ref.current.rotation.x) > 0.01) { // Only adjust if not already close to level
-                ref.current.rotation.x *= (1 - autoLevelSpeed);
+                // Adaptive auto-leveling - faster recovery from extreme angles
+                const absRotation = Math.abs(ref.current.rotation.x);
+                const normalizedRotation = absRotation / (Math.PI / 2); // 0 to 1 scale
+                
+                // Higher recovery speed when at more extreme angles
+                let recoverySpeed = autoLevelSpeed;
+                if (normalizedRotation > 0.6) {
+                    // Up to 3x faster recovery from extreme angles
+                    recoverySpeed = autoLevelSpeed * (1 + normalizedRotation * 2);
+                }
+                
+                // Apply smoothing with the adaptive recovery speed
+                ref.current.rotation.x *= (1 - recoverySpeed);
+                
+                // If very close to zero, just snap to level
+                if (Math.abs(ref.current.rotation.x) < 0.01) {
+                    ref.current.rotation.x = 0;
+                    shouldAutoLevel.current = false; // Stop auto-leveling once complete
+                }
             } else {
                 ref.current.rotation.x = 0; // Snap to exactly 0 when close
                 shouldAutoLevel.current = false; // Stop auto-leveling once complete
@@ -991,15 +1010,36 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], han
              // Horizontal rotation (always apply first)
              ref.current.rotation.y -= mobileLookInput.current.x * lookSensitivity.current;
              
-             // Add vertical rotation for mobile controls
+             // Add vertical rotation for mobile controls, with inversion support
              if (mobileLookInput.current.y !== 0) {
-                 // Apply Y input to X rotation (vertical look)
-                 ref.current.rotation.x -= mobileLookInput.current.y * lookSensitivity.current;
+                 // Apply Y input to X rotation (vertical look) with inversion
+                 const verticalInput = invertLook ? mobileLookInput.current.y : -mobileLookInput.current.y;
                  
-                 // Apply the same constraints as before
-                 const maxVerticalRotation = Math.PI / 2 - 0.15;
-                 ref.current.rotation.x = Math.max(-maxVerticalRotation, 
-                                              Math.min(maxVerticalRotation, ref.current.rotation.x));
+                 // Calculate the potential new rotation to check if it would exceed limits
+                 const potentialNewRotation = ref.current.rotation.x + (verticalInput * lookSensitivity.current);
+                 
+                 // Define strict rotation limits - slightly tighter than the general max
+                 const maxVerticalRotation = Math.PI / 2 - 0.2; // More conservative limit for mobile
+                 
+                 // Check if the potential rotation would exceed limits
+                 if (potentialNewRotation > maxVerticalRotation || potentialNewRotation < -maxVerticalRotation) {
+                     // If we're already close to limits, apply very reduced movement
+                     if (Math.abs(ref.current.rotation.x) > maxVerticalRotation * 0.8) {
+                         // Apply greatly reduced movement - allows small adjustments even near limits
+                         ref.current.rotation.x += verticalInput * lookSensitivity.current * 0.2;
+                     } else {
+                         // Apply moderately reduced movement when getting close to limits
+                         ref.current.rotation.x += verticalInput * lookSensitivity.current * 0.5;
+                     }
+                 } else {
+                     // Normal case - full rotation speed when not near limits
+                     ref.current.rotation.x += verticalInput * lookSensitivity.current;
+                 }
+                 
+                 // Final safety clamp to absolutely ensure we don't exceed limits
+                 const absoluteMaxRotation = Math.PI / 2 - 0.1;
+                 ref.current.rotation.x = Math.max(-absoluteMaxRotation, 
+                                              Math.min(absoluteMaxRotation, ref.current.rotation.x));
                  
                  // Disable auto-leveling while actively looking with mobile controls
                  shouldAutoLevel.current = false;
@@ -1235,12 +1275,16 @@ StartPortal.displayName = 'StartPortal';
 Player.displayName = 'Player';
 
 // Main scene content component
+interface SceneContentProps {
+    invertLook?: boolean;
+}
+
 const SceneContent = forwardRef<
     {
         handleMobileInput: (data: { x: number; y: number }) => void;
         handleMobileLook: (data: { x: number; y: number }) => void;
     },
-    {}
+    SceneContentProps
 >((props, ref) => {
     const setGameView = useGameStore(state => state.setGameView);
     const previousGameView = useGameStore(state => state.previousGameView);
@@ -1392,7 +1436,7 @@ const SceneContent = forwardRef<
             <hemisphereLight color="#e0e5ff" groundColor="#606080" intensity={0.4} />
             <Stars radius={150} depth={80} count={1500} factor={5} fade speed={0.5} />
             <MuseumEnvironment />
-            <Player ref={playerGroupRef} handleRef={playerHandleRef} key="player-component" />
+            <Player ref={playerGroupRef} handleRef={playerHandleRef} key="player-component" invertLook={props.invertLook} />
 
             <InteractiveButton position={[0, 1.5, 0]} text="Start Colony Mission" onClick={handleStartColony} color="#4CAF50"/>
             <InteractiveButton position={[8, 1.5, 0]} text="About" onClick={() => { setShowAbout(!showAbout); setShowInstructions(false); }} color="#2196F3"/>
@@ -1560,11 +1604,34 @@ const SceneContent = forwardRef<
 
 // Main component
 const WelcomeScene = () => {
+    // Set to true to enable debug logging for mobile controls
+    const DEBUG_MOBILE_CONTROLS = false;
+    
     const [isLoading, setIsLoading] = useState(true);
+    // Add invertLook state with localStorage persistence
+    const [invertLook, setInvertLook] = useState(() => {
+        // Try to load from localStorage on mount
+        try {
+            const savedValue = localStorage.getItem('invertLook');
+            return savedValue === 'true';
+        } catch (e) {
+            return false; // Default to false if localStorage fails
+        }
+    });
+    
     const sceneContentRef = useRef<{
         handleMobileInput: (data: { x: number; y: number }) => void;
         handleMobileLook: (data: { x: number; y: number }) => void;
     } | null>(null);
+
+    // Save invertLook preference to localStorage when it changes
+    useEffect(() => {
+        try {
+            localStorage.setItem('invertLook', invertLook.toString());
+        } catch (e) {
+            console.error('Failed to save invertLook preference to localStorage:', e);
+        }
+    }, [invertLook]);
 
     useEffect(() => {
         const timer = setTimeout(() => setIsLoading(false), 1500);
@@ -1583,6 +1650,11 @@ const WelcomeScene = () => {
         sceneContentRef.current?.handleMobileLook?.(data);
     };
 
+    // Toggle handler for invertLook
+    const toggleInvertLook = () => {
+        setInvertLook(prev => !prev);
+    };
+
     return (
         <div className={styles.sceneContainer}>
             {isLoading && ( <div className={styles.loadingOverlay}> <div className={styles.loadingSpinner} /> <p>Loading PORTAL ROOM...</p> </div> )}
@@ -1591,15 +1663,39 @@ const WelcomeScene = () => {
                     <color attach="background" args={['#1a1a2a']} />
                     <fog attach="fog" args={['#303045', 30, 120]} />
                     <Suspense fallback={null}>
-                        <SceneContent ref={sceneContentRef} />
+                        <SceneContent ref={sceneContentRef} invertLook={invertLook} />
                     </Suspense>
                 </Canvas>
             </div>
+            
+            {/* Settings Panel */}
+            <div className={styles.settingsPanel}>
+                <div className={styles.settingsTitle}>
+                    <span>⚙️ Controls</span>
+                </div>
+                <div className={styles.settingsOption}>
+                    <label className={styles.checkbox}>
+                        <input 
+                            type="checkbox" 
+                            checked={invertLook} 
+                            onChange={toggleInvertLook}
+                        />
+                        <span className={styles.slider}></span>
+                    </label>
+                    <span>Invert Look</span>
+                </div>
+            </div>
+            
             <div className={styles.controlsInfo}>
                 Desktop: WASD, Mouse Drag Look<br/>
                 Mobile: Left stick move, Right stick look
             </div>
-            <MobileControls onMove={handleMobileInput} onLook={handleMobileLook} />
+            <MobileControls 
+                onMove={handleMobileInput} 
+                onLook={handleMobileLook} 
+                debug={DEBUG_MOBILE_CONTROLS}
+                invertLook={invertLook}
+            />
         </div>
     );
 };
