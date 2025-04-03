@@ -411,13 +411,17 @@ const MuseumEnvironment = () => {
       }}>
         <h3 style={{ marginBottom: '10px', fontSize: '16px' }}>
           <a 
-            href="./changes.html" 
-            target="_blank" 
-            rel="noopener noreferrer"
+            href="#" 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.open('./changes.html', '_blank', 'noopener,noreferrer');
+            }}
             style={{ 
               color: '#3498db', 
               textDecoration: 'underline',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              cursor: 'pointer'
             }}
           >
             CLICK HERE FOR RECENT CHANGES
