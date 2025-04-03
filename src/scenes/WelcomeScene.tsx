@@ -6,6 +6,290 @@ import { useGameStore } from '@store/store';
 import MobileControls from '@components/MobileControls';
 import styles from '@styles/WelcomeScene.module.css';
 
+// NEW: Interface for visitor log entries
+interface VisitorLogEntry {
+  username: string;
+  timestamp: number;
+  color?: string;
+  referrer?: string;
+}
+
+// NEW: TreasureChest component for entry log
+interface TreasureChestProps {
+  position: [number, number, number];
+  scale?: number;
+  rotation?: [number, number, number];
+}
+
+const TreasureChest = ({ position, scale = 1, rotation = [0, 0, 0] }: TreasureChestProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const chestRef = useRef<THREE.Group>(null);
+  const [visitors, setVisitors] = useState<VisitorLogEntry[]>([]);
+  const particlesRef = useRef<THREE.Points>(null);
+  const hoverRef = useRef(false);
+  
+  // Generate particles for the chest
+  const particleCount = 50;
+  const particlePositions = useMemo(() => {
+    const positions = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount; i++) {
+      const i3 = i * 3;
+      // Create particles in a field around the chest
+      positions[i3] = (Math.random() - 0.5) * 2; // x
+      positions[i3 + 1] = Math.random() * 2; // y - mostly above
+      positions[i3 + 2] = (Math.random() - 0.5) * 2; // z
+    }
+    return positions;
+  }, []);
+
+  // Load visitor log from localStorage on mount
+  useEffect(() => {
+    const storedVisitors = localStorage.getItem('visitorLog');
+    if (storedVisitors) {
+      try {
+        setVisitors(JSON.parse(storedVisitors));
+      } catch (e) {
+        console.error("Failed to parse visitor log:", e);
+        // Initialize with empty array if parse fails
+        setVisitors([]);
+      }
+    }
+  }, []);
+
+  useFrame((state) => {
+    if (chestRef.current) {
+      // Add subtle floating animation
+      chestRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.8) * 0.1;
+      
+      // Add subtle rotation
+      chestRef.current.rotation.y = rotation[1] + Math.sin(state.clock.elapsedTime * 0.5) * 0.1;
+      
+      // Add pulsing effect to the glow
+      if (chestRef.current.children.length > 0) {
+        const pointLight = chestRef.current.children.find(
+          child => child instanceof THREE.PointLight
+        ) as THREE.PointLight | undefined;
+        
+        if (pointLight) {
+          pointLight.intensity = 0.5 + Math.sin(state.clock.elapsedTime * 2) * 0.3;
+        }
+      }
+    }
+    
+    // Animate particles
+    if (particlesRef.current) {
+      const positions = particlesRef.current.geometry.getAttribute('position').array as Float32Array;
+      
+      for (let i = 0; i < particleCount; i++) {
+        const i3 = i * 3;
+        
+        // Move particles upward slowly
+        positions[i3 + 1] += 0.01;
+        
+        // Add slight horizontal drift
+        positions[i3] += Math.sin(state.clock.elapsedTime * 0.5 + i * 0.1) * 0.002;
+        positions[i3 + 2] += Math.cos(state.clock.elapsedTime * 0.5 + i * 0.1) * 0.002;
+        
+        // If particle moves too far up, reset it
+        if (positions[i3 + 1] > 2.5) {
+          positions[i3] = (Math.random() - 0.5) * 2;
+          positions[i3 + 1] = 0;
+          positions[i3 + 2] = (Math.random() - 0.5) * 2;
+        }
+      }
+      
+      particlesRef.current.geometry.getAttribute('position').needsUpdate = true;
+    }
+  });
+
+  const handleChestClick = () => {
+    setIsOpen(!isOpen);
+  };
+  
+  const handleChestHover = () => {
+    hoverRef.current = true;
+  };
+  
+  const handleChestUnhover = () => {
+    hoverRef.current = false;
+  };
+
+  // Format timestamp to readable date
+  const formatDate = (timestamp: number): string => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Convert rotation array to Euler for Three.js
+  const eulerRotation = useMemo(() => new THREE.Euler(rotation[0], rotation[1], rotation[2]), [rotation]);
+
+  return (
+    <group position={position} scale={scale} rotation={eulerRotation}>
+      {/* Treasure chest base */}
+      <group 
+        ref={chestRef} 
+        onClick={handleChestClick}
+        onPointerOver={handleChestHover}
+        onPointerOut={handleChestUnhover}
+      >
+        {/* Chest base */}
+        <Box args={[1.5, 0.8, 1]} position={[0, 0.4, 0]}>
+          <meshStandardMaterial color="#8B4513" roughness={0.8} metalness={0.2} />
+        </Box>
+        
+        {/* Chest lid */}
+        <Box args={[1.5, 0.4, 1]} position={[0, 0.9, -0.25]} rotation={[isOpen ? -0.8 : 0, 0, 0]}>
+          <meshStandardMaterial color="#A0522D" roughness={0.7} metalness={0.3} />
+        </Box>
+        
+        {/* Metal details */}
+        <Box args={[1.6, 0.1, 1.1]} position={[0, 0.4, 0]}>
+          <meshStandardMaterial color="#B8860B" roughness={0.5} metalness={0.8} />
+        </Box>
+        
+        {/* Lock */}
+        <Box args={[0.3, 0.3, 0.2]} position={[0, 0.7, 0.5]}>
+          <meshStandardMaterial color="#DAA520" roughness={0.4} metalness={0.9} />
+        </Box>
+        
+        {/* Gold coins/treasures peeking out if open */}
+        {isOpen && (
+          <group position={[0, 0.6, 0]}>
+            {/* Multiple small gold spheres to represent coins */}
+            {[...Array(8)].map((_, index) => (
+              <mesh 
+                key={index}
+                position={[
+                  (Math.random() - 0.5) * 0.8, 
+                  Math.random() * 0.3, 
+                  (Math.random() - 0.5) * 0.6
+                ]}
+                scale={0.1 + Math.random() * 0.1}
+              >
+                <sphereGeometry args={[1, 12, 12]} />
+                <meshStandardMaterial color="#FFD700" metalness={1} roughness={0.2} />
+              </mesh>
+            ))}
+          </group>
+        )}
+        
+        {/* Small glow effect */}
+        <pointLight position={[0, 0.5, 0]} distance={2} intensity={0.5} color="#FFD700" />
+        
+        {/* Label with hovering effect */}
+        <Text
+          position={[0, 1.2, 0]}
+          rotation={[0, 0, 0]}
+          fontSize={0.2}
+          color="#FFD700"
+          anchorX="center"
+          anchorY="middle"
+          outlineWidth={0.02}
+          outlineColor="#000000"
+        >
+          ENTRY LOG
+        </Text>
+      </group>
+      
+      {/* Particle effect */}
+      <points ref={particlesRef}>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" count={particleCount} array={particlePositions} itemSize={3} />
+        </bufferGeometry>
+        <pointsMaterial
+          size={0.05}
+          color="#FFD700"
+          transparent
+          opacity={0.6}
+          blending={THREE.AdditiveBlending}
+        />
+      </points>
+      
+      {/* Visitor log UI */}
+      {isOpen && (
+        <Html position={[0, 2, 0]} transform scale={1.5} rotation={eulerRotation}>
+          <div className={styles.visitorLogContainer}>
+            <div className={styles.visitorLogHeader}>
+              <h3>VISITOR LOG</h3>
+              <button className={styles.closeButton} onClick={() => setIsOpen(false)}>×</button>
+            </div>
+            <div className={styles.visitorLogContent}>
+              {visitors.length === 0 ? (
+                <p className={styles.noVisitors}>No visitors recorded yet</p>
+              ) : (
+                <ul className={styles.visitorList}>
+                  {visitors.map((visitor, index) => (
+                    <li key={index} className={styles.visitorItem}>
+                      <span 
+                        className={styles.visitorName} 
+                        style={{ color: visitor.color || '#FFD700' }}
+                      >
+                        {visitor.username || 'Unknown Visitor'}
+                      </span>
+                      <span className={styles.visitorTimestamp}>
+                        {formatDate(visitor.timestamp)}
+                      </span>
+                      {visitor.referrer && (
+                        <span className={styles.visitorReferrer}>
+                          from: {visitor.referrer}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </Html>
+      )}
+    </group>
+  );
+};
+
+// NEW: Function to record visitor information
+const recordVisitorEntry = () => {
+  // Check if the user came through a portal
+  const urlParams = new URLSearchParams(window.location.search);
+  const isPortalVisitor = urlParams.get('portal') === 'true';
+  
+  if (!isPortalVisitor) return; // Only record portal visitors
+  
+  const username = urlParams.get('username') || 'Anonymous Explorer';
+  const color = urlParams.get('color') || '#FFFFFF';
+  const referrer = urlParams.get('ref') || undefined;
+  
+  // Create new visitor entry
+  const newVisitor: VisitorLogEntry = {
+    username,
+    timestamp: Date.now(),
+    color,
+    referrer
+  };
+  
+  // Get existing visitor log
+  let visitorLog: VisitorLogEntry[] = [];
+  const storedVisitors = localStorage.getItem('visitorLog');
+  
+  if (storedVisitors) {
+    try {
+      visitorLog = JSON.parse(storedVisitors);
+    } catch (e) {
+      console.error("Failed to parse visitor log:", e);
+    }
+  }
+  
+  // Add new visitor to log
+  visitorLog.unshift(newVisitor); // Add to beginning of array
+  
+  // Limit to last 20 visitors
+  if (visitorLog.length > 20) {
+    visitorLog = visitorLog.slice(0, 20);
+  }
+  
+  // Save back to localStorage
+  localStorage.setItem('visitorLog', JSON.stringify(visitorLog));
+};
+
 // NEW: Temple-like Structure Component
 interface TempleStructureProps {
   position: [number, number, number];
@@ -183,6 +467,13 @@ const MuseumEnvironment = () => {
            <meshStandardMaterial color="#b0b0b0" side={THREE.DoubleSide} roughness={0.8} />
        </Plane>
        {/* Front wall left open for entry view */}
+
+       {/* NEW: Add Treasure Chest for Entry Log */}
+       <TreasureChest
+         position={[-15, 0, -35]}
+         rotation={[0, Math.PI / 1, 0]}
+         scale={1.8}
+       />
 
        {/* Temple Structures with specific text */}
        <TempleStructure
@@ -1277,6 +1568,10 @@ const WelcomeScene = () => {
 
     useEffect(() => {
         const timer = setTimeout(() => setIsLoading(false), 1500);
+        
+        // NEW: Record visitor entry when component mounts
+        recordVisitorEntry();
+        
         return () => clearTimeout(timer);
     }, []);
 
