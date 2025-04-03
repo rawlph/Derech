@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:ts": "tsc && vite build",
-    "postbuild": "cp public/* dist/ || true",
+    "postbuild": "node -e \"const fs=require('fs'); try { fs.copyFileSync('changes.html', 'dist/changes.html'); console.log('Successfully copied changes.html'); } catch (e) { console.error('Error copying changes.html:', e); }\"",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },

@@ -415,7 +415,8 @@ const MuseumEnvironment = () => {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              window.open('./changes.html', '_blank', 'noopener,noreferrer');
+              // Use the Derech path prefix for GitHub Pages
+              window.open('/Derech/changes.html', '_blank', 'noopener,noreferrer');
             }}
             style={{ 
               color: '#3498db', 
