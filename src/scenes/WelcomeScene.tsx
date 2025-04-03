@@ -515,15 +515,20 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], han
     const isMouseDown = useRef(false);
     const lastMousePosition = useRef({ x: 0, y: 0 });
     const floatOffset = useRef(0);
+    const shouldAutoLevel = useRef(false); // Track if auto-leveling should occur
+    const autoLevelSpeed = 0.05; // Speed of auto-leveling
+    const forwardDirection = useRef(new THREE.Vector3(0, 0, -1));
     const sphereRef = useRef<THREE.Group>(null);
     const particlesRef = useRef<THREE.Points>(null);
     const mainSphereRef = useRef<THREE.Mesh>(null);
     const secondSphereRef = useRef<THREE.Mesh>(null);
     const timeRef = useRef(0);
     
-    // Keyboard controls setup (remains the same)
+    // Keyboard controls setup
     useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => { keys.current[e.code] = true; };
+        const handleKeyDown = (e: KeyboardEvent) => { 
+            keys.current[e.code] = true;
+        };
         const handleKeyUp = (e: KeyboardEvent) => { keys.current[e.code] = false; };
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
@@ -539,6 +544,7 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], han
             // Only handle left mouse button (button 0)
             if (e.button === 0) {
                 isMouseDown.current = true;
+                shouldAutoLevel.current = false; // Stop auto-leveling while dragging
                 lastMousePosition.current = { x: e.clientX, y: e.clientY };
             }
         };
@@ -547,10 +553,32 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], han
             if (isMouseDown.current) {
                 // Calculate mouse movement delta
                 const deltaX = e.clientX - lastMousePosition.current.x;
+                const deltaY = e.clientY - lastMousePosition.current.y;
                 
-                // Update player rotation based on horizontal mouse movement
                 if (ref && typeof ref !== 'function' && ref.current) {
+                    // Ensure proper rotation order
+                    ref.current.rotation.order = 'YXZ';
+                    
+                    // Apply horizontal rotation first (prevents gimbal lock issues)
                     ref.current.rotation.y -= deltaX * mouseLookSensitivity.current;
+                    
+                    // Then vertical rotation
+                    ref.current.rotation.x -= deltaY * mouseLookSensitivity.current;
+                    
+                    // Clamp vertical rotation with slightly increased margin
+                    const maxVerticalRotation = Math.PI / 2 - 0.15;
+                    ref.current.rotation.x = Math.max(-maxVerticalRotation, 
+                                                 Math.min(maxVerticalRotation, ref.current.rotation.x));
+                    
+                    // Normalize Y rotation
+                    if (ref.current.rotation.y > Math.PI) {
+                        ref.current.rotation.y -= 2 * Math.PI;
+                    } else if (ref.current.rotation.y < -Math.PI) {
+                        ref.current.rotation.y += 2 * Math.PI;
+                    }
+                    
+                    // Update the quaternion
+                    ref.current.updateMatrixWorld();
                 }
                 
                 // Update last position
@@ -560,10 +588,13 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], han
 
         const handleMouseUp = () => {
             isMouseDown.current = false;
+            // Start auto-leveling after drag finishes
+            shouldAutoLevel.current = true;
         };
 
         const handleMouseLeave = () => {
             isMouseDown.current = false;
+            shouldAutoLevel.current = true;
         };
 
         // Add event listeners to the document
@@ -609,23 +640,82 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position = [0, 0, 5], han
             moveDirection.z -= mobileMoveInput.current.y; // Y joystick maps to Z movement
         }
 
-        // --- Apply Movement ---
+        // --- Apply Movement with improved rotation handling ---
         if (moveDirection.lengthSq() > 0) {
             moveDirection.normalize();
+            
             // Apply movement relative to player's current rotation
             if (ref && typeof ref !== 'function' && ref.current) {
-                 const rotatedDirection = moveDirection.clone().applyQuaternion(ref.current.quaternion);
-                 setPlayerPosition(current => current.clone().add(rotatedDirection.multiplyScalar(speed.current)));
+                const rotatedDirection = moveDirection.clone().applyQuaternion(ref.current.quaternion);
+                setPlayerPosition(current => current.clone().add(rotatedDirection.multiplyScalar(speed.current)));
+                
+                // Reset auto-leveling if the player is moving
+                shouldAutoLevel.current = false;
             } else {
-                 // Fallback if ref not ready (shouldn't happen often)
-                 setPlayerPosition(current => current.clone().add(moveDirection.multiplyScalar(speed.current)));
+                // Fallback if ref not ready
+                setPlayerPosition(current => current.clone().add(moveDirection.multiplyScalar(speed.current)));
             }
         }
 
-         // --- Mobile Look Rotation ---
-         if (ref && typeof ref !== 'function' && ref.current && mobileLookInput.current.x !== 0) {
-             // Rotate the player group around the Y axis based on the look joystick's X input
+        // --- Normalize rotation to prevent flipping ---
+        if (ref && typeof ref !== 'function' && ref.current) {
+            // Normalize Y rotation to keep it between -π and π
+            if (ref.current.rotation.y > Math.PI) {
+                ref.current.rotation.y -= 2 * Math.PI;
+            } else if (ref.current.rotation.y < -Math.PI) {
+                ref.current.rotation.y += 2 * Math.PI;
+            }
+            
+            // Prevent flipping by clamping rotation more strictly
+            const maxVerticalRotation = Math.PI / 2 - 0.15; // Increased margin to prevent edge cases
+            if (ref.current.rotation.x > maxVerticalRotation) {
+                ref.current.rotation.x = maxVerticalRotation;
+            } else if (ref.current.rotation.x < -maxVerticalRotation) {
+                ref.current.rotation.x = -maxVerticalRotation;
+            }
+            
+            // Ensure rotation order is correctly set (YXZ is typically best for first-person controls)
+            ref.current.rotation.order = 'YXZ';
+            
+            // Update the quaternion after changing rotation
+            ref.current.updateMatrixWorld();
+        }
+
+        // --- Auto-level rotation ---
+        if (shouldAutoLevel.current && ref && typeof ref !== 'function' && ref.current) {
+            // Smoothly interpolate back to horizontal (0) rotation
+            if (Math.abs(ref.current.rotation.x) > 0.01) { // Only adjust if not already close to level
+                ref.current.rotation.x *= (1 - autoLevelSpeed);
+            } else {
+                ref.current.rotation.x = 0; // Snap to exactly 0 when close
+                shouldAutoLevel.current = false; // Stop auto-leveling once complete
+            }
+        }
+
+         // --- Mobile Look Rotation with improved handling ---
+         if (ref && typeof ref !== 'function' && ref.current && (mobileLookInput.current.x !== 0 || mobileLookInput.current.y !== 0)) {
+             // Ensure proper rotation order
+             ref.current.rotation.order = 'YXZ';
+             
+             // Horizontal rotation (always apply first)
              ref.current.rotation.y -= mobileLookInput.current.x * lookSensitivity.current;
+             
+             // Add vertical rotation for mobile controls
+             if (mobileLookInput.current.y !== 0) {
+                 // Apply Y input to X rotation (vertical look)
+                 ref.current.rotation.x -= mobileLookInput.current.y * lookSensitivity.current;
+                 
+                 // Apply the same constraints as before
+                 const maxVerticalRotation = Math.PI / 2 - 0.15;
+                 ref.current.rotation.x = Math.max(-maxVerticalRotation, 
+                                              Math.min(maxVerticalRotation, ref.current.rotation.x));
+                 
+                 // Disable auto-leveling while actively looking with mobile controls
+                 shouldAutoLevel.current = false;
+             }
+         } else if (!isMouseDown.current && !mobileLookInput.current.x && !mobileLookInput.current.y) {
+             // Enable auto-leveling when not using mobile look controls and not dragging
+             shouldAutoLevel.current = true;
          }
 
         // No longer resetting mobile inputs each frame - they are managed by MobileControls
@@ -957,13 +1047,16 @@ const SceneContent = forwardRef<
         // Smoothly move camera to desired position
         camera.position.lerp(desiredCameraPosition, 0.05);
 
-        // Camera always looks at the player's position
-        camera.lookAt(playerWorldPos);
+        // Camera always looks at the player's position with slight adjustment for vertical look
+        // Calculate a look target that's slightly ahead of the player based on rotation
+        const lookOffset = new THREE.Vector3(0, 0, -5); // Look ahead of player
+        const rotatedLookOffset = lookOffset.clone().applyQuaternion(playerQuaternion);
+        const lookTarget = playerWorldPos.clone().add(rotatedLookOffset);
+        camera.lookAt(lookTarget);
 
-        // Update OrbitControls target to player position IF OrbitControls is used for rotation
-        // If player rotation controls look, this might not be needed, or might need adjustment
+        // Update OrbitControls target
         if (controlsRef.current) {
-             controlsRef.current.target.lerp(playerWorldPos, 0.1); // Smoothly update target
+             controlsRef.current.target.lerp(lookTarget, 0.1); // Now follow the look target instead of just player position
              controlsRef.current.update(); // Necessary after manual target change
         }
 
