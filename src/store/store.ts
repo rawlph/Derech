@@ -2025,7 +2025,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       // Show a message about population growth
       get().showDialogue(
         `Colony population has increased! A new colonist has been born. The colony now has ${get().population} residents.`, 
-        '/Derech/avatars/ColonistAvatarFem3.jpg'
+        '/Derech/avatars/ColonistAvatarFem2.jpg'
       );
       
       // Recalculate workforce - we're returning to endRound, which will do this anyway
