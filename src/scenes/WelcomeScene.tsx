@@ -430,7 +430,7 @@ const MuseumEnvironment = () => {
         </h3>
         
         <p style={{ marginBottom: '15px', fontSize: '13px' }}>
-          Latest update: Mobile Responsiveness Enhancement - Updated the mobile UI experience across multiple components including improved viewport settings for better scaling on mobile devices.
+          Latest update: EMBODIMENT PHASE 0 PUZZLE - Added a new test area with a puzzle button for the game's story progression. Relocated behind the temple structures to create a dedicated test zone for the experimental embodiment feature.
         </p>
         
         <h3 style={{ marginTop: '20px', marginBottom: '10px', fontSize: '16px' }}>[SCOPE]</h3>
