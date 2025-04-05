@@ -1535,7 +1535,7 @@ const SceneContent = forwardRef<SceneContentHandle, SceneContentProps>(({
         const { showDialogue, incrementEmbodimentInsight } = useGameStore.getState();
         showDialogue(
           "Interesting...",
-          "/avatars/mission-control.jpg",
+          "Derech/avatars/mission-control.jpg",
           "System"
         );
         
