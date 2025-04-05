@@ -38,25 +38,13 @@ const ProductionDomeWindow: React.FC<ProductionDomeWindowProps> = ({ isVisible, 
     // Get available projects for the current tier
     const availableProjects = getAvailableProductionProjects(completedProductionProjects, currentTier, completedResearch);
 
-    // Debug logging
-    console.log("[ProductionDomeWindow] completedResearch:", completedResearch);
-    console.log("[ProductionDomeWindow] isTier2Unlocked:", completedResearch.length >= 3);
-    
     // Function to toggle between tiers
     const toggleTier = () => {
-        console.log("[ProductionDomeWindow] Toggling tier from", currentTier, "to", currentTier === 1 ? 2 : 1);
         setCurrentTier(currentTier === 1 ? 2 : 1);
     };
 
     const handleStartProject = (project: ProductionProject) => {
-        console.log("Attempting to start production project:", project.name);
-        if (startProductionProject(project.id)) {
-            // Success - project started
-            console.log("Production project started successfully:", project.name);
-        } else {
-            // Failed to start project
-            console.log("Failed to start production project:", project.name);
-        }
+        startProductionProject(project.id);
     };
     
     const canAffordProject = (project: ProductionProject): boolean => {

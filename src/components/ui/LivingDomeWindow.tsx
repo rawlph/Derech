@@ -38,25 +38,13 @@ const LivingDomeWindow: React.FC<LivingDomeWindowProps> = ({ isVisible, onClose 
     // Get available projects for the current tier
     const availableProjects = getAvailableLivingAreaProjects(completedLivingProjects, currentTier, completedResearch);
 
-    // Debug logging
-    console.log("[LivingDomeWindow] completedResearch:", completedResearch);
-    console.log("[LivingDomeWindow] isTier2Unlocked:", completedResearch.length >= 3);
-    
     // Function to toggle between tiers
     const toggleTier = () => {
-        console.log("[LivingDomeWindow] Toggling tier from", currentTier, "to", currentTier === 1 ? 2 : 1);
         setCurrentTier(currentTier === 1 ? 2 : 1);
     };
 
     const handleStartProject = (project: LivingAreaProject) => {
-        console.log("Attempting to start living area project:", project.name);
-        if (startLivingProject(project.id)) {
-            // Success - project started
-            console.log("Living area project started successfully:", project.name);
-        } else {
-            // Failed to start project
-            console.log("Failed to start living area project:", project.name);
-        }
+        startLivingProject(project.id);
     };
     
     const canAffordProject = (project: LivingAreaProject): boolean => {
