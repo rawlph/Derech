@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import ManagementScene from '@scenes/ManagementScene'
 import WelcomeScene from '@scenes/WelcomeScene'  // Import the new WelcomeScene
+import AudioPuzzleScene from '@scenes/AudioPuzzleScene'  // Import the AudioPuzzleScene
 import ManagementUI from '@components/ui/ManagementUI'
 import { useGameStore } from '@store/store'
 import styles from './styles/App.module.css'
@@ -97,19 +98,7 @@ function App() {
       )}
 
       {gameView === 'puzzle' && (
-        <div>
-          {/* Placeholder for the Puzzle Area Scene/UI */}
-          <h2>Puzzle Area Active</h2>
-          {/* Add Puzzle Scene component here */}
-          <button onClick={() => {
-            // First deselect any tile to clear state
-            useGameStore.getState().deselectTile()
-            // Then transition view
-            useGameStore.getState().setGameView('management')
-          }}>
-            Back to Management
-          </button>
-        </div>
+        <AudioPuzzleScene />
       )}
 
       {/* Render the Dialogue Popup using Zustand state */}
@@ -117,6 +106,8 @@ function App() {
         isVisible={dialogueMessage?.isVisible ?? false}
         message={dialogueMessage?.message ?? ''}
         avatarSrc={dialogueMessage?.avatar}
+        speakerName={dialogueMessage?.speakerName}
+        choices={dialogueMessage?.choices}
         onClose={hideDialogue} // Use hideDialogue action from the store
       />
 

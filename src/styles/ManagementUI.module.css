@@ -97,6 +97,34 @@
 }
 /* --- End of Test Button Style --- */
 
+/* --- NEW: Embodiment Button Style --- */
+.embodimentButton {
+    background-color: #8B2FD5; /* Deep purple base color */
+    border: 1px solid #A64BFF;
+    position: relative;
+    overflow: visible !important;
+    box-shadow: 0 0 12px #A64BFF, 0 0 20px rgba(166, 75, 255, 0.3);
+    margin-top: 10px;
+    font-weight: bold;
+    animation: glowPulse 2s infinite alternate;
+}
+
+.embodimentButton:hover {
+    background-color: #9B3AE5; /* Lighter purple on hover */
+    border-color: #BF7FFF;
+    box-shadow: 0 0 15px #BF7FFF, 0 0 25px rgba(191, 127, 255, 0.5);
+}
+
+@keyframes glowPulse {
+    from {
+        box-shadow: 0 0 12px #A64BFF, 0 0 20px rgba(166, 75, 255, 0.3);
+    }
+    to {
+        box-shadow: 0 0 15px #BF7FFF, 0 0 25px rgba(191, 127, 255, 0.5);
+    }
+}
+/* --- End of Embodiment Button Style --- */
+
 /* --- End of Restored Top Bar Styles --- */
 
 

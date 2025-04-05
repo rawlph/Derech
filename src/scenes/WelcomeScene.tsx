@@ -1427,8 +1427,9 @@ const SceneContent = forwardRef<
     });
 
     const instructionsText = `[INSTRUCTIONS]
-1. START COLONY MISSION: Enter Management Mode.
-2. RETURN TO 3D AREA: Use the PORTAL ROOM button.`;
+1. Play, Research and upgrade the mars colony.
+(Current Endgame: Core Buildings to LVL 2)
+2. Research "Project Embodiment: Phase 0" for 3d puzzle area!`;
 
     return (
         <>
@@ -1464,6 +1465,40 @@ const SceneContent = forwardRef<
                     color="#FF5722" // Orange color to differentiate it
                 />
             )}
+
+            {/* Modified: Move Audio Puzzle button behind temple structures and add wooden sign */}
+            <group position={[0, 0, -60]}>
+                {/* Wooden sign */}
+                <mesh position={[21, 2, -3.9]}>
+                    <boxGeometry args={[3, 1.2, 0.2]} />
+                    <meshStandardMaterial color="#8B4513" roughness={0.9} metalness={0.1} />
+                </mesh>
+                <mesh position={[21, 0.5, -4]} rotation={[0, 0, 0]}>
+                    <cylinderGeometry args={[0.2, 0.2, 3, 8]} />
+                    <meshStandardMaterial color="#A0522D" roughness={0.8} metalness={0.1} />
+                </mesh>
+                <Text
+                    position={[21, 2, -3.7]}
+                    fontSize={0.3}
+                    color="#FFFFFF"
+                    anchorX="center"
+                    anchorY="middle"
+                >
+                    Test Area
+                </Text>
+                <InteractiveButton
+                    position={[22, 2.5, -10]}
+                    text="EMBODIMENT PHASE 0 PUZZLE"
+                    onClick={() => {
+                        // Show prompt dialog
+                        const confirmed = window.confirm("This is a test button for the game's story progression.\n\nEnter/Exit");
+                        if (confirmed) {
+                            setGameView('puzzle');
+                        }
+                    }}
+                    color="#E91E63"
+                />
+            </group>
 
             {/* Confirmation Dialog for Starting New Colony */}
             {showConfirmation && (

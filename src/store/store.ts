@@ -45,12 +45,18 @@ export interface TaskState {
   deconstructProgress?: number; // Added for deconstruction progress tracking
 }
 
+export interface DialogueChoice {
+  text: string;
+  action: () => void;
+}
+
 // Interface for the dialogue state
 export interface DialogueState {
   isVisible: boolean;
   message: string;
   avatar?: string; // Optional avatar path
-  // Could add 'type' here later for different styling/handling
+  speakerName?: string; // Character name
+  choices?: DialogueChoice[]; // Dialogue choices for player
 }
 
 // --- NEW: Building Issues ---
@@ -94,6 +100,9 @@ interface GameState {
   colonyGoods: number;
   minerals: number; // NEW: Raw minerals resource
 
+  // --- Insights ---
+  embodimentInsight: number; // NEW: Track embodiment insights gained
+
   // --- Previous Round Resources ---
   previousRoundResources: {
     power: number;
@@ -122,6 +131,10 @@ interface GameState {
   previousGameView: 'management' | 'puzzle' | 'menu' | 'welcome' | null; // Track the previous view
   activeTasks: Record<string, TaskState>; // NEW: Ongoing tasks
 
+  // --- Audio Puzzle ---
+  audioPuzzleProgress: number; // Progress of the audio puzzle (0-1)
+  isAudioPuzzleCompleted: boolean; // NEW: Track if the audio puzzle part of embodiment project is completed
+
   // --- NEW: Dialogue State ---
   dialogueMessage: DialogueState | null; // Use null when hidden
 
@@ -144,7 +157,7 @@ interface GameState {
   completedProductionProjects: string[]; // Completed production projects
 
   // --- NEW: Building Issue State ---
-  buildingIssues: Record<string, BuildingIssueState>; // Keyed by issue instance ID
+  buildingIssues: Record<string, BuildingIssueState>;
   activeIssueId: string | null; // Currently viewed issue ID
   lastIssueRounds: Record<string, number>; // Track last issue round per building ID
   isIssueWindowVisible: boolean;
@@ -168,6 +181,9 @@ interface GameState {
   addMinerals: (amount: number) => void; // NEW
   deductResources: (costs: { power?: number; water?: number; minerals?: number; colonyGoods?: number; researchPoints?: number }) => boolean; // NEW Helper
 
+  // Insight Management
+  incrementEmbodimentInsight: () => void; // NEW: Action to increment embodiment insights
+
   // Round Management
   endRound: () => void;
 
@@ -182,6 +198,10 @@ interface GameState {
   setGameView: (view: 'management' | 'puzzle' | 'menu' | 'welcome') => void;
   resetColony: () => void; // NEW: Reset colony state but keep grid
   
+  // --- Audio Puzzle Management ---
+  updateAudioPuzzleProgress: (progress: number) => void;
+  markAudioPuzzleCompleted: () => void; // NEW: Function to mark audio puzzle as completed
+  
   // Task Management Actions (NEW)
   assignWorkforceToTask: (taskType: TaskState['type'], targetTile: TileData, workforce: number) => AssignTaskResult;
   updateTaskProgress: () => boolean;
@@ -191,7 +211,7 @@ interface GameState {
   recallWorkforce: (taskId: string) => void;
 
   // --- NEW: Dialogue Actions ---
-  showDialogue: (message: string, avatar?: string) => void;
+  showDialogue: (message: string, avatar?: string, speakerName?: string, choices?: DialogueChoice[]) => void;
   hideDialogue: () => void;
 
   // --- NEW: Research Actions ---
@@ -353,6 +373,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   colonyGoods: 50,
   minerals: 50, // Start with more minerals
 
+  // Insights
+  embodimentInsight: 0, // NEW: Start with 0 embodiment insights
+
   // Initial Workforce (derived)
   totalWorkforce: 8, // Example: 10 pop * 0.8 = 8
   availableWorkforce: 8,
@@ -368,7 +391,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   lastFlavourRound: 0, // Initialize last flavour round
   isLowWaterPenaltyActive: false, // Initialize penalty flag
   isLowPowerPenaltyActive: false, // NEW: Initialize power penalty flag
-
+  
+  // Audio Puzzle
+  audioPuzzleProgress: 0, // Initialize audio puzzle progress to 0
+  isAudioPuzzleCompleted: false, // Initialize audio puzzle completion status
+  
   // --- NEW: Initial Research State ---
   isResearchWindowVisible: false, // Initially hidden
   // --- NEW: Initial Living Dome State ---
@@ -751,7 +778,11 @@ export const useGameStore = create<GameState>((set, get) => ({
         const chance = 0.3 + (roundsSinceFlavour - 5) * 0.1; // Increase chance after 5 rounds
         if (Math.random() < Math.min(chance, 0.8)) { // Cap chance at 80%
             const flavour = getRandomFlavourMessage();
-            get().showDialogue(flavour.message, flavour.avatar);
+            get().showDialogue(
+              flavour.message, 
+              flavour.avatar,
+              flavour.avatar?.includes('Fem') ? "Colonist" : "Engineer"
+            );
             set({ lastFlavourRound: currentRoundState }); // Update last round shown
             dialogueShownThisRound = true;
             console.log(`Showing flavour text (Round ${currentRoundState}, Last: ${lastFlavourRoundState})`)
@@ -798,7 +829,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         if (isPowerPenaltyNowActive && !wasPowerPenaltyActive && !dialogueShownThisRound) {
           get().showDialogue(
             "Critical Alert: Power reserves empty! Non-essential systems shutting down. Production and research capabilities severely impacted.",
-            '/Derech/avatars/ColonistAvatarMal5.jpg'
+            '/Derech/avatars/ColonistAvatarMal5.jpg',
+            "Chief Engineer"
           );
           dialogueShownThisRound = true;
         }
@@ -808,7 +840,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         if (isWaterPenaltyNowActive && !wasWaterPenaltyActive && !dialogueShownThisRound) {
           get().showDialogue(
             "Warning: Water reserves depleted! Critical systems diverting resources. Mineral and Research output may be affected.",
-            '/Derech/avatars/ColonistAvatarFem2.jpg'
+            '/Derech/avatars/ColonistAvatarFem2.jpg',
+            "Life Support Officer"
           );
         }
 
@@ -906,6 +939,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       activeTasks: {},
       dialogueMessage: null,
       lastFlavourRound: 0,
+      audioPuzzleProgress: 0, // Reset audio puzzle progress
       isResearchWindowVisible: false,
       activeResearch: null,
       completedResearch: [],
@@ -1200,13 +1234,21 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     if (tasksCompletedMessages.length > 0) {
       const firstCompletion = tasksCompletedMessages[0];
-      get().showDialogue(firstCompletion.message, firstCompletion.avatar);
+      get().showDialogue(
+        firstCompletion.message, 
+        firstCompletion.avatar,
+        "Operations Officer"
+      );
       return true;
     }
     
     if (tasksCompletedMessages.length === 0 && deconstructionCompletedMessages.length > 0) {
       const firstDeconstructionMessage = deconstructionCompletedMessages[0];
-      get().showDialogue(firstDeconstructionMessage.message, firstDeconstructionMessage.avatar);
+      get().showDialogue(
+        firstDeconstructionMessage.message, 
+        firstDeconstructionMessage.avatar,
+        "Operations Officer"
+      );
       return true;
     }
     
@@ -1386,20 +1428,15 @@ export const useGameStore = create<GameState>((set, get) => ({
     console.log(`Task ${taskId} set to deconstructing status. Will complete in 4 rounds.`);
   },
 
-  showDialogue: (message, avatar) => {
-    if (get().dialogueMessage) {
-        console.log("Dialogue already visible, skipping new message:", message);
-        return;
+  showDialogue: (message, avatar, speakerName, choices) => set({
+    dialogueMessage: {
+      isVisible: true,
+      message,
+      avatar,
+      speakerName,
+      choices
     }
-    set({
-      dialogueMessage: {
-        isVisible: true,
-        message: message,
-        avatar: avatar,
-      }
-    });
-    console.log("Showing Dialogue:", message);
-  },
+  }),
 
   hideDialogue: () => {
     set({ dialogueMessage: null });
@@ -2002,6 +2039,18 @@ export const useGameStore = create<GameState>((set, get) => ({
   // --- Audio Actions ---
   toggleMute: () => set(state => ({ isMuted: !state.isMuted })),
   setVolume: (volume: number) => set(state => ({ audioVolume: volume })),
+
+  // --- Audio Puzzle Management ---
+  updateAudioPuzzleProgress: (progress: number) => set({ audioPuzzleProgress: progress }),
+  markAudioPuzzleCompleted: () => {
+    set({ isAudioPuzzleCompleted: true });
+    console.log('Audio Puzzle marked as completed');
+  },
+
+  // Insight Management
+  incrementEmbodimentInsight: () => set((state) => ({
+    embodimentInsight: state.embodimentInsight + 1
+  })),
 
 }));
 

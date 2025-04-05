@@ -35,6 +35,8 @@ const ManagementUI = () => {
         // --- NEW: Import resource trends ---
         resourceTrends,
         // --- --- 
+        completedResearch,
+        isAudioPuzzleCompleted,
     } = useGameStore();
 
     // --- State for button feedback ---
@@ -149,6 +151,35 @@ const ManagementUI = () => {
         setGameView('puzzle');
     }
 
+    // Handle Embodiment Phase 0 button click
+    const handleInitiateEmbodiment = () => {
+        const showDialogue = useGameStore.getState().showDialogue;
+        const hideDialogue = useGameStore.getState().hideDialogue;
+        
+        // Show the dialogue with mission control avatar
+        showDialogue(
+            "Initialize Embodiment Phase 0",
+            "/Derech/avatars/mission-control.jpg",
+            "Mission Control",
+            [
+                {
+                    text: "Postpone",
+                    action: () => {
+                        hideDialogue();
+                    }
+                },
+                {
+                    text: "Enter Now",
+                    action: () => {
+                        hideDialogue();
+                        // Transition to the audio puzzle scene
+                        setGameView('puzzle');
+                    }
+                }
+            ]
+        );
+    };
+
     // Determine available actions for the selected tile
     const tileActions = useMemo(() => {
         if (!selectedTile) return null;
@@ -190,6 +221,8 @@ const ManagementUI = () => {
 
         // --- Check for Research Dome Action ---
         if (selectedTile.building === 'Research Dome') {
+            const showEmbodimentButton = completedResearch.includes('embodiment-prelim') && !isAudioPuzzleCompleted;
+            
             return (
                 <div>
                     <p><strong>Research Facility Actions:</strong></p>
@@ -199,6 +232,16 @@ const ManagementUI = () => {
                     >
                         View Projects
                     </button>
+                    
+                    {/* Display Embodiment Phase 0 button when research is completed */}
+                    {showEmbodimentButton && (
+                        <button
+                            onClick={handleInitiateEmbodiment}
+                            className={`${styles.actionButtonSmall} ${styles.embodimentButton}`}
+                        >
+                            EMBODIMENT PHASE 0
+                        </button>
+                    )}
                     
                     {/* Display Research Dome Info Panel */}
                     <DomeInfoPanel domeType="research" />
@@ -315,7 +358,7 @@ const ManagementUI = () => {
 
         return <p>No specific actions available for this tile type.</p>; // No actions
 
-    }, [selectedTile, activeTasks, availableWorkforce, power, minerals, colonyGoods, assignWorkforceToTask, recallWorkforce, setGameView, showResearchWindow, showLivingDomeWindow, showProductionDomeWindow, deselectTile, buildingIssues, showIssueWindow, feedbackState]); // Added new dependencies
+    }, [selectedTile, activeTasks, availableWorkforce, power, minerals, colonyGoods, assignWorkforceToTask, recallWorkforce, setGameView, showResearchWindow, showLivingDomeWindow, showProductionDomeWindow, deselectTile, buildingIssues, showIssueWindow, feedbackState, completedResearch, isAudioPuzzleCompleted]); // Added new dependencies
 
 
     return (
