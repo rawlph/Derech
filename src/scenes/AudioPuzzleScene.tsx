@@ -131,12 +131,20 @@ const AudioPuzzleScene: React.FC = () => {
         </div>
       )}
 
-      {/* Use our new InteractiveSceneLayout */}
+      {/* Use our new InteractiveSceneLayout with museum-like camera settings */}
       <InteractiveSceneLayout
         backgroundColor="#000d14"
         playerColor="#E91E63"
         playerPosition={[0, 1, 0]}
         playerSpeed={5}
+        // Camera settings optimized for museum exploration
+        cameraMinDistance={2.5}
+        cameraMaxDistance={5}
+        cameraFollowSpeed={0.15}
+        // Selfie stick effect for better backward movement
+        selfieStickEffect={true}
+        selfieStickMaxDistance={7}
+        selfieStickSpeed={0.01}
       >
         <AudioPuzzleContent />
       </InteractiveSceneLayout>
@@ -146,6 +154,7 @@ const AudioPuzzleScene: React.FC = () => {
         <h2>Audio Puzzle</h2>
         <p>Explore the area using WASD keys and mouse.</p>
         <p>On mobile, use the joystick in the bottom right and touch-drag to look around.</p>
+        <p>Move backward to zoom out for a better view.</p>
       </div>
     </div>
   );

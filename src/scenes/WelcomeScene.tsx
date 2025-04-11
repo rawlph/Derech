@@ -57,7 +57,7 @@ const PortalToVibeverse: React.FC<{ position?: [number, number, number] }> = ({ 
   
   useFrame(() => {
     if (portalRef.current) {
-      portalRef.current.rotation.y += 0.01;
+      portalRef.current.rotation.y += 0.002;
     }
   });
   

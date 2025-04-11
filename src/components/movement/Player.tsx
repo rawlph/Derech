@@ -28,6 +28,8 @@ const Player = forwardRef<THREE.Mesh, PlayerProps>(({
   const sphereRef = (ref as React.MutableRefObject<THREE.Mesh | null>) || internalRef;
   
   const prevPositionRef = useRef<THREE.Vector3>(new THREE.Vector3(...position));
+  // Keep track of the last valid forward direction for fallback
+  const lastValidForwardRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, -1));
   
   // Access Three.js camera
   const { camera } = useThree();
@@ -52,13 +54,22 @@ const Player = forwardRef<THREE.Mesh, PlayerProps>(({
       camera.position.x - playerPos.x,
       0,
       camera.position.z - playerPos.z
-    ).normalize();
+    );
     
-    // Calculate forward and right vectors (in XZ plane)
-    const forwardVector = toCameraXZ.clone().negate();
+    // Check if the camera is directly or almost directly above
+    let forwardVector: THREE.Vector3;
+    if (toCameraXZ.lengthSq() < 0.01) {
+      // Camera is directly above or very close - use last valid direction or fallback
+      forwardVector = lastValidForwardRef.current.clone();
+    } else {
+      // Normal case - calculate based on camera position
+      toCameraXZ.normalize();
+      forwardVector = toCameraXZ.clone().negate();
+      // Save this as the last valid direction
+      lastValidForwardRef.current.copy(forwardVector);
+    }
     
-    // Fix: The cross product needs to be forwardVector × UP to get the correct right vector
-    // Previous version used UP × forwardVector which gives the opposite direction
+    // Calculate right vector
     const rightVector = forwardVector.clone().cross(new THREE.Vector3(0, 1, 0)).normalize();
     
     // Calculate movement vector

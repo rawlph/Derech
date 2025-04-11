@@ -16,6 +16,14 @@ interface InteractiveSceneLayoutProps {
   showFloor?: boolean;
   floorSize?: number;
   floorColor?: string;
+  cameraMinPolarAngle?: number;
+  cameraMaxPolarAngle?: number;
+  cameraFollowSpeed?: number;
+  cameraMinDistance?: number;
+  cameraMaxDistance?: number;
+  selfieStickEffect?: boolean;
+  selfieStickMaxDistance?: number;
+  selfieStickSpeed?: number;
 }
 
 /**
@@ -31,7 +39,15 @@ const InteractiveSceneLayout: React.FC<InteractiveSceneLayoutProps> = ({
   playerSpeed = 5,
   showFloor = true,
   floorSize = 100,
-  floorColor = '#111111'
+  floorColor = '#111111',
+  cameraMinPolarAngle = Math.PI * 0.1, // About 18 degrees from vertical
+  cameraMaxPolarAngle = Math.PI / 2,   // Max is horizontal
+  cameraFollowSpeed = 0.1,
+  cameraMinDistance = 2,
+  cameraMaxDistance = 4,
+  selfieStickEffect = true,
+  selfieStickMaxDistance = 6,
+  selfieStickSpeed = 0.05
 }) => {
   // Ref for the player mesh
   const playerRef = useRef<THREE.Mesh>(null);
@@ -69,7 +85,17 @@ const InteractiveSceneLayout: React.FC<InteractiveSceneLayoutProps> = ({
           />
           
           {/* Camera Rig */}
-          <CameraRig target={playerRef} followSpeed={0.1}>
+          <CameraRig 
+            target={playerRef} 
+            followSpeed={cameraFollowSpeed}
+            minPolarAngle={cameraMinPolarAngle}
+            maxPolarAngle={cameraMaxPolarAngle}
+            minDistance={cameraMinDistance}
+            maxDistance={cameraMaxDistance}
+            selfieStickEffect={selfieStickEffect}
+            selfieStickMaxDistance={selfieStickMaxDistance}
+            selfieStickSpeed={selfieStickSpeed}
+          >
             {/* Scene content (passed as children) */}
             {children}
           </CameraRig>
