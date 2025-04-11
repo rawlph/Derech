@@ -1,0 +1,50 @@
+.controlsContainer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+  pointer-events: none;
+  display: flex;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+/* Left side joystick zone */
+.joystickZone {
+  width: 120px;
+  height: 120px;
+  position: absolute;
+  left: 30px;
+  bottom: 30px;
+  pointer-events: auto;
+  border-radius: 50%;
+  /* Optional: Visual debugging */
+  /* background-color: rgba(255, 255, 255, 0.1); */
+  /* border: 1px dashed white; */
+}
+
+/* Specific styles */
+.moveZone {
+  /* Styles specific to the left move zone */
+}
+
+/* Right side look area - covers the right half of the screen */
+.lookZone {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 50%; 
+  height: 100%;
+  pointer-events: auto;
+  /* Optional: Visual debugging */
+  /* background-color: rgba(255, 0, 0, 0.1); */
+}
+
+/* Only show on mobile/touch devices */
+@media (hover: hover) and (pointer: fine) {
+  .controlsContainer {
+    display: none;
+  }
+} 

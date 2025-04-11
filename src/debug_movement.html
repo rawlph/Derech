@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movement Debug</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #222;
+            color: #eee;
+        }
+        
+        .debug-panel {
+            background: #333;
+            border: 1px solid #555;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .key {
+            display: inline-block;
+            padding: 10px;
+            margin: 5px;
+            background: #444;
+            border-radius: 5px;
+            min-width: 20px;
+            text-align: center;
+        }
+        
+        .active {
+            background: #0a7;
+            color: #000;
+        }
+        
+        h2 {
+            margin-top: 0;
+            color: #0af;
+        }
+        
+        .debug-value {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+        
+        .debug-value span:first-child {
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-panel">
+        <h2>Input State</h2>
+        <div>
+            <div class="key" id="KeyW">W</div>
+            <div class="key" id="KeyS">S</div>
+            <div class="key" id="KeyA">A</div>
+            <div class="key" id="KeyD">D</div>
+            <div class="key" id="ArrowUp">↑</div>
+            <div class="key" id="ArrowDown">↓</div>
+            <div class="key" id="ArrowLeft">←</div>
+            <div class="key" id="ArrowRight">→</div>
+        </div>
+    </div>
+    
+    <div class="debug-panel">
+        <h2>Mouse/Touch Input</h2>
+        <div class="debug-value">
+            <span>Mouse Position:</span>
+            <span id="mousePos">0, 0</span>
+        </div>
+        <div class="debug-value">
+            <span>Is Dragging:</span>
+            <span id="isDragging">false</span>
+        </div>
+        <div class="debug-value">
+            <span>Drag Delta:</span>
+            <span id="dragDelta">0, 0</span>
+        </div>
+    </div>
+    
+    <div class="debug-panel">
+        <h2>Mobile Input</h2>
+        <div class="debug-value">
+            <span>Joystick Active:</span>
+            <span id="joystickActive">false</span>
+        </div>
+        <div class="debug-value">
+            <span>Joystick Vector:</span>
+            <span id="joystickVector">0, 0</span>
+        </div>
+        <div class="debug-value">
+            <span>Touch Position:</span>
+            <span id="touchPos">0, 0</span>
+        </div>
+    </div>
+    
+    <div class="debug-panel">
+        <h2>Physics State</h2>
+        <div class="debug-value">
+            <span>Position:</span>
+            <span id="physicsPos">0, 0, 0</span>
+        </div>
+        <div class="debug-value">
+            <span>Rotation:</span>
+            <span id="physicsRot">0, 0, 0</span>
+        </div>
+        <div class="debug-value">
+            <span>Velocity:</span>
+            <span id="physicsVel">0, 0, 0</span>
+        </div>
+    </div>
+    
+    <script>
+        // This script would typically be part of your game code
+        // For debugging, we'll simulate some inputs
+        
+        // Key handling
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            updateKeyDisplay();
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+            updateKeyDisplay();
+        });
+        
+        function updateKeyDisplay() {
+            document.querySelectorAll('.key').forEach(elem => {
+                elem.classList.toggle('active', keys[elem.id] === true);
+            });
+        }
+        
+        // Mouse handling
+        let isDragging = false;
+        let lastMousePos = { x: 0, y: 0 };
+        let dragDelta = { x: 0, y: 0 };
+        
+        window.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastMousePos = { x: e.clientX, y: e.clientY };
+            document.getElementById('isDragging').textContent = 'true';
+        });
+        
+        window.addEventListener('mousemove', (e) => {
+            document.getElementById('mousePos').textContent = `${e.clientX}, ${e.clientY}`;
+            
+            if (isDragging) {
+                dragDelta = {
+                    x: e.clientX - lastMousePos.x,
+                    y: e.clientY - lastMousePos.y
+                };
+                lastMousePos = { x: e.clientX, y: e.clientY };
+                
+                document.getElementById('dragDelta').textContent = `${dragDelta.x.toFixed(1)}, ${dragDelta.y.toFixed(1)}`;
+            }
+        });
+        
+        window.addEventListener('mouseup', (e) => {
+            isDragging = false;
+            document.getElementById('isDragging').textContent = 'false';
+        });
+        
+        // Touch handling
+        window.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 0) {
+                const touch = e.touches[0];
+                document.getElementById('touchPos').textContent = `${touch.clientX}, ${touch.clientY}`;
+            }
+        });
+        
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                const touch = e.touches[0];
+                document.getElementById('touchPos').textContent = `${touch.clientX}, ${touch.clientY}`;
+            }
+        });
+        
+        // Simulate some physics state
+        let position = { x: 0, y: 1, z: 0 };
+        let rotation = { x: 0, y: 0, z: 0 };
+        let velocity = { x: 0, y: 0, z: 0 };
+        
+        function updatePhysics() {
+            // In a real implementation, this would read from your physics state
+            // For this demo, we'll just make the values change slightly
+            position.x += velocity.x * 0.016;
+            position.y += velocity.y * 0.016;
+            position.z += velocity.z * 0.016;
+            
+            rotation.y += 0.01;
+            
+            // Simulate the joystick affecting velocity
+            if (keys['KeyW'] || keys['ArrowUp']) velocity.z = -2;
+            else if (keys['KeyS'] || keys['ArrowDown']) velocity.z = 2;
+            else velocity.z *= 0.9;
+            
+            if (keys['KeyA'] || keys['ArrowLeft']) velocity.x = -2;
+            else if (keys['KeyD'] || keys['ArrowRight']) velocity.x = 2;
+            else velocity.x *= 0.9;
+            
+            // Update the UI
+            document.getElementById('physicsPos').textContent = 
+                `${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)}`;
+            document.getElementById('physicsRot').textContent = 
+                `${rotation.x.toFixed(2)}, ${rotation.y.toFixed(2)}, ${rotation.z.toFixed(2)}`;
+            document.getElementById('physicsVel').textContent = 
+                `${velocity.x.toFixed(2)}, ${velocity.y.toFixed(2)}, ${velocity.z.toFixed(2)}`;
+            
+            requestAnimationFrame(updatePhysics);
+        }
+        
+        updatePhysics();
+        
+        // Simulate joystick
+        setInterval(() => {
+            // For demo purposes, we'll just toggle the joystick active state
+            const active = Math.random() > 0.7;
+            document.getElementById('joystickActive').textContent = active ? 'true' : 'false';
+            
+            if (active) {
+                const x = (Math.random() * 2 - 1).toFixed(2);
+                const y = (Math.random() * 2 - 1).toFixed(2);
+                document.getElementById('joystickVector').textContent = `${x}, ${y}`;
+            } else {
+                document.getElementById('joystickVector').textContent = '0, 0';
+            }
+        }, 1000);
+    </script>
+</body>
+</html> 
