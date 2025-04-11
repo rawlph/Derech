@@ -58,8 +58,3 @@ npm run preview
 ├── documentation/     # Project documentation
 └── example screenshots/ # Example visual references
 ```
-
-## Development Notes
-
-- Physics is not included for core player movement initially. The project uses simple kinematic movement with basic collision detection.
-- Physics engines (e.g., cannon-es) might be added later for specific puzzle elements if required. 

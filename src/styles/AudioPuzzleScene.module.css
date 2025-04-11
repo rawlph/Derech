@@ -12,6 +12,31 @@
   height: 100%;
 }
 
+.infoPanel {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 15px;
+  border-radius: 8px;
+  z-index: 100;
+  max-width: 300px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.infoPanel h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 18px;
+  color: #E91E63;
+}
+
+.infoPanel p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
 .controlsInfo {
   position: absolute;
   bottom: 20px;

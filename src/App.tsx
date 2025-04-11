@@ -118,7 +118,7 @@ function App() {
       />
       {/* --- --- */}
 
-      {/* --- NEW: Render Dome Windows --- */}
+      {/* --- Render Dome Windows --- */}
       <LivingDomeWindow
         isVisible={isLivingDomeWindowVisible}
         onClose={hideLivingDomeWindow}
@@ -129,7 +129,7 @@ function App() {
       />
       {/* --- --- */}
 
-      {/* --- NEW: Render Issue Window --- */}
+      {/* --- Render Issue Window --- */}
       <IssueWindow
         isVisible={isIssueWindowVisible}
         issue={currentIssue}
