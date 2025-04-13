@@ -14,6 +14,7 @@ interface CameraRigProps {
   selfieStickEffect?: boolean;
   selfieStickMaxDistance?: number;
   selfieStickSpeed?: number;
+  initialYRotation?: number;
   children?: React.ReactNode;
 }
 
@@ -30,6 +31,7 @@ const CameraRig: React.FC<CameraRigProps> = ({
   selfieStickEffect = true, // Enable selfie stick effect by default
   selfieStickMaxDistance = 6, // Maximum distance when moving backward
   selfieStickSpeed = 0.05, // Speed of distance adjustment
+  initialYRotation = 0, // Initial rotation around Y axis
   children
 }) => {
   // Create a ref for orbit controls
@@ -53,6 +55,9 @@ const CameraRig: React.FC<CameraRigProps> = ({
   
   // Track original camera position for repositioning
   const originalSphereRef = useRef<THREE.Spherical | null>(null);
+  
+  // Keep track of whether initial rotation has been applied
+  const initialRotationAppliedRef = useRef(false);
   
   // Set up listeners for detecting user interaction with controls
   useEffect(() => {
@@ -92,9 +97,35 @@ const CameraRig: React.FC<CameraRigProps> = ({
     };
   }, [controlsRef.current]);
   
-  // Capture initial position on first render
+  // Capture initial position on first render and apply initial rotation
   useEffect(() => {
-    if (camera && controlsRef.current && controlsRef.current.target) {
+    if (camera && controlsRef.current && controlsRef.current.target && !initialRotationAppliedRef.current) {
+      // Debug log to verify initialYRotation value
+      console.log('Applying initial rotation:', initialYRotation);
+      
+      // Apply initial rotation to the camera position
+      const distance = camera.position.distanceTo(controlsRef.current.target);
+      
+      // Create a position based on the initial Y rotation
+      const phi = Math.PI / 3; // 60 degrees from vertical (looking somewhat downward)
+      const theta = initialYRotation; // Use the provided Y rotation
+      
+      // Convert spherical to Cartesian coordinates
+      const x = distance * Math.sin(phi) * Math.sin(theta);
+      const y = distance * Math.cos(phi);
+      const z = distance * Math.sin(phi) * Math.cos(theta);
+      
+      // Set the camera position relative to target
+      camera.position.set(
+        controlsRef.current.target.x + x,
+        controlsRef.current.target.y + y,
+        controlsRef.current.target.z + z
+      );
+      
+      // Look at the target
+      camera.lookAt(controlsRef.current.target);
+      
+      // Get this position as spherical
       const targetToCamera = new THREE.Vector3().subVectors(
         camera.position, 
         controlsRef.current.target
@@ -102,8 +133,14 @@ const CameraRig: React.FC<CameraRigProps> = ({
       
       const spherical = new THREE.Spherical().setFromVector3(targetToCamera);
       originalSphereRef.current = spherical;
+      
+      // Update controls
+      controlsRef.current.update();
+      
+      // Mark rotation as applied
+      initialRotationAppliedRef.current = true;
     }
-  }, []);
+  }, [camera, initialYRotation]);
   
   // Update camera target on render frame
   useFrame(() => {

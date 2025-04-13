@@ -9,7 +9,11 @@ interface PlayerProps {
   color?: string;
   size?: number;
   speed?: number;
+  verticalSpeed?: number; // New: Control vertical movement speed
+  minHeight?: number;     // New: Minimum height limit
+  maxHeight?: number;     // New: Maximum height limit
   onPositionChange?: (position: THREE.Vector3) => void;
+  initialYRotation?: number; // New: Initial rotation around Y axis
 }
 
 /**
@@ -20,7 +24,11 @@ const Player = forwardRef<THREE.Mesh, PlayerProps>(({
   color = '#4A90E2',
   size = 0.5,
   speed = 5,
-  onPositionChange
+  verticalSpeed = 3, // New: Slightly slower vertical movement
+  minHeight = 0.1,   // New: Minimum height (slightly above ground)
+  maxHeight = 20,    // New: Maximum height
+  onPositionChange,
+  initialYRotation = 0 // New: Initial rotation around Y axis
 }, ref) => {
   // Create internal ref if no ref is passed
   const internalRef = useRef<THREE.Mesh>(null);
@@ -28,8 +36,16 @@ const Player = forwardRef<THREE.Mesh, PlayerProps>(({
   const sphereRef = (ref as React.MutableRefObject<THREE.Mesh | null>) || internalRef;
   
   const prevPositionRef = useRef<THREE.Vector3>(new THREE.Vector3(...position));
+  
+  // Set initial forward direction based on initialYRotation (Math.PI = facing north/negative Z)
+  const initialForward = new THREE.Vector3(
+    Math.sin(initialYRotation), 
+    0, 
+    -Math.cos(initialYRotation)
+  );
+  
   // Keep track of the last valid forward direction for fallback
-  const lastValidForwardRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, -1));
+  const lastValidForwardRef = useRef<THREE.Vector3>(initialForward);
   
   // Access Three.js camera
   const { camera } = useThree();
@@ -37,19 +53,28 @@ const Player = forwardRef<THREE.Mesh, PlayerProps>(({
   // Get movement input from context
   const movementInput = useMovementInput();
   
+  // Log initial position for debugging
+  useEffect(() => {
+    if (sphereRef.current) {
+      console.log('Player initialized at position:', sphereRef.current.position);
+      console.log('Player is using lastValidForward:', lastValidForwardRef.current);
+      console.log('Initial rotation set to:', initialYRotation);
+    }
+  }, [initialYRotation]);
+  
   // Update player position on render
   useFrame((_, delta) => {
     if (!sphereRef.current) return;
     
-    const { forward, right } = movementInput.current;
+    const { forward, right, up } = movementInput.current;
     
     // Early return if no movement
-    if (forward === 0 && right === 0) return;
+    if (forward === 0 && right === 0 && up === 0) return;
     
     // Get the position and player orientation
     const playerPos = sphereRef.current.position;
     
-    // Calculate movement directions
+    // Calculate horizontal movement directions
     const toCameraXZ = new THREE.Vector3(
       camera.position.x - playerPos.x,
       0,
@@ -77,11 +102,16 @@ const Player = forwardRef<THREE.Mesh, PlayerProps>(({
     moveVector.addScaledVector(forwardVector, forward * speed * delta);
     moveVector.addScaledVector(rightVector, right * speed * delta);
     
-    // Apply movement to position
-    playerPos.add(moveVector);
+    // Apply horizontal movement to position
+    playerPos.x += moveVector.x;
+    playerPos.z += moveVector.z;
     
-    // Optional: Constrain Y height if needed
-    playerPos.y = position[1]; // Keep at initial height
+    // Apply vertical movement with constraints
+    if (up !== 0) {
+      playerPos.y += up * verticalSpeed * delta;
+      // Apply height constraints
+      playerPos.y = Math.max(minHeight, Math.min(maxHeight, playerPos.y));
+    }
     
     // Call position change callback if provided and position changed
     if (onPositionChange && !playerPos.equals(prevPositionRef.current)) {

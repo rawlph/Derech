@@ -13,6 +13,9 @@ interface InteractiveSceneLayoutProps {
   playerColor?: string;
   playerSize?: number;
   playerSpeed?: number;
+  playerVerticalSpeed?: number;
+  playerMinHeight?: number;
+  playerMaxHeight?: number;
   showFloor?: boolean;
   floorSize?: number;
   floorColor?: string;
@@ -24,6 +27,7 @@ interface InteractiveSceneLayoutProps {
   selfieStickEffect?: boolean;
   selfieStickMaxDistance?: number;
   selfieStickSpeed?: number;
+  initialYRotation?: number;
 }
 
 /**
@@ -37,6 +41,9 @@ const InteractiveSceneLayout: React.FC<InteractiveSceneLayoutProps> = ({
   playerColor = '#4A90E2',
   playerSize = 0.5,
   playerSpeed = 5,
+  playerVerticalSpeed = 3,
+  playerMinHeight = 0.1,
+  playerMaxHeight = 20,
   showFloor = true,
   floorSize = 100,
   floorColor = '#111111',
@@ -47,13 +54,15 @@ const InteractiveSceneLayout: React.FC<InteractiveSceneLayoutProps> = ({
   cameraMaxDistance = 4,
   selfieStickEffect = true,
   selfieStickMaxDistance = 6,
-  selfieStickSpeed = 0.05
+  selfieStickSpeed = 0.05,
+  initialYRotation = 0
 }) => {
   // Ref for the player mesh
   const playerRef = useRef<THREE.Mesh>(null);
   
-  // Unique ID for the nipple joystick container
+  // Unique IDs for the nipple joystick containers
   const nippleContainerId = 'nipple-container';
+  const verticalNippleContainerId = 'vertical-nipple-container';
   
   return (
     <div className={styles.sceneContainer}>
@@ -74,7 +83,10 @@ const InteractiveSceneLayout: React.FC<InteractiveSceneLayoutProps> = ({
         />
         
         {/* Input Controller */}
-        <InputController nippleContainerId={nippleContainerId}>
+        <InputController 
+          nippleContainerId={nippleContainerId}
+          verticalNippleContainerId={verticalNippleContainerId}
+        >
           {/* Player - Using forwardRef */}
           <Player
             ref={playerRef}
@@ -82,6 +94,10 @@ const InteractiveSceneLayout: React.FC<InteractiveSceneLayoutProps> = ({
             color={playerColor}
             size={playerSize}
             speed={playerSpeed}
+            verticalSpeed={playerVerticalSpeed}
+            minHeight={playerMinHeight}
+            maxHeight={playerMaxHeight}
+            initialYRotation={initialYRotation}
           />
           
           {/* Camera Rig */}
@@ -95,6 +111,7 @@ const InteractiveSceneLayout: React.FC<InteractiveSceneLayoutProps> = ({
             selfieStickEffect={selfieStickEffect}
             selfieStickMaxDistance={selfieStickMaxDistance}
             selfieStickSpeed={selfieStickSpeed}
+            initialYRotation={initialYRotation}
           >
             {/* Scene content (passed as children) */}
             {children}
@@ -117,10 +134,16 @@ const InteractiveSceneLayout: React.FC<InteractiveSceneLayoutProps> = ({
         </InputController>
       </Canvas>
       
-      {/* Nipple joystick container for mobile */}
+      {/* Nipple joystick container for mobile - horizontal movement */}
       <div 
         id={nippleContainerId} 
         className={styles.nippleContainer}
+      ></div>
+      
+      {/* Vertical nipple joystick container for mobile - up/down movement */}
+      <div 
+        id={verticalNippleContainerId} 
+        className={styles.verticalNippleContainer}
       ></div>
     </div>
   );
