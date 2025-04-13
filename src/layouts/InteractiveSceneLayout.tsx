@@ -28,6 +28,7 @@ interface InteractiveSceneLayoutProps {
   selfieStickMaxDistance?: number;
   selfieStickSpeed?: number;
   initialYRotation?: number;
+  initialLookDirection?: THREE.Vector3;
 }
 
 /**
@@ -55,7 +56,8 @@ const InteractiveSceneLayout: React.FC<InteractiveSceneLayoutProps> = ({
   selfieStickEffect = true,
   selfieStickMaxDistance = 6,
   selfieStickSpeed = 0.05,
-  initialYRotation = 0
+  initialYRotation = 0,
+  initialLookDirection
 }) => {
   // Ref for the player mesh
   const playerRef = useRef<THREE.Mesh>(null);
@@ -97,7 +99,7 @@ const InteractiveSceneLayout: React.FC<InteractiveSceneLayoutProps> = ({
             verticalSpeed={playerVerticalSpeed}
             minHeight={playerMinHeight}
             maxHeight={playerMaxHeight}
-            initialYRotation={initialYRotation}
+            initialLookDirection={initialLookDirection}
           />
           
           {/* Camera Rig */}

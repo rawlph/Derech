@@ -12,8 +12,8 @@ interface PlayerProps {
   verticalSpeed?: number; // New: Control vertical movement speed
   minHeight?: number;     // New: Minimum height limit
   maxHeight?: number;     // New: Maximum height limit
+  initialLookDirection?: THREE.Vector3; // Initial direction the player should face
   onPositionChange?: (position: THREE.Vector3) => void;
-  initialYRotation?: number; // New: Initial rotation around Y axis
 }
 
 /**
@@ -27,8 +27,8 @@ const Player = forwardRef<THREE.Mesh, PlayerProps>(({
   verticalSpeed = 3, // New: Slightly slower vertical movement
   minHeight = 0.1,   // New: Minimum height (slightly above ground)
   maxHeight = 20,    // New: Maximum height
-  onPositionChange,
-  initialYRotation = 0 // New: Initial rotation around Y axis
+  initialLookDirection = new THREE.Vector3(0, 0, -1), // Default: face forward along negative Z
+  onPositionChange
 }, ref) => {
   // Create internal ref if no ref is passed
   const internalRef = useRef<THREE.Mesh>(null);
@@ -36,31 +36,56 @@ const Player = forwardRef<THREE.Mesh, PlayerProps>(({
   const sphereRef = (ref as React.MutableRefObject<THREE.Mesh | null>) || internalRef;
   
   const prevPositionRef = useRef<THREE.Vector3>(new THREE.Vector3(...position));
-  
-  // Set initial forward direction based on initialYRotation (Math.PI = facing north/negative Z)
-  const initialForward = new THREE.Vector3(
-    Math.sin(initialYRotation), 
-    0, 
-    -Math.cos(initialYRotation)
-  );
-  
   // Keep track of the last valid forward direction for fallback
-  const lastValidForwardRef = useRef<THREE.Vector3>(initialForward);
+  const lastValidForwardRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, -1));
   
   // Access Three.js camera
   const { camera } = useThree();
   
+  // Track if initialization has been done
+  const initializedRef = useRef<boolean>(false);
+
+  // Initialize lastValidForwardRef with initialLookDirection and sync camera on mount
+  useEffect(() => {
+    if (initializedRef.current) return;
+    
+    if (initialLookDirection) {
+      // Normalize the direction vector
+      const normalizedDirection = initialLookDirection.clone().normalize();
+      
+      // Set the last valid forward reference
+      lastValidForwardRef.current.copy(normalizedDirection);
+      
+      // Calculate the camera's initial position relative to the player if camera exists
+      if (camera && sphereRef.current) {
+        // Force the initial camera position to be aligned with our desired look direction
+        // This helps synchronize the camera and movement direction at scene start
+        const playerPos = new THREE.Vector3(...position);
+        
+        // Calculate a position behind the player based on the initial direction
+        // We need to invert the direction because the camera should be behind the player
+        const cameraOffset = normalizedDirection.clone().negate().multiplyScalar(5);
+        
+        // Position the camera behind and at a proper height for a third-person view
+        camera.position.copy(playerPos).add(cameraOffset);
+        camera.position.y += 3; // Add height but not too much - was 2 before
+        
+        // Adjust to create a better viewing angle - tilt the camera down toward the player
+        const lookTarget = playerPos.clone();
+        lookTarget.y += 0.5; // Look slightly above player center
+        camera.lookAt(lookTarget);
+        
+        console.log('Initial player direction set to:', normalizedDirection);
+        console.log('Camera positioned at:', camera.position);
+        console.log('Camera looking at:', lookTarget);
+      }
+      
+      initializedRef.current = true;
+    }
+  }, [camera, initialLookDirection, position]);
+  
   // Get movement input from context
   const movementInput = useMovementInput();
-  
-  // Log initial position for debugging
-  useEffect(() => {
-    if (sphereRef.current) {
-      console.log('Player initialized at position:', sphereRef.current.position);
-      console.log('Player is using lastValidForward:', lastValidForwardRef.current);
-      console.log('Initial rotation set to:', initialYRotation);
-    }
-  }, [initialYRotation]);
   
   // Update player position on render
   useFrame((_, delta) => {

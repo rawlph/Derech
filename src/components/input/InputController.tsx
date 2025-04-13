@@ -5,11 +5,12 @@ import { useNippleInput } from '../../hooks/useNippleInput';
 interface MovementInput {
   forward: number;
   right: number;
+  up: number;
 }
 
 // Create a context for the movement input
 const MovementContext = createContext<React.MutableRefObject<MovementInput>>({
-  current: { forward: 0, right: 0 }
+  current: { forward: 0, right: 0, up: 0 }
 });
 
 // Hook to consume the movement context
@@ -18,6 +19,7 @@ export const useMovementInput = () => useContext(MovementContext);
 interface InputControllerProps {
   children: React.ReactNode;
   nippleContainerId: string;
+  verticalNippleContainerId?: string;
 }
 
 /**
@@ -25,16 +27,18 @@ interface InputControllerProps {
  */
 export const InputController: React.FC<InputControllerProps> = ({ 
   children, 
-  nippleContainerId 
+  nippleContainerId,
+  verticalNippleContainerId
 }) => {
   // Get input from hooks
   const keyboardInput = useKeyboardInput();
-  const nippleInput = useNippleInput(nippleContainerId);
+  const nippleInput = useNippleInput(nippleContainerId, verticalNippleContainerId);
   
   // Create a combined movement ref that will be provided via context
   const movementInput = useRef<MovementInput>({
     forward: 0,
-    right: 0
+    right: 0,
+    up: 0
   });
   
   // Update the combined movement values on each render
@@ -44,18 +48,19 @@ export const InputController: React.FC<InputControllerProps> = ({
       const keyboard = keyboardInput.current;
       const nipple = nippleInput.current;
       
-      // Prioritize nipple input if it's active
-      if (nipple.active) {
-        movementInput.current = {
-          forward: nipple.forward,
-          right: nipple.right
-        };
-      } else {
-        movementInput.current = {
-          forward: keyboard.forward,
-          right: keyboard.right
-        };
-      }
+      // Prioritize nipple input for horizontal movement if it's active
+      const forward = nipple.active ? nipple.forward : keyboard.forward;
+      const right = nipple.active ? nipple.right : keyboard.right;
+      
+      // Prioritize vertical nipple for up/down if it's active
+      const up = nipple.verticalActive ? nipple.up : keyboard.up;
+      
+      // Update movement values
+      movementInput.current = {
+        forward,
+        right,
+        up
+      };
       
       // Request next frame update
       frameId = requestAnimationFrame(updateMovement);

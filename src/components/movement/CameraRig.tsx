@@ -26,8 +26,8 @@ const CameraRig: React.FC<CameraRigProps> = ({
   followSpeed = 0.5,
   minDistance = 2,
   maxDistance = 4,
-  minPolarAngle = Math.PI * 0.1, // Minimum angle from vertical (about 18 degrees)
-  maxPolarAngle = Math.PI / 2, // Prevents camera from going below the horizontal plane
+  minPolarAngle = Math.PI * 0.2, // Increased from 0.1 to 0.2 (about 36 degrees from vertical)
+  maxPolarAngle = Math.PI * 0.8, // Limit to 80% of 180 degrees - prevents too low angle
   selfieStickEffect = true, // Enable selfie stick effect by default
   selfieStickMaxDistance = 6, // Maximum distance when moving backward
   selfieStickSpeed = 0.05, // Speed of distance adjustment
@@ -98,49 +98,43 @@ const CameraRig: React.FC<CameraRigProps> = ({
   }, [controlsRef.current]);
   
   // Capture initial position on first render and apply initial rotation
+  // But now do this gently to not override Player's camera setup
   useEffect(() => {
-    if (camera && controlsRef.current && controlsRef.current.target && !initialRotationAppliedRef.current) {
-      // Debug log to verify initialYRotation value
-      console.log('Applying initial rotation:', initialYRotation);
+    // Get this position as spherical if possible
+    if (!initialRotationAppliedRef.current && 
+        camera && 
+        controlsRef.current && 
+        controlsRef.current.target &&
+        target.current) {
       
-      // Apply initial rotation to the camera position
-      const distance = camera.position.distanceTo(controlsRef.current.target);
+      // Short delay to allow Player component to initialize first
+      const timer = setTimeout(() => {
+        // We need to be careful not to reset the camera position if Player has already set it
+        const targetToCamera = new THREE.Vector3().subVectors(
+          camera.position, 
+          controlsRef.current.target
+        );
+        
+        const spherical = new THREE.Spherical().setFromVector3(targetToCamera);
+        originalSphereRef.current = spherical;
+        
+        // Set better initial camera angles
+        controlsRef.current.minPolarAngle = minPolarAngle;
+        controlsRef.current.maxPolarAngle = maxPolarAngle;
+        
+        // Update controls
+        controlsRef.current.update();
+        
+        // Mark rotation as applied
+        initialRotationAppliedRef.current = true;
+        
+        console.log('CameraRig initialized with existing camera position:', camera.position);
+        console.log('Min polar angle:', minPolarAngle, 'Max polar angle:', maxPolarAngle);
+      }, 100); // Small delay to let Player component initialize first
       
-      // Create a position based on the initial Y rotation
-      const phi = Math.PI / 3; // 60 degrees from vertical (looking somewhat downward)
-      const theta = initialYRotation; // Use the provided Y rotation
-      
-      // Convert spherical to Cartesian coordinates
-      const x = distance * Math.sin(phi) * Math.sin(theta);
-      const y = distance * Math.cos(phi);
-      const z = distance * Math.sin(phi) * Math.cos(theta);
-      
-      // Set the camera position relative to target
-      camera.position.set(
-        controlsRef.current.target.x + x,
-        controlsRef.current.target.y + y,
-        controlsRef.current.target.z + z
-      );
-      
-      // Look at the target
-      camera.lookAt(controlsRef.current.target);
-      
-      // Get this position as spherical
-      const targetToCamera = new THREE.Vector3().subVectors(
-        camera.position, 
-        controlsRef.current.target
-      );
-      
-      const spherical = new THREE.Spherical().setFromVector3(targetToCamera);
-      originalSphereRef.current = spherical;
-      
-      // Update controls
-      controlsRef.current.update();
-      
-      // Mark rotation as applied
-      initialRotationAppliedRef.current = true;
+      return () => clearTimeout(timer);
     }
-  }, [camera, initialYRotation]);
+  }, [camera, initialYRotation, target, minPolarAngle, maxPolarAngle]);
   
   // Update camera target on render frame
   useFrame(() => {

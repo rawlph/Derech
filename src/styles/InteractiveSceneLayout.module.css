@@ -33,6 +33,27 @@
   }
 }
 
+/* Vertical joystick container */
+.verticalNippleContainer {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 120px;
+  height: 120px;
+  pointer-events: auto;
+  z-index: 100;
+  /* Uncomment to see container bounds for debugging */
+  /* background-color: rgba(255, 255, 255, 0.1); */
+  border-radius: 60px;
+}
+
+/* Only show vertical joystick on touch devices */
+@media (hover: hover) and (pointer: fine) {
+  .verticalNippleContainer {
+    display: none;
+  }
+}
+
 /* Info panel */
 .infoPanel {
   position: absolute;
@@ -54,8 +75,13 @@
     right: 10px;
   }
   
-  .infoPanel {
+  .verticalNippleContainer {
     bottom: 10px;
+    left: 10px;
+  }
+  
+  .infoPanel {
+    bottom: 150px; /* Move it higher to avoid overlap with joysticks */
     left: 10px;
     padding: 10px;
     font-size: 0.9em;

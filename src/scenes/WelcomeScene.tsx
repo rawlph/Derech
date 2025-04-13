@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Text, Sky, useGLTF, Cloud } from '@react-three/drei';
+import { Text, Sky, useGLTF, Cloud, Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGameStore } from '@store/store';
 import styles from '@styles/WelcomeScene.module.css';
@@ -25,20 +25,35 @@ const createMarbleMaterial = (color: string = '#f5f5f5', roughness: number = 0.3
   });
 };
 
+// Helper function to create an alabaster-like glowing material
+const createAlabasterGlow = (color: string = '#f8f4e6', emissiveIntensity: number = 0.2) => {
+  return new THREE.MeshStandardMaterial({
+    color: color,
+    roughness: 0.2,
+    metalness: 0.0,
+    transparent: true,
+    opacity: 0.8,
+    emissive: color,
+    emissiveIntensity: emissiveIntensity
+  });
+};
+
 // Decorative Urn Component
 interface UrnProps {
   position: [number, number, number];
   rotation?: [number, number, number];
   scale?: number;
+  color?: string;  // Add color prop for varied urns
 }
 
 const GreekUrn: React.FC<UrnProps> = ({ 
   position, 
   rotation = [0, 0, 0], 
-  scale = 1 
+  scale = 1,
+  color = '#e0e0e0'  // Default color is light beige
 }) => {
-  const urnMaterial = createMarbleMaterial('#e0e0e0', 0.2);
-  const detailMaterial = createMarbleMaterial('#c0c0c0', 0.3);
+  const urnMaterial = createMarbleMaterial(color, 0.2);
+  const detailMaterial = createMarbleMaterial(darkenColor(color, 0.15), 0.3);  // Darker details
   
   return (
     <group position={position} rotation={new THREE.Euler(...rotation)} scale={[scale, scale, scale]}>
@@ -80,13 +95,30 @@ interface FriezeProps {
   width?: number;
 }
 
+// Utility function to darken a color by a certain amount
+const darkenColor = (hexColor: string, amount: number = 0.2): string => {
+  // Parse the hex color
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  
+  // Darken each component
+  const darkenedR = Math.max(0, Math.floor(r * (1 - amount)));
+  const darkenedG = Math.max(0, Math.floor(g * (1 - amount)));
+  const darkenedB = Math.max(0, Math.floor(b * (1 - amount)));
+  
+  // Convert back to hex
+  return `#${darkenedR.toString(16).padStart(2, '0')}${darkenedG.toString(16).padStart(2, '0')}${darkenedB.toString(16).padStart(2, '0')}`;
+};
+
 const GreekFrieze: React.FC<FriezeProps> = ({ 
   position, 
   rotation = [0, 0, 0], 
   width = 4 
 }) => {
   const friezeMaterial = createMarbleMaterial('#f0f0f0', 0.25);
-  const detailMaterial = createMarbleMaterial('#d8d8d8', 0.3);
+  const detailMaterial = createMarbleMaterial('#8b9c81', 0.3);  // Subtle desaturated green for frieze details
   
   // Pattern of repeated geometric elements
   return (
@@ -120,9 +152,9 @@ interface GreekColumnProps {
 }
 
 const GreekColumn: React.FC<GreekColumnProps> = ({ position, height = 8, radius = 0.5 }) => {
-  const columnMaterial = createMarbleMaterial('#e8e8e8', 0.2);
-  const baseMaterial = createMarbleMaterial('#d0d0d0', 0.4);
-  const capitalMaterial = createMarbleMaterial('#d0d0d0', 0.3);
+  const columnMaterial = createMarbleMaterial('#ede5d8', 0.2);  // Light beige for columns
+  const baseMaterial = createMarbleMaterial('#8c7055', 0.4);    // Brownish sockets for columns
+  const capitalMaterial = createMarbleMaterial('#d5cdbe', 0.3); // Slightly darker top for contrast
   
   return (
     <group position={position}>
@@ -241,8 +273,18 @@ const EnvironmentParticles: React.FC = () => {
 
 // Temple Structure Component
 const TempleStructure = () => {
-  const floorMaterial = createMarbleMaterial('#eeeeee', 0.1);
-  const wallMaterial = createMarbleMaterial('#f0f0f0', 0.2);
+  const floorMaterial = createMarbleMaterial('#e6e2dc', 0.1);  // Slightly warmer floor
+  const wallMaterial = createMarbleMaterial('#e8e4dd', 0.2);   // Subtle warm wall
+  const alabasterMaterial = createAlabasterGlow('#f8f4e6', 0.15);
+  
+  // Urn color variations
+  const urnColors = [
+    '#d9c7b8', // Light beige
+    '#c2ab8e', // Medium beige
+    '#b39c82', // Darker beige
+    '#cebca9', // Warm beige
+    '#c4b6a3'  // Taupe
+  ];
   
   // Dimensions
   const mainRoomSize = 30;
@@ -253,32 +295,85 @@ const TempleStructure = () => {
   const foundationHeight = 0.8; // Height of the temple foundation
   const foundationExtension = 10; // How far the foundation extends beyond the floor
   
+  // Frieze height and alabaster panel dimensions
+  const friezeHeight = 6;
+  const alabasterPanelHeight = wallHeight - friezeHeight - 0.7; // Space between frieze and ceiling
+  const alabasterPanelThickness = 0.05; // Very thin panels
+  const alabasterPanelInset = 0.2; // How much to inset the panels from the edge
+  
+  // Values for subtle animation of glow
+  const time = useRef(0);
+  useFrame((_, delta) => {
+    time.current += delta * 0.3; // Slow time increment for subtle pulsing
+  });
+  
+  // Create a component for the alabaster panels
+  const AlabasterPanel = ({ position, rotation, width, height = alabasterPanelHeight }: {
+    position: [number, number, number],
+    rotation: [number, number, number],
+    width: number,
+    height?: number
+  }) => {
+    const panelRef = useRef<THREE.Mesh>(null);
+    
+    // Animate subtle glow pulsing
+    useFrame(() => {
+      if (panelRef.current && panelRef.current.material instanceof THREE.MeshStandardMaterial) {
+        // Subtle pulsing effect
+        const pulseFactor = Math.sin(time.current) * 0.05 + 0.15; // Pulse between 0.1 and 0.2
+        panelRef.current.material.emissiveIntensity = pulseFactor;
+      }
+    });
+    
+    return (
+      <mesh 
+        ref={panelRef}
+        position={position} 
+        rotation={new THREE.Euler(...rotation)} 
+        castShadow={false} 
+        receiveShadow={false}
+      >
+        <planeGeometry args={[width, height]} />
+        <meshStandardMaterial 
+          color='#f8f4e6'
+          roughness={0.2}
+          metalness={0.0}
+          transparent={true}
+          opacity={0.8}
+          emissive='#f8f4e6'
+          emissiveIntensity={0.15}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+    );
+  };
+
   return (
     <group>
       {/* Temple foundation */}
       <group position={[0, -foundationHeight/2, 0]}>
         {/* Main foundation platform */}
-        <mesh material={createMarbleMaterial('#d0d0d0', 0.4)} receiveShadow castShadow>
+        <mesh material={createMarbleMaterial('#c2bbad', 0.4)} receiveShadow castShadow>
           <boxGeometry args={[mainRoomSize + foundationExtension*2, foundationHeight, mainRoomSize + foundationExtension*2]} />
         </mesh>
         
         {/* Foundation steps - North side */}
-        <mesh position={[0, -foundationHeight/2 - 0.1, -mainRoomSize/2 - foundationExtension - 1]} material={createMarbleMaterial('#c0c0c0', 0.5)} receiveShadow castShadow>
+        <mesh position={[0, -foundationHeight/2 - 0.1, -mainRoomSize/2 - foundationExtension - 1]} material={createMarbleMaterial('#b0a99a', 0.5)} receiveShadow castShadow>
           <boxGeometry args={[mainRoomSize + foundationExtension*2.4, 0.2, 2]} />
         </mesh>
         
         {/* Foundation steps - South side */}
-        <mesh position={[0, -foundationHeight/2 - 0.1, mainRoomSize/2 + foundationExtension + 1]} material={createMarbleMaterial('#c0c0c0', 0.5)} receiveShadow castShadow>
+        <mesh position={[0, -foundationHeight/2 - 0.1, mainRoomSize/2 + foundationExtension + 1]} material={createMarbleMaterial('#b0a99a', 0.5)} receiveShadow castShadow>
           <boxGeometry args={[mainRoomSize + foundationExtension*2.4, 0.2, 2]} />
         </mesh>
         
         {/* Foundation steps - East side */}
-        <mesh position={[mainRoomSize/2 + foundationExtension + 1, -foundationHeight/2 - 0.1, 0]} material={createMarbleMaterial('#c0c0c0', 0.5)} receiveShadow castShadow>
+        <mesh position={[mainRoomSize/2 + foundationExtension + 1, -foundationHeight/2 - 0.1, 0]} material={createMarbleMaterial('#b0a99a', 0.5)} receiveShadow castShadow>
           <boxGeometry args={[2, 0.2, mainRoomSize + foundationExtension*2.5 - 4]} />
         </mesh>
         
         {/* Foundation steps - West side */}
-        <mesh position={[-mainRoomSize/2 - foundationExtension - 1, -foundationHeight/2 - 0.1, 0]} material={createMarbleMaterial('#c0c0c0', 0.5)} receiveShadow castShadow>
+        <mesh position={[-mainRoomSize/2 - foundationExtension - 1, -foundationHeight/2 - 0.1, 0]} material={createMarbleMaterial('#b0a99a', 0.5)} receiveShadow castShadow>
           <boxGeometry args={[2, 0.2, mainRoomSize + foundationExtension*2.5 - 4]} />
         </mesh>
       </group>
@@ -398,7 +493,7 @@ const TempleStructure = () => {
       ))}
       
       {/* Ceiling beams */}
-      <mesh position={[0, wallHeight, 0]} material={wallMaterial} castShadow={false} receiveShadow>
+      <mesh position={[0, wallHeight, 0]} material={createMarbleMaterial('#d9d3c9', 0.2)} castShadow={false} receiveShadow>
         <boxGeometry args={[mainRoomSize, 0.5, mainRoomSize]} />
       </mesh>
       
@@ -441,28 +536,57 @@ const TempleStructure = () => {
       
       {/* Decorative elements */}
       {/* Friezes along the walls */}
-      <GreekFrieze position={[0, 6, mainRoomSize/2 - 1]} rotation={[0, 0, 0]} width={mainRoomSize - 4} />
-      <GreekFrieze position={[0, 6, -mainRoomSize/2 + 1]} rotation={[0, Math.PI, 0]} width={mainRoomSize - 4} />
+      <GreekFrieze position={[0, 6, mainRoomSize/2 - 0.8 - alabasterPanelInset]} rotation={[0, 0, 0]} width={mainRoomSize - 4} />
+      <GreekFrieze position={[0, 6, -mainRoomSize/2 + 0.8 + alabasterPanelInset]} rotation={[0, Math.PI, 0]} width={mainRoomSize - 4} />
       {/* East frieze - inverted to face outward */}
-      <GreekFrieze position={[mainRoomSize/2 - 1, 6, 0]} rotation={[0, -Math.PI*1.5, 0]} width={mainRoomSize - 4} />
+      <GreekFrieze position={[mainRoomSize/2 - 0.8 - alabasterPanelInset, 6, 0]} rotation={[0, -Math.PI*1.5, 0]} width={mainRoomSize - 4} />
       {/* West frieze - inverted to face outward */}
-      <GreekFrieze position={[-mainRoomSize/2 + 1, 6, 0]} rotation={[0, Math.PI*1.5, 0]} width={mainRoomSize - 4} />
+      <GreekFrieze position={[-mainRoomSize/2 + 0.8 + alabasterPanelInset, 6, 0]} rotation={[0, Math.PI*1.5, 0]} width={mainRoomSize - 4} />
       
-      {/* Decorative urns */}
-      <GreekUrn position={[-12, 0, mainRoomSize/2 - 4.2]} scale={1.2} />
-      <GreekUrn position={[12, 0, mainRoomSize/2 - 4.2]} scale={1.2} />
-      <GreekUrn position={[-4, 0, -mainRoomSize/2 + 4.2]} scale={1.2} />
-      <GreekUrn position={[4, 0, -mainRoomSize/2 + 4]} scale={1.2} />
+      {/* Alabaster glowing panels above the friezes - North wall */}
+      <AlabasterPanel 
+        position={[0, friezeHeight + alabasterPanelHeight/2 + 0.4, mainRoomSize/2 - 0.8 - alabasterPanelInset]} 
+        rotation={[0, 0, 0]} 
+        width={mainRoomSize - 6}
+      />
+      
+      {/* South wall */}
+      <AlabasterPanel 
+        position={[0, friezeHeight + alabasterPanelHeight/2 + 0.4, -mainRoomSize/2 + 0.8 + alabasterPanelInset]} 
+        rotation={[0, 0, 0]} 
+        width={mainRoomSize - 6} 
+      />
+      
+      {/* East wall */}
+      <AlabasterPanel 
+        position={[mainRoomSize/2 - 0.8 - alabasterPanelInset, friezeHeight + alabasterPanelHeight/2 + 0.4, 0]} 
+        rotation={[0, Math.PI/2, 0]} 
+        width={mainRoomSize - 6}
+      />
+      
+      {/* West wall */}
+      <AlabasterPanel 
+        position={[-mainRoomSize/2 + 0.8 + alabasterPanelInset, friezeHeight + alabasterPanelHeight/2 + 0.4, 0]} 
+        rotation={[0, Math.PI/2, 0]} 
+        width={mainRoomSize - 6}
+      />
+      
+      {/* Decorative urns with varied colors */}
+      <GreekUrn position={[-12, 0, mainRoomSize/2 - 4.2]} scale={1.2} color={urnColors[0]} />
+      <GreekUrn position={[12, 0, mainRoomSize/2 - 4.2]} scale={1.2} color={urnColors[1]} />
+      <GreekUrn position={[-4, 0, -mainRoomSize/2 + 4.2]} scale={1.2} color={urnColors[2]} />
+      <GreekUrn position={[4, 0, -mainRoomSize/2 + 4]} scale={1.2} color={urnColors[3]} />
       
       {/* Smaller urns in the corners */}
-      <GreekUrn position={[-mainRoomSize/2 + 4, 0, -mainRoomSize/2 + 4]} scale={0.8} />
-      <GreekUrn position={[mainRoomSize/2 - 4, 0, -mainRoomSize/2 + 4]} scale={0.8} />
-      <GreekUrn position={[-mainRoomSize/2 + 4, 0, mainRoomSize/2 - 4]} scale={0.8} />
-      <GreekUrn position={[mainRoomSize/2 - 4, 0, mainRoomSize/2 - 4]} scale={0.8} />
+      <GreekUrn position={[-mainRoomSize/2 + 4, 0, -mainRoomSize/2 + 4]} scale={0.8} color={urnColors[4]} />
+      <GreekUrn position={[mainRoomSize/2 - 4, 0, -mainRoomSize/2 + 4]} scale={0.8} color={urnColors[1]} />
+      <GreekUrn position={[-mainRoomSize/2 + 4, 0, mainRoomSize/2 - 4]} scale={0.8} color={urnColors[3]} />
+      <GreekUrn position={[mainRoomSize/2 - 4, 0, mainRoomSize/2 - 4]} scale={0.8} color={urnColors[2]} />
     </group>
   );
 };
 
+// Regular Interactive Object Component
 const InteractiveObject: React.FC<InteractiveObjectProps> = ({
   position,
   text,
@@ -472,6 +596,11 @@ const InteractiveObject: React.FC<InteractiveObjectProps> = ({
 }) => {
   const [hovered, setHovered] = useState(false);
   const meshRef = useRef<THREE.Mesh>(null);
+  
+  // Calculate text rotation to face center
+  // If on left side (negative x), rotate text to face right
+  // If on right side (positive x), rotate text to face left
+  const textRotationY = position[1] < 0 ? -Math.PI/2 : Math.PI/2;
 
   return (
     <group position={position}>
@@ -489,15 +618,178 @@ const InteractiveObject: React.FC<InteractiveObjectProps> = ({
           emissiveIntensity={hovered ? 0.8 : 0.5}
         />
       </mesh>
-      <Text
+      <Billboard
         position={[0, 1.5, 0]}
-        fontSize={0.5}
-        color="#FFFFFF"
-        anchorX="center"
-        anchorY="middle"
+        follow={true}
+        lockX={false}
+        lockY={false}
+        lockZ={false}
       >
-        {text}
-      </Text>
+        <Text
+          fontSize={0.5}
+          color="#FFFFFF"
+          anchorX="center"
+          anchorY="middle"
+        >
+          {text}
+        </Text>
+      </Billboard>
+    </group>
+  );
+};
+
+// Mars Colony Button Component
+const MarsColonyButton: React.FC<InteractiveObjectProps> = ({
+  position,
+  text,
+  onClick
+}) => {
+  const [hovered, setHovered] = useState(false);
+  const meshRef = useRef<THREE.Mesh>(null);
+  const sphereRef = useRef<THREE.Group>(null);
+  
+  // Mars colors
+  const marsBaseColor = "#c1440e"; // Darker reddish-orange
+  const marsHighlightColor = "#e27b58"; // Lighter reddish-orange
+  
+  // Calculate text rotation to face center
+  // If on left side (negative x), rotate text to face right
+  // If on right side (positive x), rotate text to face left
+  // For the center north position, we want text to face south
+  const textRotationY = position[1] < -2 ? Math.PI : 0;
+  
+  // Rotation animation
+  useFrame((_state, delta) => {
+    if (sphereRef.current) {
+      sphereRef.current.rotation.y += delta * 0.2; // Slow rotation
+    }
+  });
+  
+  // Create noise-based displacement for craters
+  const noiseFunction = (x: number, y: number, z: number) => {
+    return (
+      Math.sin(x * 5 + y * 3) * 0.03 +
+      Math.sin(y * 7 + z * 2) * 0.04 +
+      Math.sin(z * 3 + x * 4) * 0.03
+    );
+  };
+  
+  // Create vertex displacement for the Mars surface
+  const marsDisplacement = (geometry: THREE.BufferGeometry) => {
+    const positionAttribute = geometry.getAttribute('position');
+    const vertex = new THREE.Vector3();
+    
+    // Apply noise-based displacement to each vertex
+    for (let i = 0; i < positionAttribute.count; i++) {
+      vertex.fromBufferAttribute(positionAttribute, i);
+      const displacement = noiseFunction(vertex.x, vertex.y, vertex.z);
+      vertex.normalize().multiplyScalar(1 + displacement);
+      positionAttribute.setXYZ(i, vertex.x, vertex.y, vertex.z);
+    }
+    
+    geometry.computeVertexNormals();
+    return geometry;
+  };
+  
+  return (
+    <group position={position}>
+      {/* Mars sphere with craters */}
+      <group 
+        ref={sphereRef}
+        onClick={onClick}
+        onPointerOver={() => setHovered(true)}
+        onPointerOut={() => setHovered(false)}
+      >
+        {/* Base sphere */}
+        <mesh>
+          <sphereGeometry args={[0.7, 32, 32]} />
+          <meshStandardMaterial 
+            color={marsBaseColor}
+            roughness={0.8}
+            metalness={0.1}
+            emissive={hovered ? marsHighlightColor : marsBaseColor}
+            emissiveIntensity={hovered ? 0.5 : 0.1}
+          />
+        </mesh>
+        
+        {/* Crater layer using displaced geometry */}
+        <mesh>
+          <sphereGeometry
+            args={[0.701, 32, 32]}
+            onUpdate={(geometry) => marsDisplacement(geometry)}
+          />
+          <meshStandardMaterial
+            color={marsHighlightColor}
+            roughness={1.0}
+            metalness={0.0}
+            emissive={hovered ? marsHighlightColor : "#000000"}
+            emissiveIntensity={hovered ? 0.3 : 0}
+            transparent={true}
+            opacity={0.7}
+            depthWrite={false}
+          />
+        </mesh>
+        
+        {/* Dust/Atmosphere halo */}
+        <mesh>
+          <sphereGeometry args={[0.78, 16, 16]} />
+          <meshStandardMaterial
+            color="#e4a672"
+            transparent={true}
+            opacity={0.15}
+            depthWrite={false}
+          />
+        </mesh>
+        
+        {/* Add a few distinguishable craters */}
+        <mesh position={[0.3, 0.4, 0.4]}>
+          <circleGeometry args={[0.15, 16]} />
+          <meshStandardMaterial
+            color="#9e3812"
+            side={THREE.DoubleSide}
+            roughness={1}
+          />
+        </mesh>
+        
+        <mesh position={[-0.4, -0.2, 0.5]}>
+          <circleGeometry args={[0.2, 16]} />
+          <meshStandardMaterial
+            color="#9e3812"
+            side={THREE.DoubleSide}
+            roughness={1}
+          />
+        </mesh>
+      </group>
+      
+      {/* Orbit ring */}
+      <mesh rotation={[Math.PI/2, 0, 0]}>
+        <torusGeometry args={[1.1, 0.03, 16, 50]} />
+        <meshStandardMaterial 
+          color={hovered ? "#FFFFFF" : "#f8bb7b"} 
+          emissive={hovered ? "#FFFFFF" : "#f8bb7b"}
+          emissiveIntensity={hovered ? 0.8 : 0.3}
+          transparent={true}
+          opacity={0.7}
+        />
+      </mesh>
+      
+      {/* Text label - using Billboard to always face player */}
+      <Billboard
+        position={[0, 1.5, 0]}
+        follow={true}
+        lockX={false}
+        lockY={false}
+        lockZ={false}
+      >
+        <Text
+          fontSize={0.5}
+          color="#FFFFFF"
+          anchorX="center"
+          anchorY="middle"
+        >
+          {text}
+        </Text>
+      </Billboard>
     </group>
   );
 };
@@ -510,7 +802,9 @@ const PortalToVibeverse: React.FC<{ position?: [number, number, number], onClick
   const portalRef = useRef<THREE.Group>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   
-  // No longer rotating the portal
+  // Calculate rotation based on position
+  // For east position, we want portal to face west (toward center)
+  const portalRotationY = position[0] > 10 ? -Math.PI/2 : 0;
   
   const handlePortalClick = (e: any) => {
     e.stopPropagation();
@@ -529,27 +823,34 @@ const PortalToVibeverse: React.FC<{ position?: [number, number, number], onClick
   };
   
   return (
-    <group ref={portalRef} position={position} onClick={handlePortalClick} rotation={[0, 0, 0]}>
+    <group ref={portalRef} position={position} onClick={handlePortalClick} rotation={[0, portalRotationY, 0]}>
       <mesh>
-        <torusGeometry args={[2, 0.3, 16, 32]} />
-        <meshStandardMaterial color="#00ff00" emissive="#00ff00" emissiveIntensity={0.5} />
+        <torusGeometry args={[2, 0.3, 4, 32]} />
+        <meshStandardMaterial color="#00ff00" emissive="#00ff00" emissiveIntensity={0.4} />
       </mesh>
       <mesh position={[0, 0, 0]}>
         <circleGeometry args={[1.7, 32]} />
         <meshBasicMaterial color="#00ff00" opacity={0.7} transparent={true} side={THREE.DoubleSide} />
       </mesh>
-      <Text
-        position={[0, 3, 0]}
-        fontSize={0.4}
-        color="white"
-        anchorX="center"
-        anchorY="middle"
+      <Billboard
+        position={[0, 4, 0]}
+        follow={true}
+        lockX={false}
+        lockY={false}
+        lockZ={false}
       >
-        VIBEVERSE PORTAL
-      </Text>
+        <Text
+          fontSize={0.4}
+          color="white"
+          anchorX="center"
+          anchorY="middle"
+        >
+          VIBEVERSE PORTAL
+        </Text>
+      </Billboard>
       
       {showPrompt && (
-        <group position={[0, 0, 2.5]}>
+        <group position={[0, 1, 2.5]}>
           {/* Background panel */}
           <mesh position={[0, 0, -0.1]}>
             <planeGeometry args={[5, 3.5]} />
@@ -625,15 +926,22 @@ const ReturnPortal: React.FC<{ position?: [number, number, number], onClick: () 
         <circleGeometry args={[1.7, 32]} />
         <meshBasicMaterial color="#ff0000" opacity={0.7} transparent={true} side={THREE.DoubleSide} />
       </mesh>
-      <Text
+      <Billboard
         position={[0, -2.5, 0]}
-        fontSize={0.4}
-        color="white"
-        anchorX="center"
-        anchorY="middle"
+        follow={true}
+        lockX={false}
+        lockY={false}
+        lockZ={false}
       >
-        RETURN PORTAL
-      </Text>
+        <Text
+          fontSize={0.4}
+          color="white"
+          anchorX="center"
+          anchorY="middle"
+        >
+          RETURN PORTAL
+        </Text>
+      </Billboard>
     </group>
   );
 };
@@ -759,16 +1067,15 @@ const WelcomeContent: React.FC = () => {
       {/* Temple structure */}
       <TempleStructure />
       
-      {/* Interactive button objects - keep the same positions */}
-      <InteractiveObject
-        position={[5, 1, 0]}
+      {/* Mars Colony button with Mars-themed design */}
+      <MarsColonyButton
+        position={[0, 2.2, -20]}
         text={colonyExists ? "Return to Colony" : "Start New Colony"}
-        color="#4CAF50"
         onClick={handleStartColony}
       />
       
       <InteractiveObject
-        position={[-5, 1, 0]}
+        position={[-18, 1, 0]}
         text="Audio Puzzle"
         color="#E91E63"
         onClick={handleEnterPuzzle}
@@ -776,7 +1083,7 @@ const WelcomeContent: React.FC = () => {
       
       {/* Portal to Vibeverse - preserve functionality */}
       <PortalToVibeverse 
-        position={[0, 2.2, -20]} 
+        position={[18, 1, 0]} 
         onClick={handlePortalClick} 
       />
       
@@ -789,16 +1096,17 @@ const WelcomeContent: React.FC = () => {
 
       {/* Introduction InfoDisplay - left of the portal */}
       <InfoDisplay
-        position={[-8, 1.5, -10]}
+        position={[-8, 3.2, -10]}
         rotation={[0, Math.PI/8, 0]}
         width={6}
         height={6}
         title="Welcome to Derech"
         content={`Derech is a Mars colony simulation where you control an AI called Moses.
         
-Your goal is to assist Mars colonists in sustaining their base, exploring, and expanding across the red planet.
+Your goal is to assist Mars colonists in sustaining their base.
+Start a New Colony, balance resources, upgrade and expand.
 
-Through embodiment quests, the AI will learn about the physical world and its limitations, becoming more capable of helping the colonists.
+Switch Scenes from Management to 3D Puzzles.
 
 Move around using WASD keys and mouse, or touch controls on mobile.`}
         contentFontSize={0.22}
@@ -807,39 +1115,53 @@ Move around using WASD keys and mouse, or touch controls on mobile.`}
       
       {/* Changes InfoDisplay - right of the portal */}
       <InfoDisplay
-        position={[8, 1.5, -10]}
+        position={[8, 3.2, -10]}
         rotation={[0, -Math.PI/8, 0]}
         width={6}
         height={6}
         title="Recent Changes"
-        content={
-          <div>
-            <p>View the latest development updates and changes to Derech.</p>
-            <p style={{ marginTop: '20px' }}>
-              <a 
-                href="https://rawlph.github.io/Derech/changes.html" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                style={{ 
-                  color: '#4CAF50', 
-                  textDecoration: 'none',
-                  fontWeight: 'bold',
-                  padding: '10px 15px',
-                  border: '2px solid #4CAF50',
-                  borderRadius: '4px',
-                  display: 'inline-block',
-                  marginTop: '10px'
-                }}
-              >
-                Open Changes Page
-              </a>
-            </p>
-          </div>
-        }
-        htmlContent={true}
-        htmlScale={0.5}
-        disableOcclusion={true}
+        content={`View the latest development updates and changes to Derech.
+
+Press the green button below to view the changes page.`}
+        contentFontSize={0.22}
+        contentLineHeight={1.5}
+        glowColor="#4CAF50"
       />
+      
+      {/* Changes button - separate interactive object instead of HTML link */}
+      <group 
+        position={[8, 2.8, -10.45]} 
+        rotation={[0, -Math.PI/8, 0]}
+      >
+        <mesh 
+          position={[0, 0, 0.5]} 
+          onClick={() => window.open("https://rawlph.github.io/Derech/changes.html", "_blank")}
+          onPointerOver={(e) => {
+            document.body.style.cursor = 'pointer';
+            e.object.scale.set(1.1, 1.1, 1.1);
+          }}
+          onPointerOut={(e) => {
+            document.body.style.cursor = 'default';
+            e.object.scale.set(1, 1, 1);
+          }}
+        >
+          <boxGeometry args={[3, 0.8, 0.2]} />
+          <meshStandardMaterial 
+            color="#4CAF50" 
+            emissive="#4CAF50"
+            emissiveIntensity={0.7}
+          />
+        </mesh>
+        <Text
+          position={[0, 0, 0.7]}
+          fontSize={0.3}
+          color="#FFFFFF"
+          anchorX="center"
+          anchorY="middle"
+        >
+          VIEW CHANGES
+        </Text>
+      </group>
     </>
   );
 };
@@ -927,9 +1249,12 @@ const WelcomeScene: React.FC = () => {
         playerPosition={[0, 1, 15]} // Position player at the entrance
         playerSpeed={5}
         // Camera settings optimized for exploration
-        cameraMinDistance={2.5}
-        cameraMaxDistance={7} // Increased for better temple viewing
+        cameraMinDistance={3} // Slightly increased from 2.5 to get better view
+        cameraMaxDistance={7} // Good for temple viewing
         cameraFollowSpeed={0.15}
+        // Better camera angle settings
+        cameraMinPolarAngle={Math.PI * 0.2} // Higher angle from vertical (36 degrees)
+        cameraMaxPolarAngle={Math.PI * 0.75} // Limit how low camera can go
         // Selfie stick effect for better backward movement
         selfieStickEffect={true}
         selfieStickMaxDistance={7}
@@ -939,19 +1264,18 @@ const WelcomeScene: React.FC = () => {
         // Height limits for vertical movement
         playerMinHeight={0.1}
         playerMaxHeight={12} // Allow flying up to see ceiling
-        // Make the player face north (toward inside of the temple) when spawning
-        initialYRotation={Math.PI}
+        initialYRotation={Math.PI} // Camera rotation - pointing north
+        initialLookDirection={new THREE.Vector3(0, 0, -1)} // Player direction - make sure this matches the scene orientation
       >
         <WelcomeContent />
       </InteractiveSceneLayout>
       
       {/* Info panel */}
       <div className={styles.infoPanel}>
-        <h2>3D Controls</h2>
-        <p>Move: WASD keys or right joystick</p>
-        <p>Ascend/Descend: Space/C keys or left joystick</p>
-        <p>Look around: Mouse drag or touch-drag</p>
-        <p>Navigate using Portals or Buttons</p>
+        <h2>Welcome to Derech</h2>
+        <p>Explore the 3D Area</p>
+        <p>Create/Return to a Colony</p>
+        <p>Or test 3D Puzzles</p>
       </div>
     </div>
   );
