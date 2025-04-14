@@ -13,11 +13,14 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between; /* Pushes top bar up, selected info down */
+    overflow: hidden; /* Prevent any content from causing scrollbars */
 }
 
 /* Make specific UI elements interactive */
 .topBar,
 .selectedTileInfo,
+.resourceSidebar,
+.resourceToggleButton,
 .actionButton,
 .actionButtonSmall {
     pointer-events: auto; /* Make these elements clickable */
@@ -28,16 +31,24 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: rgba(0, 0, 0, 0.5);
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    background-color: rgba(20, 30, 40, 0.85);
+    border-bottom: 1px solid #2a4a6a;
+    color: #ddd;
+    padding: 5px 10px;
+    font-family: 'Arial', sans-serif;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    z-index: 11;
 }
 
 .resourceDisplay {
     display: flex;
     gap: 1rem;
     flex-wrap: wrap;
+    order: 2; /* Ensure resource display is on the right */
 }
 
 .resourceDisplay span {
@@ -49,51 +60,73 @@
 
 .roundDisplay {
     display: flex;
+    flex-direction: row;
     align-items: center;
-    gap: 1rem;
+    justify-content: flex-start;
+    order: 1; /* Ensure round display is on the left */
+    flex: 0 1 auto; /* Don't allow it to grow and take all available space */
+    margin-right: auto; /* Push everything else to the right */
+}
+
+.roundCounter {
+    margin-right: 15px;
+    white-space: nowrap;
+}
+
+.roundButtons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start;
 }
 
 .actionButton {
-    padding: 0.5em 1em;
-    font-size: 0.9em;
-    font-weight: 500;
-    font-family: inherit;
-    background-color: #3a3a3a;
-    color: white;
+    padding: 0.4rem 0.8rem;
+    background-color: rgba(22, 33, 51, 0.8);
+    border: 1px solid rgba(217, 119, 93, 0.5);
+    border-radius: 4px;
+    color: #e0d8d0;
+    font-size: 0.85rem;
     cursor: pointer;
-    transition: background-color 0.25s, border-color 0.25s;
-    border: 1px solid transparent;
-    border-radius: 8px;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
 }
 
 .actionButton:hover {
-    border-color: #646cff;
-    background-color: #4a4a4a;
+    background-color: rgba(217, 119, 93, 0.3);
 }
 
 /* --- NEW: Distinct Portal Button Style --- */
 .portalButton {
-    background-color: #0077cc; /* A distinct blue */
-    border: 1px solid #005fa3;
-    box-shadow: 0 2px 5px rgba(0, 119, 204, 0.3);
+    background-color: rgba(30, 60, 100, 0.8);
+    border-color: rgba(100, 180, 255, 0.6);
 }
 
 .portalButton:hover {
-    background-color: #008ae6; /* Lighter blue on hover */
-    border-color: #00aaff;
+    background-color: rgba(100, 180, 255, 0.3);
 }
 /* --- End of Portal Button Style --- */
 
 /* --- NEW: Test Mode Button Style --- */
 .testButton {
-    background-color: #9b3ad1; /* Purple color */
-    border: 1px solid #7b2aa1;
-    box-shadow: 0 2px 5px rgba(155, 58, 209, 0.3);
+    background-color: #996633;
+    border: 1px solid #bb9966;
 }
 
 .testButton:hover {
-    background-color: #b154e8; /* Lighter purple on hover */
-    border-color: #9b3ad1;
+    background-color: #bb9966;
+}
+
+.tutorialButton {
+    background-color: #336699;
+    border: 1px solid #6699cc;
+    font-weight: bold;
+    font-size: 16px;
+    padding: 0 10px;
+    width: 36px;
+}
+
+.tutorialButton:hover {
+    background-color: #6699cc;
 }
 /* --- End of Test Button Style --- */
 
@@ -174,33 +207,62 @@
     margin-top: 0; /* Remove default margin-top, use gap instead */
     font-weight: 500;
     font-family: inherit;
-    background-color: #5a5a5a;
+    background-color: rgba(71, 137, 204, 0.85); /* Updated to match header blue */
     color: white;
     cursor: pointer;
     transition: background-color 0.25s, border-color 0.25s, transform 0.1s ease-out; /* Added transform */
-    border: 1px solid transparent;
+    border: 1px solid rgba(68, 138, 207, 0.8); /* Updated border color to match theme */
     border-radius: 6px;
     position: relative; /* Needed for positioning warning message */
     overflow: hidden; /* Hide overflowing warning before animation */
+    width: 100%; /* Make buttons full width */
 }
+
+/* New styles for task button content */
+.taskButtonContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    width: 100%;
+}
+
+.taskButtonName {
+    font-weight: 600;
+    font-size: 1.05em;
+    color: #eee;
+}
+
+.taskButtonCost {
+    font-size: 0.9em;
+    color: #ccc;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    align-items: center;
+}
+
 .actionButtonSmall:not(:disabled):hover {
-    border-color: #aaa; /* Lighter border on hover */
-    background-color: #6f6f6f; /* Lighter background on hover */
+    border-color: #4a7ca5; /* Updated to lighter blue border */
+    background-color: rgba(32, 48, 64, 0.95); /* Updated to slightly lighter blue */
 }
 .actionButtonSmall:disabled {
-    background-color: #444; /* Darker disabled background */
+    background-color: rgba(20, 30, 40, 0.5); /* Updated disabled state */
     color: #888;
     cursor: not-allowed;
-    border-color: #555;
+    border-color: rgba(42, 74, 106, 0.5); /* Updated border color */
 }
 /* Style for the Deselect button */
 .deselectButton {
     background-color: #782f1a; /* More distinct color */
     margin-top: 0.75rem; /* Add space above deselect */
+    border-color: #943520;
+    transition: all 0.2s ease;
 }
 .deselectButton:hover {
     background-color: #9a3e22;
     border-color: #d46a4b;
+    transform: scale(1.02);
 }
 
 /* Shake Animation */
@@ -343,8 +405,9 @@
         flex-direction: row; /* Override the max-width rule */
         justify-content: space-between;
         align-items: center;
-        padding: 0.3rem 0.5rem; /* Further reduce padding */
-        gap: 0.5rem; /* Reduce gap */
+        padding: 0.3rem 0.6rem;
+        min-height: 40px;
+        max-height: 45px;
         width: 100%; /* Ensure full width */
         position: fixed; /* Fix at top */
         top: 0;
@@ -369,7 +432,14 @@
     }
     .actionButton {
         font-size: 0.75em;
-        padding: 0.3em 0.6em;
+        padding: 0.25rem 0.5rem;
+    }
+    .roundCounter {
+        font-size: 0.9rem;
+        margin-right: 0.5rem;
+    }
+    .roundButtons {
+        gap: 0.3rem;
     }
     /* --- End of Top Bar Landscape Styles --- */
 
@@ -425,6 +495,104 @@
         bottom: 0;
         background-color: #782f1a;
     }
+    
+    /* Increase resource sidebar width for landscape mode */
+    .resourceSidebar {
+        width: 200px;
+        right: -200px;
+    }
+    
+    .resourceSidebarOpen {
+        right: 0;
+    }
+}
+
+/* Explicit Samsung Galaxy S8+ landscape fix (740 x 360) */
+@media (max-width: 740px) and (max-height: 360px) {
+    /* Fix top bar layout */
+    .topBar {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 40px;
+        max-height: 40px;
+        padding: 0.2rem 0.4rem;
+        width: 100%;
+    }
+    
+    /* Force round display to left */
+    .roundDisplay {
+        flex: 1;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        margin-right: 0.5rem;
+        order: 0;
+    }
+    
+    /* Counter styling */
+    .roundCounter {
+        font-size: 0.75rem;
+        white-space: nowrap;
+        margin-right: 0.5rem;
+        min-width: 70px;
+    }
+    
+    /* Button container styling */
+    .roundButtons {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.2rem;
+        flex-wrap: nowrap;
+    }
+    
+    /* Make buttons more compact */
+    .actionButton {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.7rem;
+        white-space: nowrap;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Force resource toggle to right */
+    .resourceToggleButton {
+        order: 1;
+        padding: 0.2rem 0.4rem;
+        font-size: 0.7rem;
+        white-space: nowrap;
+        margin-left: 0.3rem;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+    
+    /* Make sidebar wider for very small displays */
+    .resourceSidebar {
+        top: 40px;
+        height: calc(100vh - 40px);
+        width: 200px; /* Increased from 180px to 200px */
+        right: -200px; /* Match width */
+    }
+    
+    .resourceSidebarOpen {
+        right: 0;
+    }
+    
+    .resourceItem {
+        padding: 0.4rem 0.6rem; /* Slightly more padding */
+        font-size: 0.85rem; /* Slightly larger font */
+    }
+    
+    .resourceIcon {
+        font-size: 1rem;
+    }
 }
 
 /* Add resource trend indicator styles */
@@ -457,13 +625,255 @@
   }
 }
 
-.roundCounter {
-  margin-right: 8px;
-  white-space: nowrap;
+/* Add styles for the resource toggle button */
+.resourceToggleButton {
+    background-color: #2a4a6a;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    order: 3; /* Ensure toggle button is at the end */
+    margin-left: 10px; /* Add some space from resources display */
+    transition: background-color 0.2s;
 }
 
-.roundButtons {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+.resourceToggleButton:hover {
+    background-color: rgba(217, 119, 93, 0.3);
+}
+
+/* Add styles for the resource sidebar */
+.resourceSidebar {
+    position: fixed;
+    top: 60px;
+    right: -250px;
+    width: 250px;
+    height: calc(100vh - 60px);
+    background-color: rgba(10, 20, 30, 0.95);
+    border-left: 1px solid rgba(217, 119, 93, 0.5);
+    padding: 1rem;
+    transition: right 0.3s ease;
+    z-index: 100;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    pointer-events: auto;
+}
+
+.resourceSidebarOpen {
+    right: 0;
+}
+
+/* Style resource items in a vertical layout */
+.resourceDisplay {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.resourceItem {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    background-color: rgba(40, 50, 60, 0.6);
+    border-radius: 5px;
+    transition: background-color 0.2s ease;
+}
+
+.resourceItem:hover {
+    background-color: rgba(60, 70, 80, 0.6);
+}
+
+.resourceIcon {
+    margin-right: 0.5rem;
+    font-size: 1.2rem;
+}
+
+.resourceLabel {
+    flex: 1;
+    color: #e0d8d0;
+}
+
+.resourceValue {
+    font-weight: bold;
+    color: #e0d8d0;
+    margin-right: 0.25rem;
+}
+
+/* Update resource trend indicators to work better in sidebar */
+.resourceTrend {
+    font-size: 0.85rem;
+    margin-left: 0.3rem;
+}
+
+.trendUp {
+    color: #70d35b;
+}
+
+.trendDown {
+    color: #e55c4d;
+}
+
+.trendSame {
+    color: #cccccc;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+    .topBar {
+        flex-wrap: wrap;
+        padding: 0.5rem;
+    }
+    
+    .resourceSidebar {
+        width: 220px;
+        right: -220px;
+    }
+    
+    .resourceToggleButton {
+        padding: 0.3rem 0.7rem;
+        font-size: 0.85rem;
+    }
+}
+
+/* Specific adjustments for landscape mode on mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+    .topBar {
+        padding: 0.3rem;
+    }
+    
+    .roundDisplay {
+        flex: 1;
+    }
+    
+    .resourceSidebar {
+        top: 50px;
+        height: calc(100vh - 50px);
+    }
+    
+    .resourceItem {
+        padding: 0.3rem;
+    }
+}
+
+/* Samsung Galaxy S8+ landscape fix (740x360) */
+@media screen and (min-width: 730px) and (max-width: 750px) and (min-height: 350px) and (max-height: 370px) and (orientation: landscape) {
+    .topBar {
+        padding: 2px 5px;
+        height: auto;
+        min-height: 30px;
+        flex-direction: row;
+        justify-content: space-between;
+    }
+    
+    .roundDisplay {
+        flex: 1;
+        justify-content: flex-start;
+        display: flex;
+        margin-right: 10px;
+        flex-direction: row;
+        align-items: center;
+        width: 80%; /* Ensure round display takes most of the space */
+    }
+    
+    .roundCounter {
+        font-size: 0.7rem;
+        min-width: 80px;
+        white-space: nowrap;
+        margin-right: 8px;
+    }
+    
+    .roundButtons {
+        display: flex;
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        gap: 2px;
+        width: auto; /* Allow natural sizing */
+        flex: 1; /* Take available space */
+    }
+    
+    .actionButton, 
+    .portalButton, 
+    .testButton {
+        padding: 2px 4px;
+        font-size: 0.65rem;
+        height: 22px;
+        white-space: nowrap;
+        flex-shrink: 0; /* Prevent buttons from shrinking */
+    }
+    
+    .resourceToggleButton {
+        padding: 2px 4px;
+        height: 22px;
+        font-size: 0.65rem;
+        margin-left: auto; /* Push to right */
+        flex-shrink: 0; /* Prevent button from shrinking */
+        max-width: 18%; /* Limit width of toggle button */
+    }
+    
+    .resourceSidebar {
+        top: 32px;
+        width: 200px;
+        right: -200px;
+        height: calc(100vh - 32px);
+        z-index: 999; /* Ensure it's above everything */
+    }
+    
+    .resourceSidebarOpen {
+        right: 0;
+    }
+    
+    .resourceItem {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.85rem;
+        margin-bottom: 0.3rem;
+    }
+}
+
+/* Extra small screens (iPhone SE and similar) */
+@media screen and (max-width: 380px) and (max-height: 680px) {
+    .resourceSidebar {
+        width: 200px;
+        right: -200px;
+        top: 40px;
+        z-index: 999;
+    }
+    
+    .resourceSidebarOpen {
+        right: 0;
+    }
+    
+    .resourceToggleButton {
+        font-size: 0.7rem;
+        padding: 2px 5px;
+    }
+    
+    .resourceItem {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* Very tiny screens fix */
+@media screen and (max-width: 320px), (max-height: 320px) {
+    .resourceSidebar {
+        width: 180px;
+        right: -180px;
+        top: 40px;
+        z-index: 999;
+        padding: 0.5rem;
+    }
+    
+    .resourceSidebarOpen {
+        right: 0;
+    }
+    
+    .resourceItem {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.75rem;
+        margin-bottom: 0.2rem;
+    }
 } 

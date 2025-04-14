@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import * as THREE from 'three'
 import { getTaskConfig } from '@config/tasks'; // Import task config getter
 import { getRandomFlavourMessage } from '@config/flavourMessages'; // Import flavour message utilities
-import { buildingIssueRates, getIssueById, getRandomIssueForBuilding, Issue, IssueChoice, issues } from '@config/issues'; // Import issues utilities
 import { researchProjects } from '@config/research'; // Import research projects
 import { livingAreaProjects } from '@config/livingAreaProjects'; // Import living area projects
 import { productionProjects } from '@config/productionProjects'; // Import production projects
@@ -32,6 +31,15 @@ export interface ResourceTrends {
   researchPoints: 'up' | 'down' | 'same' | null;
 }
 
+// NEW: Track resource trend history
+export interface ResourceTrendHistory {
+  power: ('up' | 'down' | 'same' | null)[];
+  water: ('up' | 'down' | 'same' | null)[];
+  minerals: ('up' | 'down' | 'same' | null)[];
+  colonyGoods: ('up' | 'down' | 'same' | null)[];
+  researchPoints: ('up' | 'down' | 'same' | null)[];
+}
+
 // --- Task Management ---
 export interface TaskState {
   id: string; // Unique ID, e.g., "mining-q-r"
@@ -57,15 +65,6 @@ export interface DialogueState {
   avatar?: string; // Optional avatar path
   speakerName?: string; // Character name
   choices?: DialogueChoice[]; // Dialogue choices for player
-}
-
-// --- NEW: Building Issues ---
-export interface BuildingIssueState {
-  id: string; // Unique ID for the issue instance
-  issueId: string; // Reference to the issue template ID
-  buildingId: string; // ID of the building/task that has this issue
-  tileKey: string; // Location of the issue (q,r)
-  resolved: boolean; // Whether the issue has been resolved
 }
 
 // --- NEW: Research Projects ---
@@ -100,6 +99,10 @@ interface GameState {
   colonyGoods: number;
   minerals: number; // NEW: Raw minerals resource
 
+  // --- Flow Points ---
+  flowPoints: number;
+  activeFlowTier: 'basic' | 'strong' | 'master' | null;
+
   // --- Insights ---
   embodimentInsight: number; // NEW: Track embodiment insights gained
 
@@ -114,6 +117,9 @@ interface GameState {
   
   // --- Resource Trends ---
   resourceTrends: ResourceTrends;
+  
+  // --- NEW: Resource Trend History ---
+  resourceTrendHistory: ResourceTrendHistory;
 
   // --- Audio Settings ---
   isMuted: boolean;
@@ -156,12 +162,6 @@ interface GameState {
   activeProductionProject: ActiveResearch | null; // Currently active production project
   completedProductionProjects: string[]; // Completed production projects
 
-  // --- NEW: Building Issue State ---
-  buildingIssues: Record<string, BuildingIssueState>;
-  activeIssueId: string | null; // Currently viewed issue ID
-  lastIssueRounds: Record<string, number>; // Track last issue round per building ID
-  isIssueWindowVisible: boolean;
-
   // --- NEW: Add property to track low water penalty status ---
   isLowWaterPenaltyActive: boolean;
 
@@ -174,6 +174,12 @@ interface GameState {
   // --- Dome Generation Tracking ---
   domeGeneration: DomeGenerationValues;
 
+  // --- NEW: Tutorial Window State ---
+  isTutorialWindowVisible: boolean;
+
+  // --- NEW: Flow Window State ---
+  isFlowWindowVisible: boolean;
+
   // --- Actions ---
   // Resource Management
   addPower: (amount: number) => void;
@@ -181,6 +187,10 @@ interface GameState {
   addMinerals: (amount: number) => void; // NEW
   deductResources: (costs: { power?: number; water?: number; minerals?: number; colonyGoods?: number; researchPoints?: number }) => boolean; // NEW Helper
 
+  // Flow Points Management
+  addFlowPoints: (amount: number) => void;
+  updateFlowTier: () => 'basic' | 'strong' | 'master' | null;
+  
   // Insight Management
   incrementEmbodimentInsight: () => void; // NEW: Action to increment embodiment insights
 
@@ -232,16 +242,6 @@ interface GameState {
   startProductionProject: (projectId: string) => boolean; // Start a production project
   updateProductionProjectProgress: () => void; // Update progress on production project
 
-  // --- NEW: Building Issue Actions ---
-  showIssueWindow: (issueId: string) => void;
-  hideIssueWindow: () => void;
-  resolveIssue: (issueId: string, choiceId: string) => void;
-  checkForNewIssues: () => void;
-  getCurrentIssue: () => Issue | null;
-
-  // --- Helper Functions ---
-  processDomeProjects: (dialogueAlreadyShown: boolean) => boolean; // Returns true if a message was shown
-
   // --- NEW: Resource Generation Actions ---
   clearResourceGenerations: () => void;
 
@@ -258,6 +258,18 @@ interface GameState {
   // --- Audio Actions ---
   toggleMute: () => void;
   setVolume: (volume: number) => void;
+
+  // --- Helper Functions ---
+  processDomeProjects: (dialogueAlreadyShown: boolean) => boolean; // Returns true if a message was shown
+
+  // --- NEW: Tutorial Actions ---
+  showTutorialWindow: () => void;
+  hideTutorialWindow: () => void;
+
+  // --- NEW: Flow Actions ---
+  showFlowWindow: () => void;
+  hideFlowWindow: () => void;
+  getConsecutivePositiveTrends: (resourceKey: keyof ResourceTrendHistory) => number; // Helper to get consecutive positive trends for a resource
 }
 
 // Define return types for assignWorkforceToTask
@@ -373,6 +385,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   colonyGoods: 50,
   minerals: 50, // Start with more minerals
 
+  // Flow Points
+  flowPoints: 0,
+  activeFlowTier: null,
+
   // Insights
   embodimentInsight: 0, // NEW: Start with 0 embodiment insights
 
@@ -402,22 +418,21 @@ export const useGameStore = create<GameState>((set, get) => ({
   isLivingDomeWindowVisible: false, // Initially hidden
   // --- NEW: Initial Production Dome State ---
   isProductionDomeWindowVisible: false, // Initially hidden
+  // --- NEW: Initial Tutorial State ---
+  isTutorialWindowVisible: false, // Initially hidden
+  
+  // --- NEW: Flow Window State ---
+  isFlowWindowVisible: false, // Initially hidden
 
-  // --- NEW: Initial Building Issue State ---
-  buildingIssues: {}, // Start with no issues
-  activeIssueId: null, // No active issue view
-  lastIssueRounds: {}, // Track when issues last occurred
-  isIssueWindowVisible: false, // Issue window initially hidden
-
-  // --- NEW: Initial Research State ---
+  // --- NEW: Research State ---
   activeResearch: null, // Initially no active research project
   completedResearch: [], // Array of research project IDs that have been completed
   
-  // --- NEW: Initial Living Dome State ---
+  // --- NEW: Living Dome State ---
   activeLivingProject: null, // Initially no active living project
   completedLivingProjects: [], // Completed living projects
   
-  // --- NEW: Initial Production Dome State ---
+  // --- NEW: Production Dome State ---
   activeProductionProject: null, // Initially no active production project
   completedProductionProjects: [], // Completed production projects
 
@@ -452,6 +467,105 @@ export const useGameStore = create<GameState>((set, get) => ({
     minerals: 'same',
     colonyGoods: 'same',
     researchPoints: 'same'
+  },
+  
+  // --- NEW: Resource Trend History ---
+  resourceTrendHistory: {
+    power: [],
+    water: [],
+    minerals: [],
+    colonyGoods: [],
+    researchPoints: []
+  },
+
+  // --- Audio Settings ---
+  isMuted: false,
+  audioVolume: 50,
+
+  // --- Workforce ---
+  totalWorkforce: 8, // NEW: Calculated from population
+  availableWorkforce: 8,
+
+  // --- Game State ---
+  currentRound: 1,
+  gridTiles: {}, // Initialized below
+  selectedTile: null,
+  gameView: 'welcome',  // Changed from 'management' to 'welcome'
+  previousGameView: null, // Track the previous view
+  activeTasks: {}, // Start with no active tasks
+  dialogueMessage: null, // Initialize dialogue as hidden
+  lastFlavourRound: 0, // Initialize last flavour round
+  isLowWaterPenaltyActive: false, // Initialize penalty flag
+  isLowPowerPenaltyActive: false, // NEW: Initialize power penalty flag
+  
+  // Audio Puzzle
+  audioPuzzleProgress: 0, // Initialize audio puzzle progress to 0
+  isAudioPuzzleCompleted: false, // Initialize audio puzzle completion status
+  
+  // --- NEW: Initial Research State ---
+  isResearchWindowVisible: false, // Initially hidden
+  // --- NEW: Initial Living Dome State ---
+  isLivingDomeWindowVisible: false, // Initially hidden
+  // --- NEW: Initial Production Dome State ---
+  isProductionDomeWindowVisible: false, // Initially hidden
+  // --- NEW: Initial Tutorial State ---
+  isTutorialWindowVisible: false, // Initially hidden
+  
+  // --- NEW: Flow Window State ---
+  isFlowWindowVisible: false, // Initially hidden
+
+  // --- NEW: Research State ---
+  activeResearch: null, // Initially no active research project
+  completedResearch: [], // Array of research project IDs that have been completed
+  
+  // --- NEW: Living Dome State ---
+  activeLivingProject: null, // Initially no active living project
+  completedLivingProjects: [], // Completed living projects
+  
+  // --- NEW: Production Dome State ---
+  activeProductionProject: null, // Initially no active production project
+  completedProductionProjects: [], // Completed production projects
+
+  // --- Resource Generation Tracking ---
+  roundResourceGenerations: [],
+
+  // --- Dome Generation Tracking ---
+  domeGeneration: {
+    colonyGoodsCycle: 0,
+    colonyGoodsBaseAmount: 3, // Base: +3 every 5 rounds
+    researchCycle: 0,
+    researchBaseAmount: 1, // Base: +1 every 4 rounds
+    populationCycle: 0,
+    populationGrowthThreshold: 10, // Need 10 consecutive rounds with sufficient resources
+    waterPositive: true, // Start assuming positive water
+    colonyGoodsSufficient: true, // Start assuming sufficient goods
+  },
+
+  // --- Previous Round Resources ---
+  previousRoundResources: {
+    power: 100,
+    water: 100,
+    minerals: 50,
+    colonyGoods: 50,
+    researchPoints: 0
+  },
+  
+  // --- Resource Trends ---
+  resourceTrends: {
+    power: 'same',
+    water: 'same',
+    minerals: 'same',
+    colonyGoods: 'same',
+    researchPoints: 'same'
+  },
+  
+  // --- NEW: Resource Trend History ---
+  resourceTrendHistory: {
+    power: [],
+    water: [],
+    minerals: [],
+    colonyGoods: [],
+    researchPoints: []
   },
 
   // --- Audio Settings ---
@@ -514,7 +628,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     };
     
     // ----- STEP 1: Calculate ALL resource consumption -----
-    const { completedResearch, completedProductionProjects, population } = get();
+    const { population } = get();
     
     // Calculate power consumption from buildings
     let totalPowerConsumed = 0;
@@ -526,7 +640,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           let consumption = taskConfig.powerConsumption;
           
           // Apply project effects for power consumption
-          if (task.type === 'build-waterwell' && completedProductionProjects.includes('thermal-extractors')) {
+          if (task.type === 'build-waterwell' && get().completedProductionProjects.includes('thermal-extractors')) {
             consumption *= 0.75; // Apply 25% reduction
           }
           
@@ -544,7 +658,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     let waterConsumed = population * 1;
     
     // Apply research effects for water consumption
-    if (completedResearch.includes('detoxifying-bacteria')) {
+    if (get().completedResearch.includes('detoxifying-bacteria')) {
       waterConsumed *= 0.85; // Apply 15% reduction
     }
     
@@ -565,7 +679,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         if (taskConfig?.powerConsumption && taskConfig.powerConsumption > 0) {
           let operationalConsumption = taskConfig.powerConsumption;
           // Apply consumption reduction effects even when calculating savings
-          if (task.type === 'build-waterwell' && completedProductionProjects.includes('thermal-extractors')) {
+          if (task.type === 'build-waterwell' && get().completedProductionProjects.includes('thermal-extractors')) {
             operationalConsumption *= 0.75;
           }
           const savedPower = Math.round(operationalConsumption * 0.8);
@@ -610,7 +724,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           if (generateResource) {
             // Apply project effects for resource generation
             if (resourceType === 'minerals' && task.type === 'deploy-mining') {
-              if (completedResearch.includes('improved-extraction')) {
+              if (get().completedResearch.includes('improved-extraction')) {
                 yieldAmount *= 1.25; // +25%
               }
               // Apply mountain height bonus after research bonus
@@ -619,18 +733,18 @@ export const useGameStore = create<GameState>((set, get) => ({
                 yieldAmount *= (1 + heightBonus);
               }
             } else if (resourceType === 'water' && task.type === 'build-waterwell') {
-              if (completedResearch.includes('water-reclamation-1')) {
+              if (get().completedResearch.includes('water-reclamation-1')) {
                 yieldAmount *= 1.20; // +20%
               }
-              if (completedProductionProjects.includes('thermal-extractors')) {
+              if (get().completedProductionProjects.includes('thermal-extractors')) {
                 yieldAmount *= 1.10; // +10% (multiplicative)
               }
             } else if (resourceType === 'researchPoints' && task.type === 'deploy-scout') {
-              if (completedResearch.includes('embodiment-prelim')) {
+              if (get().completedResearch.includes('embodiment-prelim')) {
                 yieldAmount *= 1.15; // +15%
               }
             } else if (resourceType === 'power' && task.type === 'build-geothermal') {
-              if (completedResearch.includes('seismic-mapping')) {
+              if (get().completedResearch.includes('seismic-mapping')) {
                 yieldAmount *= 1.30; // +30%
               }
             }
@@ -673,6 +787,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     // ----- STEP 4: Calculate dome-based resource generation -----
     
     const { colonyGoodsCycle, colonyGoodsBaseAmount, researchCycle, researchBaseAmount } = get().domeGeneration;
+    
     let updatedColonyGoodsCycle = colonyGoodsCycle + 1;
     let updatedResearchCycle = researchCycle + 1;
     let colonyGoodsGenerated = 0;
@@ -680,11 +795,17 @@ export const useGameStore = create<GameState>((set, get) => ({
     
     // Production Dome: Generate colony goods every 5 rounds
     if (updatedColonyGoodsCycle >= 5) {
+      // Start with base amount
       colonyGoodsGenerated = colonyGoodsBaseAmount;
-      updatedColonyGoodsCycle = 0;
       
-      // Add to resource changes
-      resourceChanges.colonyGoods += colonyGoodsGenerated;
+      // Apply production project bonuses
+      if (get().completedProductionProjects.includes('optimize-assembly')) {
+        // Add 15% bonus from Optimized Assembly Line
+        colonyGoodsGenerated = Math.round((colonyGoodsGenerated * 1.15) * 100) / 100;
+        console.log(`Production bonus applied: ${colonyGoodsGenerated}`);
+      }
+      
+      updatedColonyGoodsCycle = 0;
       
       // Add to resource generations for visualization
       resourceGenerations.push({
@@ -694,15 +815,15 @@ export const useGameStore = create<GameState>((set, get) => ({
         resourceType: 'colonyGoods',
         amount: colonyGoodsGenerated
       });
+      
+      // Add the generated goods to the resource changes
+      resourceChanges.colonyGoods += colonyGoodsGenerated;
     }
     
     // Research Dome: Generate research points every 4 rounds
     if (updatedResearchCycle >= 4) {
       researchPointsGenerated = researchBaseAmount;
       updatedResearchCycle = 0;
-      
-      // Add to resource changes
-      resourceChanges.researchPoints += researchPointsGenerated;
       
       // Add to resource generations for visualization
       resourceGenerations.push({
@@ -712,6 +833,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         resourceType: 'researchPoints',
         amount: researchPointsGenerated
       });
+      
+      // Add the generated research points to the resource changes
+      resourceChanges.researchPoints += researchPointsGenerated;
     }
     
     // Save dome generation cycle updates
@@ -740,7 +864,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     // TEMPORARILY DISABLED: Events are disabled for now
 
     // 5. Check for Building Issues
-    get().checkForNewIssues();
+    // get().checkForNewIssues();
     
     // 6. Restore shutdown facilities
     set(state => {
@@ -823,6 +947,15 @@ export const useGameStore = create<GameState>((set, get) => ({
           researchPoints: newResearchPoints > previousValues.researchPoints ? 'up' : newResearchPoints < previousValues.researchPoints ? 'down' : 'same'
         };
         
+        // NEW: Update resource trend history
+        const newResourceTrendHistory: ResourceTrendHistory = {
+          power: [newResourceTrends.power, ...state.resourceTrendHistory.power].slice(0, 99),
+          water: [newResourceTrends.water, ...state.resourceTrendHistory.water].slice(0, 99),
+          minerals: [newResourceTrends.minerals, ...state.resourceTrendHistory.minerals].slice(0, 99),
+          colonyGoods: [newResourceTrends.colonyGoods, ...state.resourceTrendHistory.colonyGoods].slice(0, 99),
+          researchPoints: [newResourceTrends.researchPoints, ...state.resourceTrendHistory.researchPoints].slice(0, 99)
+        };
+        
         // --- Check penalty states based on new values ---
         const wasPowerPenaltyActive = state.isLowPowerPenaltyActive;
         const isPowerPenaltyNowActive = newPower < 0;
@@ -850,15 +983,53 @@ export const useGameStore = create<GameState>((set, get) => ({
       const currentAssigned = Object.values(state.activeTasks).reduce((sum, task) => sum + task.assignedWorkforce, 0);
       const newAvailableWorkforce = Math.max(0, newTotalWorkforce - currentAssigned);
 
+      // Update the flow tier based on the current resource trends
+      const activeTier = get().updateFlowTier();
+      
+      // Add flow points based on the active tier
+      if (activeTier) {
+        let flowPointsToAdd = 0;
+        
+        switch (activeTier) {
+          case 'master':
+            flowPointsToAdd = 4;
+            break;
+          case 'strong':
+            flowPointsToAdd = 2;
+            break;
+          case 'basic':
+            flowPointsToAdd = 1;
+            break;
+        }
+        
+        if (flowPointsToAdd > 0) {
+          get().addFlowPoints(flowPointsToAdd);
+          console.log(`Added ${flowPointsToAdd} Flow Points (${activeTier} tier active)`);
+        }
+      }
+
       return {
         currentRound: state.currentRound + 1,
-          power: newPower,
-          water: newWater,
-          minerals: newMinerals,
-          colonyGoods: newColonyGoods,
-          researchPoints: newResearchPoints,
-          previousRoundResources: previousValues,
+          power: Math.max(0, newPower),
+          water: Math.max(0, newWater),
+          minerals: Math.max(0, newMinerals),
+          colonyGoods: Math.max(0, newColonyGoods),
+          researchPoints: Math.max(0, newResearchPoints),
+          
+          // Store previous values for next round comparison
+          previousRoundResources: {
+            power: newPower,
+            water: newWater,
+            minerals: newMinerals,
+            colonyGoods: newColonyGoods,
+            researchPoints: newResearchPoints
+          },
+          
+          // Set new resource trends
           resourceTrends: newResourceTrends,
+          
+          // Set new resource trend history
+          resourceTrendHistory: newResourceTrendHistory,
           selectedTile: null,
         totalWorkforce: newTotalWorkforce,
         availableWorkforce: newAvailableWorkforce,
@@ -922,6 +1093,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   })),
 
   resetColony: () => {
+    console.log("Resetting colony to initial state...");
+    
     set({
       power: 100,
       water: 100,
@@ -949,10 +1122,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       isProductionDomeWindowVisible: false,
       activeProductionProject: null,
       completedProductionProjects: [],
-      buildingIssues: {},
-      activeIssueId: null,
-      lastIssueRounds: {},
-      isIssueWindowVisible: false,
+      isTutorialWindowVisible: false, // Reset tutorial window visibility
       isLowWaterPenaltyActive: false, // Initialize penalty flag
       isLowPowerPenaltyActive: false, // NEW: Initialize power penalty flag
       previousRoundResources: {
@@ -969,6 +1139,16 @@ export const useGameStore = create<GameState>((set, get) => ({
         colonyGoods: 'same',
         researchPoints: 'same'
       },
+      resourceTrendHistory: {
+        power: [],
+        water: [],
+        minerals: [],
+        colonyGoods: [],
+        researchPoints: []
+      },
+      isFlowWindowVisible: false, // Reset flow window visibility
+      flowPoints: 0,
+      activeFlowTier: null,
     });
     
     // Initialize a fresh grid with radius 5
@@ -1036,7 +1216,17 @@ export const useGameStore = create<GameState>((set, get) => ({
           populationCycle: 0,
           waterPositive: true,
           colonyGoodsSufficient: true
-        }
+        },
+        resourceTrendHistory: {
+          power: [],
+          water: [],
+          minerals: [],
+          colonyGoods: [],
+          researchPoints: state.researchPoints
+        },
+        isFlowWindowVisible: false, // Reset flow window visibility
+        flowPoints: 0,
+        activeFlowTier: null,
       };
     });
     
@@ -1452,346 +1642,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   showProductionDomeWindow: () => set({ isProductionDomeWindowVisible: true }),
   hideProductionDomeWindow: () => set({ isProductionDomeWindowVisible: false }),
 
-  checkForNewIssues: () => {
-    const { activeTasks, gridTiles, currentRound, lastIssueRounds, buildingIssues } = get();
-    const completedResearch: string[] = get().completedResearch || [];
-    const currentIssueBuildingIds = Object.values(buildingIssues)
-      .filter(issue => !issue.resolved)
-      .map(issue => issue.buildingId);
-    
-    Object.values(activeTasks).forEach(task => {
-      if (task.status !== 'operational') return;
-      
-      const tile = gridTiles[task.targetTileKey];
-      if (!tile || !tile.building) return;
-      
-      if (currentIssueBuildingIds.includes(task.id)) return;
-      
-      const lastIssueRound = lastIssueRounds[task.id] || 0;
-      const roundsSinceLastIssue = currentRound - lastIssueRound;
-      
-      const issueRate = buildingIssueRates[tile.building];
-      if (issueRate && roundsSinceLastIssue >= issueRate) {
-        const applicableIssues = issues.filter(issue => 
-          (typeof issue.buildingType === 'string' 
-              ? issue.buildingType === tile.building
-              : Array.isArray(issue.buildingType) && tile.building && issue.buildingType.includes(tile.building))
-          && (!issue.requiresResearch || (issue.requiresResearch && completedResearch.includes(issue.requiresResearch)))
-        );
-        
-        if (applicableIssues.length > 0) {
-          const issueIndex = Math.floor(Math.random() * applicableIssues.length);
-          const issue = applicableIssues[issueIndex];
-          
-          const issueInstanceId = `issue-${Date.now()}-${task.id}`;
-          set((state) => ({
-            buildingIssues: {
-              ...state.buildingIssues,
-              [issueInstanceId]: {
-                id: issueInstanceId,
-                issueId: issue.id,
-                buildingId: task.id,
-                tileKey: task.targetTileKey,
-                resolved: false
-              }
-            },
-            lastIssueRounds: {
-              ...state.lastIssueRounds,
-              [task.id]: state.currentRound
-            }
-          }));
-          
-          const tileLoc = `(${tile.q}, ${tile.r})`;
-          get().showDialogue(
-            `Alert: ${tile.building} at ${tileLoc} has reported an issue that needs attention.`,
-            '/Derech/avatars/AiHelper.jpg'
-          );
-          
-          console.log(`New issue created for ${tile.building} at ${tileLoc}: ${issue.title}`);
-          return;
-        }
-      }
-    });
-  },
-  
-  showIssueWindow: (issueId: string) => {
-    set({ 
-      activeIssueId: issueId,
-      isIssueWindowVisible: true 
-    });
-  },
-  
-  hideIssueWindow: () => {
-    set({ 
-      isIssueWindowVisible: false,
-      activeIssueId: null
-    });
-  },
-  
-  resolveIssue: (issueId, choiceId) => {
-    const issueState = get().buildingIssues[issueId];
-    if (!issueState) return;
-    
-    const issueTemplate = getIssueById(issueState.issueId);
-    if (!issueTemplate) return;
-    
-    const choice = issueTemplate.choices.find(c => c.id === choiceId);
-    if (!choice) return;
-    
-    if (choice.cost) {
-      get().deductResources(choice.cost);
-    }
-    
-    if (choice.outcomes.effects) {
-      const effects = choice.outcomes.effects;
-      if (effects.power) get().addPower(effects.power);
-      if (effects.water) set(state => ({ water: state.water + (effects.water || 0) }));
-      if (effects.minerals) get().addMinerals(effects.minerals || 0);
-      if (effects.researchPoints) set(state => ({ researchPoints: state.researchPoints + (effects.researchPoints || 0) }));
-      if (effects.colonyGoods) set(state => ({ colonyGoods: state.colonyGoods + (effects.colonyGoods || 0) }));
-      
-      if (choice.outcomes.shutdown === true) {
-        const task = Object.values(get().activeTasks).find(t => t.id === issueState.buildingId);
-        if (task) {
-          set(state => ({
-            activeTasks: {
-              ...state.activeTasks,
-              [task.id]: {
-                ...task,
-                status: 'shutdown'
-              }
-            }
-          }));
-          
-          console.log(`Task ${task.id} shutdown status updated: ${task.targetTileKey}`);
-          
-          const tileKey = task.targetTileKey;
-          const tile = get().gridTiles[tileKey];
-          if (tile) {
-            console.log(`Tile ${tileKey} building after shutdown: ${tile.building}`);
-          }
-        }
-      }
-    }
-    
-    set(state => ({
-      buildingIssues: {
-        ...state.buildingIssues,
-        [issueId]: {
-          ...state.buildingIssues[issueId],
-          resolved: true
-        }
-      }
-    }));
-    
-    get().hideIssueWindow();
-    
-    console.log(`Issue ${issueId} resolved with choice: ${choiceId}`);
-  },
-  
-  getCurrentIssue: () => {
-    const { activeIssueId, buildingIssues } = get();
-    if (!activeIssueId) return null;
-    
-    const issueState = buildingIssues[activeIssueId];
-    if (!issueState) return null;
-    
-    const issueTemplate = getIssueById(issueState.issueId);
-    return issueTemplate || null;
-  },
-
-  startResearch: (projectId: string) => {
-    const project = researchProjects[projectId];
-    if (!project) {
-      console.warn(`Research project ${projectId} not found.`);
-      return false;
-    }
-    
-    if (get().activeResearch) {
-      console.warn("There is already an active research project.");
-      return false;
-    }
-    
-    if (!get().deductResources(project.cost)) {
-      console.warn("Not enough resources for research project:", project.name);
-      return false;
-    }
-    
-    set({
-      activeResearch: {
-        id: project.id,
-        name: project.name,
-        progress: 0,
-        duration: project.duration,
-        startedRound: get().currentRound,
-        type: 'research'
-      }
-    });
-    
-    console.log(`Started research project: ${project.name}`);
-    return true;
-  },
-  
-  updateResearchProgress: () => {
-    const { activeResearch, currentRound } = get();
-    if (!activeResearch) return;
-    
-    const progressPerRound = 100 / activeResearch.duration;
-    const newProgress = activeResearch.progress + progressPerRound;
-    
-    if (newProgress >= 100) {
-      const completedProject = researchProjects[activeResearch.id];
-      
-      set(state => ({
-        completedResearch: [...state.completedResearch, activeResearch.id],
-        activeResearch: null
-      }));
-      
-      get().showDialogue(
-        `Research completed: ${activeResearch.name}. ${completedProject.effectDescription}`,
-        '/Derech/avatars/AiHelper.jpg'
-      );
-      
-      console.log(`Research project completed: ${activeResearch.name}`);
-    } else {
-      set({
-        activeResearch: {
-          ...activeResearch,
-          progress: newProgress
-        }
-      });
-    }
-  },
-
-  startLivingProject: (projectId: string) => {
-    const project = livingAreaProjects[projectId];
-    if (!project) {
-      console.warn(`Living project ${projectId} not found.`);
-      return false;
-    }
-    
-    if (get().activeLivingProject) {
-      console.warn("There is already an active living area project.");
-      return false;
-    }
-    
-    if (!get().deductResources(project.cost)) {
-      console.warn("Not enough resources for living area project:", project.name);
-      return false;
-    }
-    
-    set({
-      activeLivingProject: {
-        id: project.id,
-        name: project.name,
-        progress: 0,
-        duration: project.duration,
-        startedRound: get().currentRound,
-        type: 'living'
-      }
-    });
-    
-    console.log(`Started living area project: ${project.name}`);
-    return true;
-  },
-  
-  updateLivingProjectProgress: () => {
-    const { activeLivingProject, currentRound } = get();
-    if (!activeLivingProject) return;
-    
-    const progressPerRound = 100 / activeLivingProject.duration;
-    const newProgress = activeLivingProject.progress + progressPerRound;
-    
-    if (newProgress >= 100) {
-      const completedProject = livingAreaProjects[activeLivingProject.id];
-      
-      set(state => ({
-        completedLivingProjects: [...state.completedLivingProjects, activeLivingProject.id],
-        activeLivingProject: null
-      }));
-      
-      get().showDialogue(
-        `Living area project completed: ${activeLivingProject.name}. ${completedProject.effectDescription}`,
-        '/Derech/avatars/AiHelper.jpg'
-      );
-      
-      console.log(`Living area project completed: ${activeLivingProject.name}`);
-    } else {
-      set({
-        activeLivingProject: {
-          ...activeLivingProject,
-          progress: newProgress
-        }
-      });
-    }
-  },
-
-  startProductionProject: (projectId: string) => {
-    const project = productionProjects[projectId];
-    if (!project) {
-      console.warn(`Production project ${projectId} not found.`);
-      return false;
-    }
-    
-    if (get().activeProductionProject) {
-      console.warn("There is already an active production project.");
-      return false;
-    }
-    
-    if (!get().deductResources(project.cost)) {
-      console.warn("Not enough resources for production project:", project.name);
-      return false;
-    }
-    
-    set({
-      activeProductionProject: {
-        id: project.id,
-        name: project.name,
-        progress: 0,
-        duration: project.duration,
-        startedRound: get().currentRound,
-        type: 'production'
-      }
-    });
-    
-    console.log(`Started production project: ${project.name}`);
-    return true;
-  },
-  
-  updateProductionProjectProgress: () => {
-    const { activeProductionProject, currentRound } = get();
-    if (!activeProductionProject) return;
-    
-    const progressPerRound = 100 / activeProductionProject.duration;
-    const newProgress = activeProductionProject.progress + progressPerRound;
-    
-    if (newProgress >= 100) {
-      const completedProject = productionProjects[activeProductionProject.id];
-      
-      set(state => ({
-        completedProductionProjects: [...state.completedProductionProjects, activeProductionProject.id],
-        activeProductionProject: null
-      }));
-      
-      get().showDialogue(
-        `Production project completed: ${activeProductionProject.name}. ${completedProject.effectDescription}`,
-        '/Derech/avatars/AiHelper.jpg'
-      );
-      
-      console.log(`Production project completed: ${activeProductionProject.name}`);
-    } else {
-      set({
-        activeProductionProject: {
-          ...activeProductionProject,
-          progress: newProgress
-        }
-      });
-    }
-  },
+  showTutorialWindow: () => set({ isTutorialWindowVisible: true }),
+  hideTutorialWindow: () => set({ isTutorialWindowVisible: false }),
 
   processDomeProjects: (dialogueAlreadyShown: boolean) => {
     let messageShown = false;
-    
     const canShowMessage = !dialogueAlreadyShown;
     
     if (get().activeResearch) {
@@ -1906,6 +1761,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   generateDomeResources: () => {
     const { colonyGoodsCycle, colonyGoodsBaseAmount, researchCycle, researchBaseAmount } = get().domeGeneration;
+    
     let updatedColonyGoodsCycle = colonyGoodsCycle + 1;
     let updatedResearchCycle = researchCycle + 1;
     let colonyGoodsGenerated = 0;
@@ -1916,7 +1772,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     
     // Production Dome: Generate colony goods every 5 rounds
     if (updatedColonyGoodsCycle >= 5) {
+      // Start with base amount
       colonyGoodsGenerated = colonyGoodsBaseAmount;
+      
+      // Apply production project bonuses
+      if (get().completedProductionProjects.includes('optimize-assembly')) {
+        // Add 15% bonus from Optimized Assembly Line
+        colonyGoodsGenerated = Math.round((colonyGoodsGenerated * 1.15) * 100) / 100;
+        console.log(`Production bonus applied: ${colonyGoodsGenerated}`);
+      }
+      
       updatedColonyGoodsCycle = 0;
       
       // Add to resource generations for visualization
@@ -1928,7 +1793,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         amount: colonyGoodsGenerated
       });
       
-      console.log(`Production Dome generated ${colonyGoodsGenerated} colony goods`);
+      // Add the generated goods to the resource changes
+      resourceChanges.colonyGoods += colonyGoodsGenerated;
     }
     
     // Research Dome: Generate research points every 4 rounds
@@ -1945,7 +1811,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         amount: researchPointsGenerated
       });
       
-      console.log(`Research Dome generated ${researchPointsGenerated} research points`);
+      // Add the generated research points to the resource changes
+      resourceChanges.researchPoints += researchPointsGenerated;
     }
     
     // Update store with generated resources
@@ -2051,6 +1918,263 @@ export const useGameStore = create<GameState>((set, get) => ({
   incrementEmbodimentInsight: () => set((state) => ({
     embodimentInsight: state.embodimentInsight + 1
   })),
+
+  // --- NEW: Research Actions ---
+  startResearch: (projectId: string) => {
+    const project = researchProjects[projectId];
+    if (!project) {
+      console.warn(`Research project ${projectId} not found.`);
+      return false;
+    }
+    
+    if (get().activeResearch) {
+      console.warn("There is already an active research project.");
+      return false;
+    }
+    
+    if (!get().deductResources(project.cost)) {
+      console.warn("Not enough resources for research project:", project.name);
+      return false;
+    }
+    
+    set({
+      activeResearch: {
+        id: project.id,
+        name: project.name,
+        progress: 0,
+        duration: project.duration,
+        startedRound: get().currentRound,
+        type: 'research'
+      }
+    });
+    
+    console.log(`Started research project: ${project.name}`);
+    return true;
+  },
+
+  updateResearchProgress: () => {
+    const { activeResearch, currentRound } = get();
+    if (!activeResearch) return;
+    
+    const progressPerRound = 100 / activeResearch.duration;
+    const newProgress = activeResearch.progress + progressPerRound;
+    
+    if (newProgress >= 100) {
+      const completedProject = researchProjects[activeResearch.id];
+      
+      set(state => ({
+        completedResearch: [...state.completedResearch, activeResearch.id],
+        activeResearch: null
+      }));
+      
+      get().showDialogue(
+        `Research completed: ${activeResearch.name}. ${completedProject.effectDescription}`,
+        '/Derech/avatars/AiHelper.jpg'
+      );
+      
+      console.log(`Research project completed: ${activeResearch.name}`);
+    } else {
+      set({
+        activeResearch: {
+          ...activeResearch,
+          progress: newProgress
+        }
+      });
+    }
+  },
+
+  // --- NEW: Living Dome Actions ---
+  startLivingProject: (projectId: string) => {
+    const project = livingAreaProjects[projectId];
+    if (!project) {
+      console.warn(`Living project ${projectId} not found.`);
+      return false;
+    }
+    
+    if (get().activeLivingProject) {
+      console.warn("There is already an active living area project.");
+      return false;
+    }
+    
+    if (!get().deductResources(project.cost)) {
+      console.warn("Not enough resources for living area project:", project.name);
+      return false;
+    }
+    
+    set({
+      activeLivingProject: {
+        id: project.id,
+        name: project.name,
+        progress: 0,
+        duration: project.duration,
+        startedRound: get().currentRound,
+        type: 'living'
+      }
+    });
+    
+    console.log(`Started living area project: ${project.name}`);
+    return true;
+  },
+
+  updateLivingProjectProgress: () => {
+    const { activeLivingProject, currentRound } = get();
+    if (!activeLivingProject) return;
+    
+    const progressPerRound = 100 / activeLivingProject.duration;
+    const newProgress = activeLivingProject.progress + progressPerRound;
+    
+    if (newProgress >= 100) {
+      const completedProject = livingAreaProjects[activeLivingProject.id];
+      
+      set(state => ({
+        completedLivingProjects: [...state.completedLivingProjects, activeLivingProject.id],
+        activeLivingProject: null
+      }));
+      
+      get().showDialogue(
+        `Living area project completed: ${activeLivingProject.name}. ${completedProject.effectDescription}`,
+        '/Derech/avatars/AiHelper.jpg'
+      );
+      
+      console.log(`Living area project completed: ${activeLivingProject.name}`);
+    } else {
+      set({
+        activeLivingProject: {
+          ...activeLivingProject,
+          progress: newProgress
+        }
+      });
+    }
+  },
+
+  // --- NEW: Production Dome Actions ---
+  startProductionProject: (projectId: string) => {
+    const project = productionProjects[projectId];
+    if (!project) {
+      console.warn(`Production project ${projectId} not found.`);
+      return false;
+    }
+    
+    if (get().activeProductionProject) {
+      console.warn("There is already an active production project.");
+      return false;
+    }
+    
+    if (!get().deductResources(project.cost)) {
+      console.warn("Not enough resources for production project:", project.name);
+      return false;
+    }
+    
+    set({
+      activeProductionProject: {
+        id: project.id,
+        name: project.name,
+        progress: 0,
+        duration: project.duration,
+        startedRound: get().currentRound,
+        type: 'production'
+      }
+    });
+    
+    console.log(`Started production project: ${project.name}`);
+    return true;
+  },
+
+  updateProductionProjectProgress: () => {
+    const { activeProductionProject, currentRound } = get();
+    if (!activeProductionProject) return;
+    
+    const progressPerRound = 100 / activeProductionProject.duration;
+    const newProgress = activeProductionProject.progress + progressPerRound;
+    
+    if (newProgress >= 100) {
+      const completedProject = productionProjects[activeProductionProject.id];
+      
+      set(state => ({
+        completedProductionProjects: [...state.completedProductionProjects, activeProductionProject.id],
+        activeProductionProject: null
+      }));
+      
+      get().showDialogue(
+        `Production project completed: ${activeProductionProject.name}. ${completedProject.effectDescription}`,
+        '/Derech/avatars/AiHelper.jpg'
+      );
+      
+      console.log(`Production project completed: ${activeProductionProject.name}`);
+    } else {
+      set({
+        activeProductionProject: {
+          ...activeProductionProject,
+          progress: newProgress
+        }
+      });
+    }
+  },
+
+  // --- NEW: Flow Actions ---
+  showFlowWindow: () => set({ isFlowWindowVisible: true }),
+  hideFlowWindow: () => set({ isFlowWindowVisible: false }),
+
+  // Flow Points Management
+  addFlowPoints: (amount: number) => set((state) => ({ flowPoints: state.flowPoints + amount })),
+  
+  getConsecutivePositiveTrends: (resourceKey: keyof ResourceTrendHistory) => {
+    const trends = get().resourceTrendHistory[resourceKey];
+    if (!trends || trends.length === 0) return 0;
+    
+    let consecutiveCount = 0;
+    
+    // Count consecutive 'up' trends from the most recent (index 0) backwards
+    for (let i = 0; i < trends.length; i++) {
+      if (trends[i] === 'up') {
+        consecutiveCount++;
+      } else {
+        break; // Break on first non-positive trend
+      }
+    }
+    
+    return consecutiveCount;
+  },
+  
+  updateFlowTier: () => {
+    const state = get();
+    const resourceKeys = Object.keys(state.resourceTrendHistory) as (keyof ResourceTrendHistory)[];
+    
+    // Count how many resources have at least 20 consecutive positive rounds (for Master tier)
+    const resourcesWith20ConsecutivePositive = resourceKeys.filter(key => 
+      state.getConsecutivePositiveTrends(key) >= 20
+    ).length;
+    
+    // Count how many resources have at least 10 consecutive positive rounds (for Strong tier)
+    const resourcesWith10ConsecutivePositive = resourceKeys.filter(key => 
+      state.getConsecutivePositiveTrends(key) >= 10
+    ).length;
+    
+    // Count how many resources have at least 5 consecutive positive rounds (for Basic tier)
+    const resourcesWith5ConsecutivePositive = resourceKeys.filter(key => 
+      state.getConsecutivePositiveTrends(key) >= 5
+    ).length;
+    
+    let newTier: 'basic' | 'strong' | 'master' | null = null;
+    
+    // Check if Master tier is active (all 5 resources for 20+ rounds)
+    if (resourcesWith20ConsecutivePositive === 5) {
+      newTier = 'master';
+    }
+    // Check if Strong tier is active (any 4 resources for 10+ rounds)
+    else if (resourcesWith10ConsecutivePositive >= 4) {
+      newTier = 'strong';
+    }
+    // Check if Basic tier is active (any 2 resources for 5+ rounds)
+    else if (resourcesWith5ConsecutivePositive >= 2) {
+      newTier = 'basic';
+    }
+    
+    // Update the store with the new tier
+    set({ activeFlowTier: newTier });
+    
+    return newTier;
+  },
 
 }));
 

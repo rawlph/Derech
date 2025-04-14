@@ -34,7 +34,7 @@ interface SupportPillarInfo {
 interface StatusIndicatorInfo {
     key: string;
     position: THREE.Vector3;
-    type: 'issue' | 'event' | 'operational' | 'shutdown' | 'none';
+    type: 'event' | 'operational' | 'shutdown' | 'none';
     tileKey: string;
 }
 
@@ -207,7 +207,6 @@ const HexTileInstances = () => {
     const selectedTileData = useGameStore((state) => state.selectedTile);
     const gameView = useGameStore((state) => state.gameView);
     const activeTasks = useGameStore((state) => state.activeTasks);
-    const buildingIssues = useGameStore((state) => state.buildingIssues);
 
     // Height scale factor (how much Y position changes per height level)
     const heightScaleFactor = TILE_THICKNESS * 0.8;
@@ -351,28 +350,20 @@ const HexTileInstances = () => {
             const worldPos = axialToWorld(tileData.q, tileData.r);
             worldPos.y += tileData.height * (TILE_THICKNESS * 0.8);
             
-            let indicatorType: 'issue' | 'event' | 'operational' | 'shutdown' | 'none' = 'none';
+            let indicatorType: 'event' | 'operational' | 'shutdown' | 'none' = 'none';
             
-            // Check for issues (highest priority)
-            const hasIssue = Object.values(buildingIssues).some(
-                issue => !issue.resolved && issue.buildingId === task.id
-            );
-            
-            if (hasIssue) {
-                indicatorType = 'issue';
-            } 
-            // Check for events (2nd priority)
-            else if (task.status === 'event-pending') {
+            // Check for events (highest priority)
+            if (task.status === 'event-pending') {
                 indicatorType = 'event';
             }
-            // Check for shutdown status (3rd priority)
+            // Check for shutdown status (2nd priority)
             else if (task.status === 'shutdown') {
                 indicatorType = 'shutdown';
             }
-            // Check operational status (4th priority)
-            else if (task.status === 'operational') {
-                indicatorType = 'operational';
-            }
+            // Remove operational status indicators - we don't want the green spheres anymore
+            // else if (task.status === 'operational') {
+            //     indicatorType = 'operational';
+            // }
             // Check if recently completed but shutdown
             else if (task.status === 'deploying') {
                 // No indicator for deploying tasks
@@ -391,7 +382,7 @@ const HexTileInstances = () => {
         });
         
         return indicators;
-    }, [gridTiles, activeTasks, buildingIssues]);
+    }, [gridTiles, activeTasks]);
 
     return (
         <>

@@ -58,6 +58,21 @@
   padding-left: 5px;
 }
 
+/* New styles for production dome bonuses */
+.bonusText {
+  color: #4fa57b;
+  font-weight: 500;
+  display: inline-block;
+  margin-top: 3px;
+}
+
+.totalText {
+  color: #ffa048;
+  font-weight: 600;
+  display: inline-block;
+  margin-top: 3px;
+}
+
 .conditions {
   display: flex;
   flex-direction: column;

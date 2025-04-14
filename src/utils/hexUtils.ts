@@ -492,16 +492,6 @@ export const selectedMaterial = new THREE.MeshStandardMaterial({
 export const STATUS_INDICATOR_SIZE = 0.13; // Reduced from 0.15 (13% reduction)
 export const STATUS_INDICATOR_Y_OFFSET = 0.5; // Increased from 0.35 for better visibility
 
-// Issue indicator (orange/amber color)
-export const issueIndicatorMaterial = new THREE.MeshStandardMaterial({
-    color: 0xFF6B4A, // Orange-red
-    emissive: 0xAA3A0A, // Slight glow
-    emissiveIntensity: 0.8,
-    roughness: 0.3,
-    metalness: 0.5,
-    name: 'IssueIndicatorMaterial',
-});
-
 // Event indicator (purple color)
 export const eventIndicatorMaterial = new THREE.MeshStandardMaterial({
     color: 0xAA66FF, // Purple
@@ -542,7 +532,7 @@ export const statusIndicatorGeometry = new THREE.SphereGeometry(
 // Function to determine status indicator position on a tile
 export function getStatusIndicatorPosition(
     tilePosition: THREE.Vector3, 
-    indicatorType: 'issue' | 'event' | 'operational' | 'shutdown' | 'none'
+    indicatorType: 'event' | 'operational' | 'shutdown' | 'none'
 ): THREE.Vector3 {
     // Base position is slightly above the tile surface
     const position = new THREE.Vector3(
@@ -554,10 +544,6 @@ export function getStatusIndicatorPosition(
     // Adjust the positions to spread multiple indicators around the tile
     // This creates a small offset based on indicator type
     switch (indicatorType) {
-        case 'issue':
-            // Position issue indicator slightly forward (z-)
-            position.z -= 0.15;
-            break;
         case 'event':
             // Position event indicator slightly right (x+)
             position.x += 0.15;
@@ -577,11 +563,9 @@ export function getStatusIndicatorPosition(
 
 // Function to determine the material based on status
 export function getStatusIndicatorMaterial(
-    indicatorType: 'issue' | 'event' | 'operational' | 'shutdown' | 'none'
+    indicatorType: 'event' | 'operational' | 'shutdown' | 'none'
 ): THREE.Material | null {
     switch (indicatorType) {
-        case 'issue':
-            return issueIndicatorMaterial;
         case 'event':
             return eventIndicatorMaterial;
         case 'operational':

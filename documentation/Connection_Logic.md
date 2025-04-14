@@ -1,4 +1,4 @@
 State Management: Use Zustand to hold the global game state (resources, round, colonyGoals, exploration, activePuzzle, currentView: 'management' | 'puzzle').
-Triggering Puzzles: An action in the Management Area (random event during rounds, or interacting with specific Hex Tile) updates the activePuzzle state and sets currentView to 'puzzle'. Necessary context (e.g., which specific puzzle scene to load) should be passed via the state.
+Triggering Puzzles: An action in the Management Area (i.e. completed embodiment research + entering embodiment 3D scene) updates the activePuzzle state and sets currentView to 'puzzle'. Necessary context (e.g., which specific puzzle scene to load) should be passed via the state.
 Returning to Management: The Puzzle Area component, upon completion (or failure/exit), updates relevant parts of the Zustand state (rewards, etc.) and sets currentView back to 'management'.
 Data Flow: Emphasize that both areas read from and write to the central Zustand store.
