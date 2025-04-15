@@ -3,209 +3,402 @@
 <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/Derech/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, user-scalable=0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Derech - Development Updates</title>
     <style>
+        :root {
+            --mars-light: #fff1e9;
+            --mars-medium: #f7d4c4;
+            --mars-accent: #e07a5f;
+            --mars-dark: #81492c;
+            --mars-deepdark: #5a2d18;
+            --text-dark: #382418;
+            --text-light: #f9f4f0;
+            --spacing-unit: 1rem;
+        }
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
         body {
-            background-color: #f5f5f5;
-            color: #333;
+            background-color: var(--mars-light);
+            color: var(--text-dark);
             line-height: 1.6;
+            font-size: 16px;
         }
-        .container {
-            display: flex;
-            min-height: 100vh;
-        }
-        .sidebar {
-            width: 250px;
-            background-color: #2c3e50;
-            color: #ecf0f1;
-            padding: 20px;
-            position: fixed;
-            height: 100vh;
-            overflow-y: auto;
-        }
-        .sidebar h1 {
-            margin-bottom: 20px;
-            font-size: 1.5rem;
-            border-bottom: 1px solid #ecf0f1;
-            padding-bottom: 10px;
-        }
-        .sidebar ul {
-            list-style: none;
-        }
-        .sidebar li {
-            margin-bottom: 10px;
-        }
-        .sidebar a {
-            color: #ecf0f1;
+        
+        a {
+            color: var(--mars-dark);
             text-decoration: none;
-            display: block;
-            padding: 5px 0;
-            transition: all 0.3s;
+            font-weight: 500;
+            transition: color 0.2s;
         }
-        .sidebar a:hover {
-            color: #3498db;
-            transform: translateX(5px);
+        
+        a:hover {
+            color: var(--mars-accent);
+            text-decoration: underline;
         }
-        .content {
-            margin-left: 250px;
-            padding: 20px;
-            width: calc(100% - 250px);
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-unit);
         }
-        .blog-section {
-            margin-bottom: 40px;
+        
+        header {
+            background-color: var(--mars-deepdark);
+            color: var(--text-light);
+            padding: calc(var(--spacing-unit) * 2) var(--spacing-unit);
+            text-align: center;
+            border-bottom: 4px solid var(--mars-accent);
+            margin-bottom: calc(var(--spacing-unit) * 2);
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        nav {
+            background-color: var(--mars-dark);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .nav-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        nav a {
+            color: var(--text-light);
+            padding: calc(var(--spacing-unit) * 0.75) var(--spacing-unit);
+            display: inline-block;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: background-color 0.3s;
+        }
+        
+        nav a:hover {
+            background-color: var(--mars-accent);
+            color: var(--text-light);
+            text-decoration: none;
+        }
+        
+        .section {
             background-color: white;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            padding: calc(var(--spacing-unit) * 2);
+            margin-bottom: calc(var(--spacing-unit) * 2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--mars-accent);
         }
-        .blog-section h2 {
-            margin-bottom: 20px;
-            color: #2c3e50;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 10px;
+        
+        .section h2 {
+            color: var(--mars-deepdark);
+            margin-bottom: var(--spacing-unit);
+            font-size: 1.8rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--mars-medium);
         }
-        .blog-post {
-            margin-bottom: 30px;
+        
+        .article {
+            margin-bottom: calc(var(--spacing-unit) * 2);
         }
-        .blog-post h3 {
-            margin-bottom: 10px;
-            color: #2980b9;
+        
+        .article h3 {
+            font-size: 1.4rem;
+            color: var(--mars-dark);
+            margin-bottom: calc(var(--spacing-unit) * 0.5);
         }
-        .blog-post p {
-            margin-bottom: 15px;
+        
+        .article p, .article ul {
+            margin-bottom: var(--spacing-unit);
         }
-        .blog-post img {
-            max-width: 100%;
-            height: auto;
-            margin: 15px 0;
-            border-radius: 5px;
+        
+        .article ul, .article ol {
+            padding-left: calc(var(--spacing-unit) * 1.5);
         }
-        .date {
-            font-size: 0.85rem;
-            color: #7f8c8d;
-            margin-bottom: 10px;
-            display: block;
+        
+        .article li {
+            margin-bottom: calc(var(--spacing-unit) * 0.5);
         }
-        .commit {
-            background-color: #f1f8ff;
-            padding: 10px;
-            margin-bottom: 10px;
-            border-left: 3px solid #3498db;
-            border-radius: 3px;
+        
+        .category {
+            display: inline-block;
+            background-color: var(--mars-medium);
+            color: var(--mars-deepdark);
+            font-weight: 600;
+            padding: 0.3rem 0.8rem;
+            border-radius: 50px;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
         }
-        .commit-hash {
-            font-family: monospace;
-            color: #7f8c8d;
-            margin-right: 10px;
+        
+        .tech-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: calc(var(--spacing-unit) * 0.5);
+        }
+        
+        .tech-item {
+            background-color: var(--mars-light);
+            border: 1px solid var(--mars-medium);
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .social-links {
+            display: flex;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .social-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            background-color: var(--mars-medium);
+            transition: background-color 0.2s;
+        }
+        
+        .social-link:hover {
+            background-color: var(--mars-accent);
+            color: var(--text-light);
+            text-decoration: none;
+        }
+        
+        .soon-highlight {
+            background-color: #f2e3cd;
+            border-left: 3px solid #e6b341;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+        }
+        
+        footer {
+            text-align: center;
+            padding: var(--spacing-unit);
+            margin-top: calc(var(--spacing-unit) * 3);
+            color: var(--mars-dark);
+            font-size: 0.9rem;
+        }
+        
+        .back-to-top {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--mars-accent);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            opacity: 0.8;
+            transition: opacity 0.3s;
+            z-index: 100;
+        }
+        
+        .back-to-top:hover {
+            opacity: 1;
+            color: white;
+            text-decoration: none;
+        }
+        
+        @media (max-width: 768px) {
+            :root {
+                --spacing-unit: 0.8rem;
+            }
+            
+            header h1 {
+                font-size: 1.8rem;
+            }
+            
+            header p {
+                font-size: 1rem;
+            }
+            
+            .section {
+                padding: var(--spacing-unit);
+            }
+            
+            .section h2 {
+                font-size: 1.5rem;
+            }
+            
+            .article h3 {
+                font-size: 1.2rem;
+            }
+            
+            body {
+                font-size: 15px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            nav a {
+                padding: 0.5rem;
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
 <body>
+    <header>
+        <h1>Derech Development Updates</h1>
+        <p>Mars Colony Simulation</p>
+    </header>
+    
+    <nav>
+        <div class="nav-container">
+            <a href="#recent-changes">Recent Changes</a>
+            <a href="#soon">Soon</a>
+            <a href="#info">Info</a>
+            <a href="#stuff-used">Stuff Used</a>
+        </div>
+    </nav>
+    
     <div class="container">
-        <aside class="sidebar">
-            <h1>Derech Updates</h1>
-            <ul>
-                <li><a href="#recent-changes">Recent Changes</a></li>
-                <li><a href="#currently-working">Currently Working On</a></li>
-                <li><a href="#scope">Project Scope</a></li>
-            </ul>
-        </aside>
+        <section id="recent-changes" class="section">
+            <h2>Recent Changes</h2>
+            
+            <article class="article">
+                <span class="category">New Features</span>
+                <ul>
+                    <li>Introduced a comprehensive in-game tutorial window with tabbed sections for gameplay guidance.</li>
+                    <li>Added a flow window displaying detailed resource flow analytics, flow points, and rewards.</li>
+                    <li>Implemented a collapsible resource sidebar for quick access to resource details and trends.</li>
+                    <li>Enhanced production dome info to display dynamic bonuses from completed projects.</li>
+                </ul>
+                
+                <span class="category">Bug Fixes</span>
+                <ul>
+                    <li>Improved population growth logic and resource trend tracking for more accurate gameplay feedback.</li>
+                </ul>
+                
+                <span class="category">Refactor</span>
+                <ul>
+                    <li>Removed the entire issues system, including related UI, logic, and configuration.</li>
+                    <li>Streamlined status indicators by eliminating issue and operational types.</li>
+                </ul>
+                
+                <span class="category">Style</span>
+                <ul>
+                    <li>Updated and added CSS modules for the new tutorial and flow windows, resource sidebar, and improved responsive layouts.</li>
+                </ul>
+                
+                <span class="category">Documentation</span>
+                <ul>
+                    <li>Updated project structure documentation and removed obsolete implementation plans and issue-related docs.</li>
+                </ul>
+                
+                <span class="category">Chores</span>
+                <ul>
+                    <li>Cleaned up unused files and references related to the issues system.</li>
+                </ul>
+            </article>
+        </section>
         
-        <main class="content">
-            <section id="recent-changes" class="blog-section">
-                <h2>Recent Changes</h2>
-                
-                <article class="blog-post">
-                    <h3>Latest Development Updates</h3>
-                    <span class="date"> march 13th, 2025</span>
-                    
-                    <p>Here's a summary of the recent changes to the Mars Colony Simulation:</p>
-                    
-                    <div class="commit">
-                        <span class="commit-hash">latest</span>
-                        <strong>Complete rework of movement + 3D Scenes</strong>
-                        <p>Made everything more spacious, light, and hopefully performing better.</p>
-                    </div>
-                    
-                    <div class="commit">
-                        <span class="commit-hash">06938d2</span>
-                        <strong>Mobile Responsiveness Enhancement</strong>
-                        <p>Updated the mobile UI experience across multiple components including index.html, LivingDomeWindow, ProductionDomeWindow, and ResearchWindow. Improved viewport settings for better scaling on mobile devices and refactored CSS to allow vertical scrolling on mobile while maintaining fixed position.</p>
-                    </div>
-                    
-                    <div class="commit">
-                        <span class="commit-hash">previous</span>
-                        <strong>Code Refactoring</strong>
-                        <p>Optimized project structure and refactored components to improve performance and maintainability.</p>
-                    </div>
-                    
-                    <div class="commit">
-                        <span class="commit-hash">previous</span>
-                        <strong>Configuration Enhancements</strong>
-                        <p>Updated project configurations for better development workflow and deployment processes.</p>
-                    </div>
-                    
-                    <div class="commit">
-                        <span class="commit-hash">previous</span>
-                        <strong>UI Improvements</strong>
-                        <p>Removed unnecessary elements from the interface for increased space and clarity in the simulation view.</p>
-                    </div>
-                    
-                    <p>Or in my words: tried fixing some css stuff with cursor & Claude-3.7-sonnet, seems to work now for a few select resolution ranges. </p>
-                </article>
-            </section>
+        <section id="soon" class="section">
+            <h2>Soon</h2>
             
-            <section id="currently-working" class="blog-section">
-                <h2>Currently Working On</h2>
+            <article class="article">
+                <div class="soon-highlight">
+                    <p>Currently working on balancing and 3D puzzle areas</p>
+                </div>
                 
-                <article class="blog-post">
-                    <h3>Colony Infrastructure Systems</h3>
-                    <span class="date">march 13rd, 2025</span>
-                    <p>Currently working on first 3D Puzzle Scene. Placeholder in place.</p>
-                    <p>Also trying to figure out resource balancing and make the manager more complex.
-                    </p>
-                    <p>Here's what I really wanna do next:
-                    <ul>
-                        <li>change dynamic between pop-amount and workforce and colony goods</li>
-                        <li>transition from issue placeholders to balanced values and more sophisticated flavor</li>
-                        <li>rethink how audio is handled. currently only have RedSands.mp3, no sounds</li>
-                        <li>polish the WelcomeScene with VibeVerse portal a bit</li>
-                    </ul>
-                </article>
-            </section>
+                <h3>On the Horizon</h3>
+                <p>Once the management gameplay is properly balanced, the focus will shift to developing the 3D puzzle areas. These immersive environments will challenge players to solve interactive puzzles that represent the AI's learning process about the physical world, deepening the connection between the colony management and the embodiment narrative.</p>
+                
+                <p>The puzzles will also unlock new capabilities for your colony, creating a meaningful progression loop between the management and puzzle gameplay elements.</p>
+            </article>
+        </section>
+        
+        <section id="info" class="section">
+            <h2>Info</h2>
             
-            <section id="scope" class="blog-section">
-                <h2>Project Scope (rhymes with "hope" r_r)</h2>
+            <article class="article">
+                <h3>github and twitter</h3>
+                <p>Derech is an ongoing project, so check back for updates</p>
                 
-                <article class="blog-post">
-                    <h3>Derech Mars Colony Simulation - Vision</h3>
-                    <span class="date">march 3rd, 2025</span>
-                    <p>I want the player to control an AI called Moses. Grok told me "Derech" means "Way" in Hebrew, and I liked the sound of that.
-                    <p> The Goal of the Moses AI is to assist a bunch of Mars Colonists in self-sustaining their base, exploring and expanding.</p>
-                    <p> To train the Moses AI, Colonists have devised an interfacing system, that allows them to communicate with the AI and their biometrics.
-                    <p> Long story short: the AI will be sent on 3d-Embodiment quests, with the goal of learning about the physical world and its limits,
-                    <p> making Moses AI more efficient and capable in helping the colonists.</p>
-                    </p>
-                    </p>
-                    </p>
-                    <ul>
-                        <li>Management Game with a focus on resource balancing</li>                        <li>Resource management simulation with realistic constraints</li>
-                        <li>3D Area and Interactive elements allowing users to make decisions affecting colony development</li>
-                        <li>Flavorful and engaging story, hopefully, no idea whether im capable of that :D</li>
-                        <li>Tons of ideas of course.</li>
-                    </ul>
-                    <p>"Our goal is to create both an educational tool and an engaging experience that helps people understand the challenges and possibilities of Mars colonization."</p>
-                    <p> ^ that's what Claude wrote, creating this blog page. I think it's cool, so I'm gonna keep it.</p>
-                </article>
-            </section>
-        </main>
+                <div class="social-links">
+                    <a href="https://github.com/rawlph" class="social-link" target="_blank">
+                        <span>GitHub</span>
+                    </a>
+                    <a href="https://x.com/rawlph" class="social-link" target="_blank">
+                        <span>X / Twitter</span>
+                    </a>
+                </div>
+                
+                <p>feedback and suggestions are welcome!</p>
+            </article>
+        </section>
+        
+        <section id="stuff-used" class="section">
+            <h2>Stuff Used</h2>
+            
+            <article class="article">
+                <h3>Tech Stack</h3>
+                <div class="tech-list">
+                    <span class="tech-item">Vite (Build Tool)</span>
+                    <span class="tech-item">React (UI Framework)</span>
+                    <span class="tech-item">ThreeJS via React Three Fiber</span>
+                    <span class="tech-item">Drei (R3F Helpers)</span>
+                    <span class="tech-item">Zustand (State Management)</span>
+                    <span class="tech-item">NippleJS (Mobile Controls)</span>
+                    <span class="tech-item">CSS Modules (Styling)</span>
+                </div>
+                
+                <h3>Notable Libraries</h3>
+                <div class="tech-list">
+                    <span class="tech-item">TypeScript</span>
+                    <span class="tech-item">ThreeJS</span>
+                    <span class="tech-item">React Router</span>
+                    <span class="tech-item">TailwindCSS</span>
+                </div>
+                
+                <h3>Development Tools</h3>
+                <p>Development of Derech is accelerated with the help of these amazing AI tools:</p>
+                <div class="tech-list">
+                    <span class="tech-item">Cursor</span>
+                    <span class="tech-item">Claude-3.7-Sonnet</span>
+                    <span class="tech-item">Gemini 2.5</span>
+                    <span class="tech-item">ChatGPT</span>
+                    <span class="tech-item">Grok</span>
+                </div>
+            </article>
+        </section>
     </div>
+    
+    <a href="#" class="back-to-top" aria-label="Back to top">↑</a>
+    
+    <footer>
+        <p>© 2025 Derech Mars Colony Simulation</p>
+    </footer>
 </body>
 </html> 
