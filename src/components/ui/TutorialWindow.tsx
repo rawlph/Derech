@@ -8,7 +8,7 @@ interface TutorialWindowProps {
 }
 
 // Placeholder image path (replace with your actual image in /public)
-const headerImagePath = '/Derech/placeholders/tutorial_header.png';
+const headerImagePath = '/Derech/placeholders/research_header.png';
 
 // Define tutorial sections for organization
 const tutorialSections = [

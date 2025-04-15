@@ -7,6 +7,71 @@ import EmergencyDecisions from './EmergencyDecisions'; // Import the emergency c
 import DomeInfoPanel from './DomeInfoPanel'; // Import the dome info component
 import VolumeControl from './VolumeControl'; // Import the volume control component
 
+// Status Display Component
+const StatusDisplay = () => {
+    const { 
+        flowPoints, 
+        activeFlowTier, 
+        population, 
+        totalWorkforce, 
+        availableWorkforce 
+    } = useGameStore();
+    
+    // Determine flow icon and class based on active tier
+    const getFlowDisplay = () => {
+        let iconContent;
+        let tierClass;
+        let displayFormat;
+        
+        switch (activeFlowTier) {
+            case 'basic':
+                iconContent = '🌀';
+                tierClass = styles.basicFlow;
+                displayFormat = `${iconContent}: ${flowPoints}`;
+                break;
+            case 'strong':
+                iconContent = '🌀🌀';
+                tierClass = styles.strongFlow;
+                displayFormat = `${iconContent}: ${flowPoints}`;
+                break;
+            case 'master':
+                iconContent = '🌀🌀🌀';
+                tierClass = styles.masterFlow;
+                displayFormat = `${iconContent}: ${flowPoints}`;
+                break;
+            default:
+                iconContent = '🌀';
+                tierClass = styles.noFlow;
+                displayFormat = `No-${iconContent}: ${flowPoints}`;
+                break;
+        }
+        
+        return (
+            <span className={`${styles.flowDisplay} ${tierClass}`}>
+                {displayFormat}
+            </span>
+        );
+    };
+    
+    return (
+        <div className={styles.statusDisplay}>
+            <div className={styles.statusItem}>
+                {getFlowDisplay()}
+            </div>
+            <div className={styles.statusItem}>
+                <span className={styles.populationDisplay}>
+                    🧑‍🤝‍🧑: {population}
+                </span>
+            </div>
+            <div className={styles.statusItem}>
+                <span className={styles.workforceDisplay}>
+                    👷: {availableWorkforce}/{totalWorkforce}
+                </span>
+            </div>
+        </div>
+    );
+};
+
 const ManagementUI = () => {
     const {
         power,
@@ -37,6 +102,9 @@ const ManagementUI = () => {
         // --- --- 
         completedResearch,
         isAudioPuzzleCompleted,
+        // --- NEW: Import resource sidebar state and action ---
+        isResourceSidebarOpen,
+        setResourceSidebarOpen,
     } = useGameStore();
 
     // --- State for button feedback ---
@@ -50,9 +118,7 @@ const ManagementUI = () => {
     const [showPortalConfirm, setShowPortalConfirm] = useState(false);
     // --- ---
     
-    // --- State for Resources Sidebar ---
-    const [isResourceSidebarOpen, setIsResourceSidebarOpen] = useState(false);
-    // --- ---
+    // --- State for Resources Sidebar removed since it's now in the store ---
 
     // Helper to render resource trend indicators
     const renderTrendIndicator = (trend: 'up' | 'down' | 'same' | null) => {
@@ -89,7 +155,7 @@ const ManagementUI = () => {
     }
     
     const toggleResourceSidebar = () => {
-        setIsResourceSidebarOpen(!isResourceSidebarOpen);
+        setResourceSidebarOpen(!isResourceSidebarOpen);
     };
 
     // --- Task Handling Logic ---
@@ -230,7 +296,7 @@ const ManagementUI = () => {
                 <div>
                     <p><strong>Research Facility Actions:</strong></p>
                     <button
-                        onClick={showResearchWindow} // Call the action from store
+                        onClick={showResearchWindow}
                         className={styles.actionButtonSmall}
                     >
                         View Projects
@@ -248,6 +314,16 @@ const ManagementUI = () => {
                     
                     {/* Display Research Dome Info Panel */}
                     <DomeInfoPanel domeType="research" />
+                </div>
+            );
+        }
+        
+        // --- Check for Flow Project Site ---
+        if (selectedTile.building === 'Flow Project Site') {
+            return (
+                <div>
+                    <p><strong>Flow Project Site</strong></p>
+                    <p>Status: Under construction</p>
                 </div>
             );
         }
@@ -398,52 +474,94 @@ const ManagementUI = () => {
             <div className={styles.topBar}>
                 <div className={styles.roundDisplay}>
                     <span className={styles.roundCounter}>Round: {currentRound}</span>
-                    <div className={styles.roundButtons}>
-                        <button onClick={handleEndRound} className={styles.actionButton}>
-                            End Round
-                        </button>
-                        <button onClick={handleGoToWelcome} className={`${styles.actionButton} ${styles.portalButton}`}>
-                            PORTAL ROOM
-                        </button>
-                        <button 
-                            onClick={() => {
-                                // Add resources for testing
-                                useGameStore.getState().addPower(500);
-                                useGameStore.getState().addWater(500);
-                                useGameStore.getState().addMinerals(500);
-                                // Need to add these resources too
-                                useGameStore.setState(state => ({
-                                    colonyGoods: state.colonyGoods + 500,
-                                    researchPoints: state.researchPoints + 500
-                                }));
-                                
-                                // Show dialogue message
-                                useGameStore.getState().showDialogue(
-                                    "For your simulation, we've added +500 to each of your working resources. This should help you test more advanced colony configurations without waiting for resource accumulation.", 
-                                    '/Derech/avatars/AiHelper.jpg'
-                                );
-                                
-                                console.log("TEST MODE: Added 500 of each resource");
-                            }} 
-                            className={`${styles.actionButton} ${styles.testButton}`}
-                        >
-                            TEST MODE
-                        </button>
-                        <button
-                            onClick={showTutorialWindow}
-                            className={`${styles.actionButton} ${styles.tutorialButton}`}
-                            title="Open Tutorial"
-                        >
-                            ?
-                        </button>
-                        <button
-                            onClick={() => (window as any).toggleFlowWindow?.()}
-                            className={`${styles.actionButton} ${styles.portalButton}`}
-                            title="View Resource Flow Analytics"
-                        >
-                            Flow
-                        </button>
-                        <VolumeControl />
+                    <div className={styles.roundButtonsContainer}>
+                        {/* Left Group: Game Controls */}
+                        <div className={styles.buttonGroup}>
+                            <button onClick={handleEndRound} className={`${styles.actionButton} ${styles.mainActionButton}`}>
+                                End Round
+                            </button>
+                            <button
+                                onClick={() => (window as any).toggleFlowWindow?.()}
+                                className={`${styles.actionButton} ${styles.flowButton}`}
+                                title="View Resource Flow Analytics"
+                            >
+                                Flow
+                            </button>
+                        </div>
+                        
+                        {/* Separator */}
+                        <div className={styles.buttonSeparator}></div>
+                        
+                        {/* Middle Group: Special Actions */}
+                        <div className={styles.buttonGroup}>
+                            <button 
+                                onClick={() => {
+                                    // Show confirmation dialogue instead of directly adding resources
+                                    useGameStore.getState().showDialogue(
+                                        "Add +500 to each of your working resources for testing? This will help you test more advanced colony configurations without waiting for resource accumulation.",
+                                        '/Derech/avatars/AiHelper.jpg',
+                                        "TEST MODE",
+                                        [
+                                            {
+                                                text: "Cancel",
+                                                action: () => {
+                                                    useGameStore.getState().hideDialogue();
+                                                }
+                                            },
+                                            {
+                                                text: "Proceed",
+                                                action: () => {
+                                                    // Add resources for testing
+                                                    useGameStore.getState().addPower(500);
+                                                    useGameStore.getState().addWater(500);
+                                                    useGameStore.getState().addMinerals(500);
+                                                    // Add more resources
+                                                    useGameStore.setState(state => ({
+                                                        colonyGoods: state.colonyGoods + 500,
+                                                        researchPoints: state.researchPoints + 500
+                                                    }));
+                                                    
+                                                    // Close the dialogue
+                                                    useGameStore.getState().hideDialogue();
+                                                    
+                                                    // Show confirmation message
+                                                    setTimeout(() => {
+                                                        useGameStore.getState().showDialogue(
+                                                            "+500 resources added to each category. Use these resources wisely for your experiment.", 
+                                                            '/Derech/avatars/AiHelper.jpg',
+                                                            "TEST MODE"
+                                                        );
+                                                    }, 100);
+                                                    
+                                                    console.log("TEST MODE: Added 500 of each resource");
+                                                }
+                                            }
+                                        ]
+                                    );
+                                }} 
+                                className={`${styles.actionButton} ${styles.testButton}`}
+                            >
+                                TEST MODE
+                            </button>
+                            <button onClick={handleGoToWelcome} className={`${styles.actionButton} ${styles.portalButton}`}>
+                                PORTAL ROOM
+                            </button>
+                        </div>
+                        
+                        {/* Separator */}
+                        <div className={styles.buttonSeparator}></div>
+                        
+                        {/* Right Group: Help and Settings */}
+                        <div className={styles.buttonGroup}>
+                            <button
+                                onClick={showTutorialWindow}
+                                className={`${styles.actionButton} ${styles.tutorialButton}`}
+                                title="Open Tutorial"
+                            >
+                                ?
+                            </button>
+                            <VolumeControl />
+                        </div>
                     </div>
                 </div>
                 
@@ -457,6 +575,9 @@ const ManagementUI = () => {
                     {isResourceSidebarOpen ? '→' : '←'} Resources
                 </button>
             </div>
+            
+            {/* Status Display */}
+            <StatusDisplay />
             
             {/* Collapsible Resource Sidebar */}
             <div 
@@ -486,9 +607,10 @@ const ManagementUI = () => {
                     </div>
                     
                     <div className={styles.resourceItem}>
-                        <span className={styles.resourceIcon}>🧑‍🤝‍🧑</span>
-                        <span className={styles.resourceLabel}>Population:</span>
-                        <span className={styles.resourceValue}>{population}</span>
+                        <span className={styles.resourceIcon}>📦</span>
+                        <span className={styles.resourceLabel}>Goods:</span>
+                        <span className={styles.resourceValue}>{Math.floor(colonyGoods)}</span>
+                        {renderTrendIndicator(resourceTrends.colonyGoods)}
                     </div>
                     
                     <div className={styles.resourceItem}>
@@ -498,11 +620,12 @@ const ManagementUI = () => {
                         {renderTrendIndicator(resourceTrends.researchPoints)}
                     </div>
                     
+                    <div className={styles.resourceDivider}></div>
+                    
                     <div className={styles.resourceItem}>
-                        <span className={styles.resourceIcon}>📦</span>
-                        <span className={styles.resourceLabel}>Goods:</span>
-                        <span className={styles.resourceValue}>{Math.floor(colonyGoods)}</span>
-                        {renderTrendIndicator(resourceTrends.colonyGoods)}
+                        <span className={styles.resourceIcon}>🧑‍🤝‍🧑</span>
+                        <span className={styles.resourceLabel}>Population:</span>
+                        <span className={styles.resourceValue}>{population}</span>
                     </div>
                     
                     <div className={styles.resourceItem}>

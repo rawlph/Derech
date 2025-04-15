@@ -363,77 +363,75 @@ const FlowWindow: React.FC<FlowWindowProps> = ({ isVisible, onClose }) => {
         );
     };
     
-    if (!isVisible) {
-        return null;
-    }
-
     return (
-        <div className={styles.overlay} onClick={onClose}>
-            <div className={styles.windowContainer} onClick={(e) => e.stopPropagation()}>
-                <button className={styles.closeButton} onClick={onClose}>×</button>
+        isVisible ? (
+            <div className={styles.overlay} onClick={onClose}>
+                <div className={styles.windowContainer} onClick={(e) => e.stopPropagation()}>
+                    <button className={styles.closeButton} onClick={onClose}>×</button>
 
-                {/* Header section with image and title */}
-                <div className={styles.headerSection}>
-                    <div className={styles.headerImageContainer}>
-                        <img src={headerImagePath} alt="Flow Analytics" className={styles.headerImage} />
+                    {/* Header section with image and title */}
+                    <div className={styles.headerSection}>
+                        <div className={styles.headerImageContainer}>
+                            <img src={headerImagePath} alt="Flow Analytics" className={styles.headerImage} />
+                        </div>
+
+                        <h2 className={styles.title}>Flow Analytics</h2>
+                    </div>
+                    
+                    {/* Navigation tabs for flow sections */}
+                    <div className={styles.tabsContainer}>
+                        {flowSections.map(section => (
+                            <button 
+                                key={section.id}
+                                className={`${styles.tabButton} ${activeSection === section.id ? styles.activeTab : ''}`}
+                                onClick={() => setActiveSection(section.id)}
+                            >
+                                {section.title}
+                            </button>
+                        ))}
                     </div>
 
-                    <h2 className={styles.title}>Flow Analytics</h2>
-                </div>
-                
-                {/* Navigation tabs for flow sections */}
-                <div className={styles.tabsContainer}>
-                    {flowSections.map(section => (
-                        <button 
-                            key={section.id}
-                            className={`${styles.tabButton} ${activeSection === section.id ? styles.activeTab : ''}`}
-                            onClick={() => setActiveSection(section.id)}
+                    {/* Main content container */}
+                    <div className={styles.mainContentContainer}>
+                        {/* Last 10 Rounds Section */}
+                        <div 
+                            className={`${styles.flowSection} ${activeSection === 'last10' ? styles.activeSection : ''}`}
                         >
-                            {section.title}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Main content container */}
-                <div className={styles.mainContentContainer}>
-                    {/* Last 10 Rounds Section */}
-                    <div 
-                        className={`${styles.flowSection} ${activeSection === 'last10' ? styles.activeSection : ''}`}
-                    >
-                        <h3 className={styles.sectionTitle}>Accumulation</h3>
-                        <div className={styles.sectionContent}>
-                            <p>Resource trend analysis for consecutive positive rounds:</p>
-                            
-                            {/* Render resource trend statistics */}
-                            {renderResourceTrends(10)}
-                            
-                            {/* Population information */}
-                            {renderPopulationGraph(10)}
+                            <h3 className={styles.sectionTitle}>Accumulation</h3>
+                            <div className={styles.sectionContent}>
+                                <p>Resource trend analysis for consecutive positive rounds:</p>
+                                
+                                {/* Render resource trend statistics */}
+                                {renderResourceTrends(10)}
+                                
+                                {/* Population information */}
+                                {renderPopulationGraph(10)}
+                            </div>
                         </div>
-                    </div>
-                    
-                    {/* Flow Rewards Section */}
-                    <div 
-                        className={`${styles.flowSection} ${activeSection === 'rewards' ? styles.activeSection : ''}`}
-                    >
-                        <h3 className={styles.sectionTitle}>Flow Rewards</h3>
-                        <div className={styles.sectionContent}>
-                            {renderFlowRewards()}
+                        
+                        {/* Flow Rewards Section */}
+                        <div 
+                            className={`${styles.flowSection} ${activeSection === 'rewards' ? styles.activeSection : ''}`}
+                        >
+                            <h3 className={styles.sectionTitle}>Flow Rewards</h3>
+                            <div className={styles.sectionContent}>
+                                {renderFlowRewards()}
+                            </div>
                         </div>
-                    </div>
-                    
-                    {/* Flow Tutorial Section */}
-                    <div 
-                        className={`${styles.flowSection} ${activeSection === 'tutorial' ? styles.activeSection : ''}`}
-                    >
-                        <h3 className={styles.sectionTitle}>Flow Tutorial</h3>
-                        <div className={styles.sectionContent}>
-                            {renderFlowTutorial()}
+                        
+                        {/* Flow Tutorial Section */}
+                        <div 
+                            className={`${styles.flowSection} ${activeSection === 'tutorial' ? styles.activeSection : ''}`}
+                        >
+                            <h3 className={styles.sectionTitle}>Flow Tutorial</h3>
+                            <div className={styles.sectionContent}>
+                                {renderFlowTutorial()}
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        ) : null
     );
 };
 

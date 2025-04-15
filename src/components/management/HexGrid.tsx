@@ -8,6 +8,9 @@ import TaskVisuals from './TaskVisuals';
 import TaskProgressLines from './TaskProgressLines';
 import TaskTransportModels from './TaskTransportModels';
 import BaseConnectionLines from './BaseConnectionLines';
+import InitialFuelLines from './InitialFuelLines';
+import FlowProjectSite from './FlowProjectSite';
+import StarterBuildingFloors from './StarterBuildingFloors';
 import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { taskConfigs } from '@config/tasks';
 
@@ -77,6 +80,9 @@ const HexGrid = () => {
             <TaskProgressLines />
             <TaskTransportModels />
             <BaseConnectionLines />
+            <InitialFuelLines />
+            <StarterBuildingFloors />
+            <FlowProjectSite />
 
             <OrbitControls
                 ref={controlsRef}
