@@ -11,12 +11,14 @@ const DomeInfoPanel: React.FC<DomeInfoPanelProps> = ({ domeType }) => {
     domeGeneration, 
     population,
     water,
-    colonyGoods
+    colonyGoods,
+    completedProductionProjects
   } = useGameStore(state => ({
     domeGeneration: state.domeGeneration,
     population: state.population,
     water: state.water,
-    colonyGoods: state.colonyGoods
+    colonyGoods: state.colonyGoods,
+    completedProductionProjects: state.completedProductionProjects
   }));
 
   const {
@@ -29,6 +31,24 @@ const DomeInfoPanel: React.FC<DomeInfoPanelProps> = ({ domeType }) => {
     waterPositive,
     colonyGoodsSufficient
   } = domeGeneration;
+
+  // Calculate colony goods generation rate with bonuses
+  const calculateColonyGoodsGeneration = () => {
+    let baseAmount = colonyGoodsBaseAmount;
+    let bonusPercentage = 0;
+    
+    // Check for production projects that affect colony goods generation
+    if (completedProductionProjects.includes('optimize-assembly')) {
+      bonusPercentage += 15; // 15% bonus from Optimized Assembly Line
+    }
+    
+    // Apply bonus if any
+    const totalAmount = bonusPercentage > 0 
+      ? Math.round((baseAmount * (1 + bonusPercentage / 100)) * 100) / 100 
+      : baseAmount;
+      
+    return { baseAmount, bonusPercentage, totalAmount };
+  };
 
   const renderLivingDomeInfo = () => {
     const requiredGoods = population * 2;
@@ -52,19 +72,12 @@ const DomeInfoPanel: React.FC<DomeInfoPanelProps> = ({ domeType }) => {
             {cyclesRemaining > 0 ? `${cyclesRemaining} rounds` : "Ready!"}
           </div>
         </div>
-        <div className={styles.conditions}>
-          <div className={waterPositive ? styles.conditionMet : styles.conditionFailed}>
-            <span className={styles.indicator}>
-              {waterPositive ? '✓' : '✗'}
-            </span> 
-            Water positive: {water > 0 ? 'Yes' : 'No'}
-          </div>
-          <div className={colonyGoodsSufficient ? styles.conditionMet : styles.conditionFailed}>
-            <span className={styles.indicator}>
-              {colonyGoodsSufficient ? '✓' : '✗'}
-            </span> 
-            Colony goods: {colonyGoods} / {requiredGoods} required
-          </div>
+        
+        <div className={styles.generationInfo}>
+          Required goods: {requiredGoods} ({requiredGoods > colonyGoods ? 'Insufficient' : 'Sufficient'})
+        </div>
+        <div className={styles.generationInfo}>
+          Water status: {waterPositive ? 'Positive' : 'Negative'}
         </div>
       </div>
     );
@@ -77,10 +90,10 @@ const DomeInfoPanel: React.FC<DomeInfoPanelProps> = ({ domeType }) => {
       <div>
         <h4>Research Dome</h4>
         <div className={styles.infoRow}>
-          <div className={styles.resourceLabel}>Research Points:</div>
+          <div className={styles.resourceLabel}>Research:</div>
           <div className={styles.progressBar}>
             <div 
-              className={styles.progressFill} 
+              className={styles.progressFill}
               style={{ width: `${(researchCycle / 4) * 100}%` }}
             />
           </div>
@@ -97,6 +110,7 @@ const DomeInfoPanel: React.FC<DomeInfoPanelProps> = ({ domeType }) => {
 
   const renderProductionDomeInfo = () => {
     const cyclesRemaining = 5 - colonyGoodsCycle;
+    const { baseAmount, bonusPercentage, totalAmount } = calculateColonyGoodsGeneration();
     
     return (
       <div>
@@ -114,7 +128,19 @@ const DomeInfoPanel: React.FC<DomeInfoPanelProps> = ({ domeType }) => {
           </div>
         </div>
         <div className={styles.generationInfo}>
-          Base generation: +{colonyGoodsBaseAmount} goods every 5 rounds
+          Base generation: +{baseAmount} goods every 5 rounds
+          {bonusPercentage > 0 && (
+            <>
+              <br/>
+              <span className={styles.bonusText}>
+                Project bonus: +{bonusPercentage}%
+              </span>
+              <br/>
+              <span className={styles.totalText}>
+                Total: +{totalAmount} goods
+              </span>
+            </>
+          )}
         </div>
       </div>
     );

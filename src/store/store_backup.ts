@@ -488,6 +488,96 @@ export const useGameStore = create<GameState>((set, get) => ({
   isMuted: false,
   audioVolume: 50,
 
+  // --- Workforce ---
+  totalWorkforce: 8, // NEW: Calculated from population
+  availableWorkforce: 8,
+
+  // --- Game State ---
+  currentRound: 1,
+  gridTiles: {}, // Initialized below
+  selectedTile: null,
+  gameView: 'welcome',  // Changed from 'management' to 'welcome'
+  previousGameView: null, // Track the previous view
+  activeTasks: {}, // Start with no active tasks
+  dialogueMessage: null, // Initialize dialogue as hidden
+  lastFlavourRound: 0, // Initialize last flavour round
+  isLowWaterPenaltyActive: false, // Initialize penalty flag
+  isLowPowerPenaltyActive: false, // NEW: Initialize power penalty flag
+  
+  // Audio Puzzle
+  audioPuzzleProgress: 0, // Initialize audio puzzle progress to 0
+  isAudioPuzzleCompleted: false, // Initialize audio puzzle completion status
+  
+  // --- NEW: Initial Research State ---
+  isResearchWindowVisible: false, // Initially hidden
+  // --- NEW: Initial Living Dome State ---
+  isLivingDomeWindowVisible: false, // Initially hidden
+  // --- NEW: Initial Production Dome State ---
+  isProductionDomeWindowVisible: false, // Initially hidden
+  // --- NEW: Initial Tutorial State ---
+  isTutorialWindowVisible: false, // Initially hidden
+  
+  // --- NEW: Flow Window State ---
+  isFlowWindowVisible: false, // Initially hidden
+
+  // --- NEW: Research State ---
+  activeResearch: null, // Initially no active research project
+  completedResearch: [], // Array of research project IDs that have been completed
+  
+  // --- NEW: Living Dome State ---
+  activeLivingProject: null, // Initially no active living project
+  completedLivingProjects: [], // Completed living projects
+  
+  // --- NEW: Production Dome State ---
+  activeProductionProject: null, // Initially no active production project
+  completedProductionProjects: [], // Completed production projects
+
+  // --- Resource Generation Tracking ---
+  roundResourceGenerations: [],
+
+  // --- Dome Generation Tracking ---
+  domeGeneration: {
+    colonyGoodsCycle: 0,
+    colonyGoodsBaseAmount: 3, // Base: +3 every 5 rounds
+    researchCycle: 0,
+    researchBaseAmount: 1, // Base: +1 every 4 rounds
+    populationCycle: 0,
+    populationGrowthThreshold: 10, // Need 10 consecutive rounds with sufficient resources
+    waterPositive: true, // Start assuming positive water
+    colonyGoodsSufficient: true, // Start assuming sufficient goods
+  },
+
+  // --- Previous Round Resources ---
+  previousRoundResources: {
+    power: 100,
+    water: 100,
+    minerals: 50,
+    colonyGoods: 50,
+    researchPoints: 0
+  },
+  
+  // --- Resource Trends ---
+  resourceTrends: {
+    power: 'same',
+    water: 'same',
+    minerals: 'same',
+    colonyGoods: 'same',
+    researchPoints: 'same'
+  },
+  
+  // --- NEW: Resource Trend History ---
+  resourceTrendHistory: {
+    power: [],
+    water: [],
+    minerals: [],
+    colonyGoods: [],
+    researchPoints: []
+  },
+
+  // --- Audio Settings ---
+  isMuted: false,
+  audioVolume: 50,
+
   // --- Actions ---
   addPower: (amount) => set((state) => ({ power: state.power + amount })),
   addWater: (amount) => set((state) => ({ water: state.water + amount })),

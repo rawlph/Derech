@@ -1,0 +1,1047 @@
+/* Main overlay that covers the entire screen */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+}
+
+/* Main window container */
+.windowContainer {
+  position: relative;
+  width: 90%;
+  max-width: 900px;
+  height: 80%;
+  max-height: 700px;
+  background-color: #121820;
+  border: 2px solid #3cc0b5;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(60, 192, 181, 0.3), 
+              inset 0 0 10px rgba(60, 192, 181, 0.1);
+  display: flex;
+  flex-direction: column;
+  color: #e6e6e6;
+  overflow: hidden;
+}
+
+/* Close button */
+.closeButton {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 32px;
+  height: 32px;
+  background-color: #3cc0b5;
+  color: #121820;
+  border: none;
+  border-radius: 50%;
+  font-size: 18px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+  background-color: #e85e5b;
+  transform: scale(1.1);
+}
+
+/* Header section with image and title */
+.headerSection {
+  width: 100%;
+  text-align: center;
+  padding: 20px 0 10px;
+  flex-shrink: 0;
+}
+
+.headerImageContainer {
+  width: 100%;
+  height: 120px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.headerImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-bottom: 1px solid #3cc0b5;
+}
+
+.title {
+  font-size: 28px;
+  margin: 10px 0;
+  color: #3cc0b5;
+  text-shadow: 0 0 10px rgba(60, 192, 181, 0.5);
+}
+
+/* Tabs navigation */
+.tabsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 15px;
+  border-bottom: 1px solid #334155;
+  margin-bottom: 15px;
+  flex-shrink: 0;
+}
+
+.tabButton {
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-bottom: none;
+  border-radius: 5px 5px 0 0;
+  padding: 8px 15px;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.tabButton:hover {
+  background-color: #273549;
+}
+
+.activeTab {
+  background-color: #3cc0b5;
+  color: #121820;
+  border-color: #3cc0b5;
+  font-weight: 600;
+}
+
+/* Main content container */
+.mainContentContainer {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 20px 20px;
+  scrollbar-width: thin;
+  scrollbar-color: #3cc0b5 #1e293b;
+  min-height: 100px; /* Ensure there's always some scrollable area */
+}
+
+.mainContentContainer::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mainContentContainer::-webkit-scrollbar-track {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+.mainContentContainer::-webkit-scrollbar-thumb {
+  background-color: #3cc0b5;
+  border-radius: 4px;
+}
+
+/* Flow section styling */
+.flowSection {
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.activeSection {
+  display: block;
+  opacity: 1;
+}
+
+.sectionTitle {
+  font-size: 22px;
+  color: #3cc0b5;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 8px;
+}
+
+.sectionContent {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.sectionContent p {
+  margin-bottom: 15px;
+}
+
+/* Stats container styling */
+.statsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.statsRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background-color: #1e293b;
+  border-radius: 6px;
+  border: 1px solid #334155;
+}
+
+.resourceName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.resourceStats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.resourceIcon {
+  font-size: 20px;
+  width: 24px;
+  text-align: center;
+}
+
+.trendCount {
+  font-size: 14px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.consecutiveCount {
+  font-size: 13px;
+  color: #5eead4;
+  background-color: rgba(45, 212, 191, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.positiveCount {
+  background-color: rgba(45, 212, 191, 0.2);
+  color: #5eead4;
+  border: 1px solid rgba(94, 234, 212, 0.3);
+}
+
+.neutralCount {
+  background-color: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.graphContainer {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #1e293b;
+  border-radius: 6px;
+  border: 1px solid #334155;
+}
+
+.graphTitle {
+  font-size: 18px;
+  color: #e6e6e6;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+/* Population Summary Styles */
+.populationSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.populationStatRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background-color: rgba(30, 41, 59, 0.5);
+  border-radius: 4px;
+}
+
+.populationStatLabel {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.populationStatValue {
+  font-weight: 600;
+  font-size: 18px;
+  color: #3cc0b5;
+}
+
+.populationDivider {
+  height: 1px;
+  background-color: #334155;
+  margin: 5px 0;
+}
+
+.populationGrowthInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  background-color: rgba(30, 41, 59, 0.7);
+  border-radius: 6px;
+  border: 1px solid #334155;
+}
+
+.growthTitle {
+  font-weight: 600;
+  color: #e6e6e6;
+  font-size: 16px;
+  text-align: center;
+  margin-bottom: 5px;
+}
+
+.growthProgress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.growthCycle {
+  text-align: center;
+  font-size: 15px;
+}
+
+.growthCycle strong {
+  color: #3cc0b5;
+  font-size: 18px;
+}
+
+.growthEstimate {
+  text-align: center;
+  font-size: 15px;
+}
+
+.growthEstimate strong {
+  color: #3cc0b5;
+}
+
+.growthReady {
+  color: #5eead4;
+  font-weight: 600;
+  background-color: rgba(45, 212, 191, 0.2);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(94, 234, 212, 0.3);
+}
+
+.growthConditions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.growthCondition {
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.conditionMet {
+  background-color: rgba(45, 212, 191, 0.2);
+  color: #5eead4;
+  border: 1px solid rgba(94, 234, 212, 0.3);
+}
+
+.conditionUnmet {
+  background-color: rgba(248, 113, 113, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.growthNote {
+  font-size: 13px;
+  text-align: center;
+  color: #cbd5e1;
+  margin-top: 5px;
+  font-style: italic;
+}
+
+/* Flow Points Display */
+.flowPointsDisplay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  background-color: rgba(60, 192, 181, 0.1);
+  border: 2px solid #3cc0b5;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 25px;
+  position: relative;
+  overflow: hidden;
+}
+
+.flowPointsDisplay::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(60, 192, 181, 0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.flowPointsIcon {
+  font-size: 36px;
+  animation: pulse 2s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.7; }
+}
+
+.flowPointsValue {
+  font-size: 42px;
+  font-weight: 700;
+  color: #3cc0b5;
+  text-shadow: 0 0 10px rgba(60, 192, 181, 0.5);
+}
+
+.flowPointsLabel {
+  font-size: 18px;
+  color: #e6e6e6;
+  font-weight: 600;
+}
+
+.flowPointsRate {
+  font-size: 16px;
+  color: #5eead4;
+  font-weight: 500;
+  background-color: rgba(45, 212, 191, 0.2);
+  padding: 3px 10px;
+  border-radius: 15px;
+  margin-left: 10px;
+  animation: fadeInOut 2s infinite ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+.flowPointsIconSmall {
+  font-size: 16px;
+  display: inline-block;
+  margin: 0 2px;
+  vertical-align: middle;
+}
+
+/* Flow Rewards Styles */
+.rewardsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.rewardHeader h3 {
+  font-size: 20px;
+  color: #3cc0b5;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.rewardHeaderDesc {
+  text-align: center;
+  color: #cbd5e1;
+  font-size: 15px;
+  margin-bottom: 15px;
+}
+
+.rewardTiers {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.rewardTier {
+  background-color: #1e293b;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.activeTier {
+  border-color: #3cc0b5;
+  box-shadow: 0 0 10px rgba(60, 192, 181, 0.3);
+}
+
+.rewardTierTitle {
+  background-color: #273549;
+  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 16px;
+  color: #e6e6e6;
+  position: relative;
+}
+
+.activeTier .rewardTierTitle {
+  background-color: rgba(60, 192, 181, 0.3);
+}
+
+.rewardTierIcon {
+  font-size: 18px;
+  color: #3cc0b5;
+}
+
+.tierStatus {
+  margin-left: auto;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.statusActive {
+  background-color: rgba(45, 212, 191, 0.2);
+  color: #5eead4;
+  border: 1px solid rgba(94, 234, 212, 0.3);
+  animation: glowActive 2s infinite alternate;
+}
+
+@keyframes glowActive {
+  0% { box-shadow: 0 0 2px rgba(94, 234, 212, 0.5); }
+  100% { box-shadow: 0 0 8px rgba(94, 234, 212, 0.8); }
+}
+
+.statusInactive {
+  background-color: rgba(100, 116, 139, 0.2);
+  color: #94a3b8;
+  border: 1px solid rgba(100, 116, 139, 0.3);
+}
+
+.rewardTierContent {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rewardRequirements {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  background-color: rgba(30, 41, 59, 0.5);
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 5px;
+}
+
+.rewardRequirement {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.reqLabel {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.reqValue {
+  font-size: 14px;
+  color: #e6e6e6;
+  font-weight: 600;
+}
+
+.rewardDescription {
+  font-size: 15px;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.rewardValue {
+  font-weight: 600;
+  color: #3cc0b5;
+  font-size: 16px;
+  padding: 8px;
+  background-color: rgba(60, 192, 181, 0.1);
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rewardFlowIcon {
+  font-size: 18px;
+}
+
+.rewardNote {
+  font-size: 14px;
+  font-style: italic;
+  color: #cbd5e1;
+  background-color: rgba(30, 41, 59, 0.5);
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 3px solid #3cc0b5;
+}
+
+/* Flow Tutorial Styles */
+.tutorialContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tutorialHeader h3 {
+  font-size: 20px;
+  color: #3cc0b5;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.tutorialSection {
+  background-color: #1e293b;
+  border-radius: 8px;
+  padding: 15px;
+  border: 1px solid #334155;
+}
+
+.tutorialSection h4 {
+  font-size: 18px;
+  color: #e6e6e6;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 5px;
+}
+
+.tutorialSection p {
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+
+.tutorialList {
+  list-style: none;
+  padding-left: 10px;
+  margin-bottom: 10px;
+}
+
+.tutorialList li {
+  padding: 5px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.tutorialList li span {
+  display: inline-block;
+}
+
+.trendUp, 
+.trendDown, 
+.trendSame {
+  padding: 0 5px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.trendUp {
+  color: #5eead4;
+}
+
+.trendDown {
+  color: #f87171;
+}
+
+.trendSame {
+  color: #fbbf24;
+}
+
+.tutorialTip {
+  background-color: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 6px;
+  padding: 12px 15px;
+}
+
+.tutorialTip p {
+  margin-bottom: 0;
+  color: #fbbf24;
+}
+
+.graphBars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 150px;
+  gap: 2px;
+}
+
+.graphBar {
+  flex: 1;
+  background-color: #3cc0b5;
+  border-radius: 3px 3px 0 0;
+  min-width: 6px;
+  transition: height 0.5s ease;
+}
+
+.graphLabels {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.graphLabel {
+  flex: 1;
+  text-align: center;
+}
+
+/* Mobile responsive design */
+@media (max-width: 768px) {
+  .windowContainer {
+    width: 95%;
+    height: 90%;
+    max-height: 90vh;
+  }
+
+  .tabsContainer {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    padding: 0 10px;
+    gap: 3px;
+  }
+
+  .tabButton {
+    border-radius: 5px;
+    margin-bottom: 5px;
+    padding: 6px 10px;
+    font-size: 0.9em;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .headerImageContainer {
+    height: 80px;
+  }
+  
+  .mainContentContainer {
+    padding: 0 15px 15px;
+  }
+  
+  .sectionTitle {
+    font-size: 20px;
+    margin-bottom: 10px;
+  }
+  
+  .sectionContent {
+    font-size: 15px;
+  }
+
+  .statsRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .resourceName {
+    margin-bottom: 5px;
+  }
+  
+  .resourceStats {
+    align-self: stretch;
+    align-items: flex-start;
+  }
+  
+  .consecutiveCount {
+    align-self: flex-end;
+  }
+  
+  /* Mobile responsive styles for population summary */
+  .populationStatRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .populationStatValue {
+    align-self: flex-end;
+  }
+  
+  /* Mobile responsive styles for rewards and tutorial */
+  .rewardTierTitle {
+    font-size: 14px;
+    padding: 8px 12px;
+  }
+  
+  .rewardTierContent {
+    padding: 12px;
+  }
+  
+  .rewardDescription {
+    font-size: 14px;
+  }
+  
+  .rewardValue {
+    font-size: 14px;
+  }
+  
+  .tutorialSection h4 {
+    font-size: 16px;
+  }
+  
+  .tutorialSection {
+    padding: 12px;
+  }
+  
+  .tutorialList li {
+    font-size: 14px;
+  }
+  
+  /* Mobile Flow Points Display */
+  .flowPointsDisplay {
+    flex-direction: column;
+    padding: 12px;
+    gap: 5px;
+  }
+  
+  .flowPointsIcon {
+    font-size: 28px;
+  }
+  
+  .flowPointsValue {
+    font-size: 36px;
+  }
+  
+  .flowPointsLabel {
+    font-size: 16px;
+  }
+  
+  .flowPointsRate {
+    font-size: 14px;
+    margin: 5px 0 0 0;
+  }
+  
+  /* Mobile Reward Requirements */
+  .rewardRequirements {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .tierStatus {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+}
+
+/* Tablet responsive design */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .windowContainer {
+    width: 92%;
+    height: 85%;
+  }
+  
+  .tabButton {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+}
+
+/* Very small screens like S8+ (landscape) */
+@media (max-height: 400px) {
+  .overlay {
+    align-items: flex-start;
+    padding-top: 5px;
+  }
+  
+  .windowContainer {
+    height: 95%;
+    max-height: 95vh;
+  }
+  
+  .headerSection {
+    padding: 10px 0 5px;
+  }
+  
+  .headerImageContainer {
+    height: 60px;
+  }
+  
+  .title {
+    font-size: 20px;
+    margin: 5px 0;
+  }
+  
+  .tabsContainer {
+    margin-bottom: 10px;
+  }
+  
+  .tabButton {
+    padding: 5px 8px;
+    font-size: 0.8em;
+    margin-bottom: 3px;
+  }
+  
+  .mainContentContainer {
+    padding: 0 12px 12px;
+  }
+  
+  .sectionTitle {
+    font-size: 18px;
+    margin-bottom: 8px;
+    padding-bottom: 5px;
+  }
+  
+  .sectionContent {
+    font-size: 14px;
+  }
+
+  .statsContainer {
+    gap: 5px;
+  }
+  
+  .graphContainer {
+    padding: 10px;
+    margin-top: 10px;
+  }
+  
+  .growthTitle {
+    font-size: 14px;
+  }
+  
+  .growthCycle, .growthEstimate {
+    font-size: 13px;
+  }
+  
+  .populationStatRow {
+    padding: 5px 8px;
+  }
+  
+  .populationStatValue {
+    font-size: 16px;
+  }
+  
+  /* Very small screen adjustments for rewards and tutorial */
+  .rewardTier {
+    margin-bottom: 5px;
+  }
+  
+  .rewardTierTitle {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+  
+  .rewardTierContent {
+    padding: 8px;
+  }
+  
+  .rewardDescription {
+    font-size: 12px;
+  }
+  
+  .rewardValue {
+    font-size: 13px;
+    padding: 5px;
+  }
+  
+  .tutorialSection {
+    padding: 8px;
+    margin-bottom: 5px;
+  }
+  
+  .tutorialSection h4 {
+    font-size: 14px;
+    margin-bottom: 5px;
+  }
+  
+  .tutorialList li {
+    padding: 3px 0;
+    font-size: 12px;
+  }
+  
+  .tutorialTip {
+    padding: 8px;
+  }
+  
+  /* Very small screen Flow Points */
+  .flowPointsDisplay {
+    flex-direction: row;
+    padding: 8px;
+    margin-bottom: 15px;
+  }
+  
+  .flowPointsIcon {
+    font-size: 22px;
+  }
+  
+  .flowPointsValue {
+    font-size: 28px;
+  }
+  
+  .flowPointsLabel {
+    font-size: 14px;
+  }
+  
+  .flowPointsRate {
+    font-size: 12px;
+    padding: 2px 6px;
+  }
+  
+  .rewardRequirements {
+    flex-direction: row;
+    padding: 6px;
+  }
+  
+  .reqLabel {
+    font-size: 10px;
+  }
+  
+  .reqValue {
+    font-size: 12px;
+  }
+  
+  .tierStatus {
+    font-size: 10px;
+    padding: 2px 5px;
+  }
+  
+  .consecutiveCount {
+    font-size: 11px;
+    padding: 1px 5px;
+  }
+}
+
+/* Animation for section transitions */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.activeSection {
+  animation: fadeIn 0.4s ease-in-out;
+} 

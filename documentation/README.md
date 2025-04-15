@@ -50,9 +50,15 @@ npm run preview
 ├── src/
 │   ├── assets/        # Project assets (models, textures, etc.)
 │   ├── components/    # Reusable React components
+│   │   ├── input/     # Input controllers and handlers
+│   │   ├── movement/  # Movement and camera controls
+│   │   └── ui/        # User interface components
+│   ├── config/        # Configuration files
+│   ├── layouts/       # Layout components and scene structures
 │   ├── scenes/        # 3D scene components
 │   ├── store/         # Zustand state management
 │   ├── styles/        # CSS and CSS modules
+│   ├── utils/         # Utility functions and helpers
 │   ├── App.tsx        # Main App component
 │   └── main.tsx       # Entry point
 ├── documentation/     # Project documentation

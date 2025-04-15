@@ -29,9 +29,9 @@ const ManagementUI = () => {
         // --- NEW: Import window actions --- 
         showLivingDomeWindow,
         showProductionDomeWindow,
+        showTutorialWindow, // Import tutorial window action
+        showFlowWindow, // Import flow window action
         // --- NEW: Import issue actions ---
-        buildingIssues,
-        showIssueWindow,
         // --- NEW: Import resource trends ---
         resourceTrends,
         // --- --- 
@@ -48,6 +48,10 @@ const ManagementUI = () => {
 
     // --- State for Portal Room Confirmation ---
     const [showPortalConfirm, setShowPortalConfirm] = useState(false);
+    // --- ---
+    
+    // --- State for Resources Sidebar ---
+    const [isResourceSidebarOpen, setIsResourceSidebarOpen] = useState(false);
     // --- ---
 
     // Helper to render resource trend indicators
@@ -83,11 +87,10 @@ const ManagementUI = () => {
     const handleDeselect = () => {
         deselectTile();
     }
-
-    // --- Issue Handling Logic ---
-    const handleShowIssue = (issueId: string) => {
-        showIssueWindow(issueId);
-    }
+    
+    const toggleResourceSidebar = () => {
+        setIsResourceSidebarOpen(!isResourceSidebarOpen);
+    };
 
     // --- Task Handling Logic ---
     const handleDeployTask = (taskType: TaskState['type']) => {
@@ -261,11 +264,6 @@ const ManagementUI = () => {
                 statusDisplay += ` (${Math.floor(currentTask.deconstructProgress || 0)}%)`;
             }
 
-            // Find any unresolved issues for this building/task
-            const unresolved = Object.values(buildingIssues).find(
-                issue => issue.buildingId === currentTask.id && !issue.resolved
-            );
-
             return (
                 <div className={styles.actionsContainer}>
                     <p><strong>Active Task:</strong> {
@@ -279,18 +277,14 @@ const ManagementUI = () => {
                             Investigate Event
                          </button>
                     )}
-                    {unresolved && (
-                        <button 
-                            onClick={() => handleShowIssue(unresolved.id)} 
-                            className={styles.actionButtonSmall}
-                            style={{ backgroundColor: '#FF6B4A' }} // Orangish to highlight the issue
-                        >
-                            Issues
-                        </button>
-                    )}
                     {(currentTask.status === 'operational' || currentTask.status === 'deploying' || currentTask.status === 'event-pending') && (
                         <button onClick={() => handleRecallWorkforce(currentTask.id)} className={`${styles.actionButtonSmall} ${styles.deselectButton}`}>
-                            Deconstruct ({currentTask.assignedWorkforce} W)
+                            <div className={styles.taskButtonContent}>
+                                <span className={styles.taskButtonName}>Deconstruct</span>
+                                <span className={styles.taskButtonCost}>
+                                    {'👷'.repeat(currentTask.assignedWorkforce)}
+                                </span>
+                            </div>
                         </button>
                     )}
                     {currentTask.status === 'deconstructing' && (
@@ -334,15 +328,52 @@ const ManagementUI = () => {
                         const isShaking = feedbackState.shakingButton === config.type;
                         const showWarning = feedbackState.warningMessage?.type === config.type;
 
+                        // Simplified name mapping
+                        let simplifiedName = '';
+                        switch (config.type) {
+                            case 'deploy-scout':
+                                simplifiedName = 'Scout Post';
+                                break;
+                            case 'build-solar':
+                                simplifiedName = 'Solar Array';
+                                break;
+                            case 'build-geothermal':
+                                simplifiedName = 'Geothermal';
+                                break;
+                            case 'deploy-mining':
+                                simplifiedName = 'Mining Op.';
+                                break;
+                            case 'build-waterwell':
+                                simplifiedName = 'Ice Mine';
+                                break;
+                            default:
+                                simplifiedName = config.name.replace(/(Deploy|Establish|Construct)\s+/, '');
+                        }
+
+                        // Generate workforce emoji string
+                        const workforceEmoji = '👷'.repeat(config.workforceRequired);
+                        
+                        // Generate cost emojis
+                        let costIcons = [];
+                        if (config.cost.power) costIcons.push(`⚡${config.cost.power}`);
+                        if (config.cost.minerals) costIcons.push(`⛏️${config.cost.minerals}`);
+                        if (config.cost.colonyGoods) costIcons.push(`📦${config.cost.colonyGoods}`);
+                        const costString = costIcons.join(' ');
+
                         return (
                             <button
                                 key={config.type}
                                 onClick={() => handleDeployTask(config.type as TaskState['type'])}
                                 className={`${styles.actionButtonSmall} ${isShaking ? styles.shake : ''}`}
                                 disabled={disabled}
-                                title={tooltip.trim()} // Show reason for disabling on hover
+                                title={`${config.name}: ${workforceEmoji} ${costString}\n${tooltip.trim()}`} // Enhanced tooltip
                             >
-                                {config.name} ({config.workforceRequired} W)
+                                <div className={styles.taskButtonContent}>
+                                    <span className={styles.taskButtonName}>{simplifiedName}</span>
+                                    <span className={styles.taskButtonCost}>
+                                        {workforceEmoji} {costString}
+                                    </span>
+                                </div>
                                 {/* Render warning message */}
                                 {showWarning && (
                                     <span className={`${styles.resourceWarning} ${styles.resourceWarningVisible}`}>
@@ -358,23 +389,13 @@ const ManagementUI = () => {
 
         return <p>No specific actions available for this tile type.</p>; // No actions
 
-    }, [selectedTile, activeTasks, availableWorkforce, power, minerals, colonyGoods, assignWorkforceToTask, recallWorkforce, setGameView, showResearchWindow, showLivingDomeWindow, showProductionDomeWindow, deselectTile, buildingIssues, showIssueWindow, feedbackState, completedResearch, isAudioPuzzleCompleted]); // Added new dependencies
+    }, [selectedTile, activeTasks, availableWorkforce, power, minerals, colonyGoods, assignWorkforceToTask, recallWorkforce, setGameView, showResearchWindow, showLivingDomeWindow, showProductionDomeWindow, deselectTile, feedbackState, completedResearch, isAudioPuzzleCompleted]); // Added new dependencies
 
 
     return (
         <div className={styles.uiOverlay}>
-            {/* Top Bar: Resources & Round */}
+            {/* Top Bar: Round & Controls Only */}
             <div className={styles.topBar}>
-                <div className={styles.resourceDisplay}>
-                    <span>⚡ Power: {power}{renderTrendIndicator(resourceTrends.power)}</span>
-                    <span>💧 Water: {water}{renderTrendIndicator(resourceTrends.water)}</span>
-                    <span>⛏️ Minerals: {minerals}{renderTrendIndicator(resourceTrends.minerals)}</span>
-                    <span>🧑‍🤝‍🧑 Pop: {population}</span>
-                    <span>🔬 RP: {researchPoints}{renderTrendIndicator(resourceTrends.researchPoints)}</span>
-                    <span>📦 Goods: {colonyGoods}{renderTrendIndicator(resourceTrends.colonyGoods)}</span>
-                    {/* Added Workforce Display */}
-                    <span>👷 Wkfc: {availableWorkforce} / {totalWorkforce}</span>
-                </div>
                 <div className={styles.roundDisplay}>
                     <span className={styles.roundCounter}>Round: {currentRound}</span>
                     <div className={styles.roundButtons}>
@@ -408,7 +429,86 @@ const ManagementUI = () => {
                         >
                             TEST MODE
                         </button>
+                        <button
+                            onClick={showTutorialWindow}
+                            className={`${styles.actionButton} ${styles.tutorialButton}`}
+                            title="Open Tutorial"
+                        >
+                            ?
+                        </button>
+                        <button
+                            onClick={() => (window as any).toggleFlowWindow?.()}
+                            className={`${styles.actionButton} ${styles.portalButton}`}
+                            title="View Resource Flow Analytics"
+                        >
+                            Flow
+                        </button>
                         <VolumeControl />
+                    </div>
+                </div>
+                
+                {/* Resource sidebar toggle button */}
+                <button 
+                    onClick={toggleResourceSidebar} 
+                    className={styles.resourceToggleButton}
+                    aria-label="Toggle resource display"
+                    style={{ pointerEvents: 'auto' }}
+                >
+                    {isResourceSidebarOpen ? '→' : '←'} Resources
+                </button>
+            </div>
+            
+            {/* Collapsible Resource Sidebar */}
+            <div 
+                className={`${styles.resourceSidebar} ${isResourceSidebarOpen ? styles.resourceSidebarOpen : ''}`}
+                style={{ pointerEvents: 'auto' }}
+            >
+                <div className={styles.resourceDisplay}>
+                    <div className={styles.resourceItem}>
+                        <span className={styles.resourceIcon}>⚡</span>
+                        <span className={styles.resourceLabel}>Power:</span>
+                        <span className={styles.resourceValue}>{Math.floor(power)}</span>
+                        {renderTrendIndicator(resourceTrends.power)}
+                    </div>
+                    
+                    <div className={styles.resourceItem}>
+                        <span className={styles.resourceIcon}>💧</span>
+                        <span className={styles.resourceLabel}>Water:</span>
+                        <span className={styles.resourceValue}>{Math.floor(water)}</span>
+                        {renderTrendIndicator(resourceTrends.water)}
+                    </div>
+                    
+                    <div className={styles.resourceItem}>
+                        <span className={styles.resourceIcon}>⛏️</span>
+                        <span className={styles.resourceLabel}>Minerals:</span>
+                        <span className={styles.resourceValue}>{Math.floor(minerals)}</span>
+                        {renderTrendIndicator(resourceTrends.minerals)}
+                    </div>
+                    
+                    <div className={styles.resourceItem}>
+                        <span className={styles.resourceIcon}>🧑‍🤝‍🧑</span>
+                        <span className={styles.resourceLabel}>Population:</span>
+                        <span className={styles.resourceValue}>{population}</span>
+                    </div>
+                    
+                    <div className={styles.resourceItem}>
+                        <span className={styles.resourceIcon}>🔬</span>
+                        <span className={styles.resourceLabel}>RP:</span>
+                        <span className={styles.resourceValue}>{Math.floor(researchPoints)}</span>
+                        {renderTrendIndicator(resourceTrends.researchPoints)}
+                    </div>
+                    
+                    <div className={styles.resourceItem}>
+                        <span className={styles.resourceIcon}>📦</span>
+                        <span className={styles.resourceLabel}>Goods:</span>
+                        <span className={styles.resourceValue}>{Math.floor(colonyGoods)}</span>
+                        {renderTrendIndicator(resourceTrends.colonyGoods)}
+                    </div>
+                    
+                    <div className={styles.resourceItem}>
+                        <span className={styles.resourceIcon}>👷</span>
+                        <span className={styles.resourceLabel}>Workforce:</span>
+                        <span className={styles.resourceValue}>{availableWorkforce} / {totalWorkforce}</span>
                     </div>
                 </div>
             </div>
@@ -424,7 +524,9 @@ const ManagementUI = () => {
                     {/* --- --- */}
                     <hr style={{margin: '1rem 0 0.75rem', borderColor: '#555'}}/> {/* Separator */}
                     <button onClick={handleDeselect} className={`${styles.actionButtonSmall} ${styles.deselectButton}`}>
-                        Deselect
+                        <div className={styles.taskButtonContent}>
+                            <span className={styles.taskButtonName}>Deselect</span>
+                        </div>
                     </button>
                 </div>
             )}
