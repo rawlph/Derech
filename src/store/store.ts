@@ -955,7 +955,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           
           // Set new resource trend history
           resourceTrendHistory: newResourceTrendHistory,
-          selectedTile: null,
+          // selectedTile: null, // Removed to keep tile selected between rounds
         totalWorkforce: newTotalWorkforce,
         availableWorkforce: newAvailableWorkforce,
           isLowWaterPenaltyActive: isWaterPenaltyNowActive,
@@ -1031,7 +1031,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       availableWorkforce: 8,
       currentRound: 1,
       gridTiles: {}, // Will be replaced by initializeGrid call
-      selectedTile: null,
+      selectedTile: null, // Reset selected tile when resetting colony
       gameView: 'management', // Changed from 'welcome' to 'management' to go directly to new colony
       previousGameView: 'welcome',
       activeTasks: {},

@@ -99,7 +99,12 @@ export const checkPrerequisites = (project: LivingAreaProject, completedProjects
     
     // Special case: Any three research projects
     if (project.prerequisites.includes('__ANY_THREE_RESEARCH__')) {
-        return completedResearch.length >= 3 || completedProjects.length >= 3;
+        // Filter out embodiment research projects to prevent them from counting towards dome upgrades
+        const filteredResearch = completedResearch.filter(research => 
+            !['embodiment-prelim', 'embodiment-phase-1', 'embodiment-phase-2', 'embodiment-phase-3'].includes(research)
+        );
+        
+        return filteredResearch.length >= 3 || completedProjects.length >= 3;
     }
     
     // Standard prerequisite check

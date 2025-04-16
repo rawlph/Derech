@@ -58,6 +58,29 @@
   padding-left: 5px;
 }
 
+/* New styles for flow points tracking */
+.flowPointsTracking {
+  background-color: rgba(60, 192, 181, 0.2);
+  border: 1px solid rgba(60, 192, 181, 0.3);
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flowLabel {
+  font-size: 0.85rem;
+  color: #a8e6e1;
+}
+
+.flowValue {
+  font-weight: bold;
+  color: #3cc0b5;
+  font-size: 0.9rem;
+}
+
 /* New styles for production dome bonuses */
 .bonusText {
   color: #4fa57b;
@@ -142,5 +165,17 @@
   
   .conditions {
     font-size: 0.8rem;
+  }
+  
+  .flowPointsTracking {
+    padding: 4px 6px;
+  }
+  
+  .flowLabel {
+    font-size: 0.8rem;
+  }
+  
+  .flowValue {
+    font-size: 0.85rem;
   }
 } 
