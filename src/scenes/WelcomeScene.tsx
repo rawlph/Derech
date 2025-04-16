@@ -1101,14 +1101,16 @@ const WelcomeContent: React.FC = () => {
         width={6}
         height={6}
         title="Welcome to Derech"
-        content={`Derech is a Mars colony simulation where you control an AI called Moses.
-        
-Your goal is to assist Mars colonists in sustaining their base.
-Start a New Colony, balance resources, upgrade and expand.
+        content={`Derech mixes Turnbased-Management with 3D Puzzles.
 
-Switch Scenes from Management to 3D Puzzles.
+        Start a New Colony, balance resources.
+        Accumulate Flow points when:
+        production > consumption.
 
-Move around using WASD keys and mouse, or touch controls on mobile.`}
+        Flow Points unlock new 3D Puzzles.
+        3D Puzzles progress the story.
+
+        Game currently contains 4 Puzzles.`}
         contentFontSize={0.22}
         contentLineHeight={1.5}
       />
@@ -1119,7 +1121,7 @@ Move around using WASD keys and mouse, or touch controls on mobile.`}
         rotation={[0, -Math.PI/8, 0]}
         width={6}
         height={6}
-        title="Recent Changes"
+        title="Recent Changes (16.04.2025)"
         content={`View the latest development updates and changes to Derech.
 
 Press the green button below to view the changes page.`}
