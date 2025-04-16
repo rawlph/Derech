@@ -108,7 +108,7 @@ export const researchProjects: Record<string, ResearchProject> = {
         cost: { researchPoints: 40 },
         duration: 12,
         prerequisites: ['__ANY_THREE_RESEARCH__'], // Special marker for any 3 completed research
-        effectDescription: "Adds advanced lab equipment model to Research Dome. Increases Research Point generation from Scout Outposts by 30%.",
+        effectDescription: "Geothermal Reactors produce 3 RP per round.",
         tier: 2,
     },
     'optimize-energy-grid': {

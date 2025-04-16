@@ -18,7 +18,7 @@ export const livingAreaProjects: Record<string, LivingAreaProject> = {
         description: "Upgrade air filtration systems to improve resident morale and reduce maintenance downtime.",
         cost: { colonyGoods: 20, power: 5 },
         duration: 8, // 2 + 6
-        effectDescription: "Reduces power consumption of the Living Dome by 10%. Improves overall colony health.",
+        effectDescription: "Decreases colony goods consumption in living dome by 15%.",
         tier: 1,
     },
     'expand-housing': {
@@ -27,7 +27,7 @@ export const livingAreaProjects: Record<string, LivingAreaProject> = {
         description: "Construct an additional standardized housing module, increasing maximum population capacity.",
         cost: { colonyGoods: 35, minerals: 15 },
         duration: 10, // 4 + 6
-        effectDescription: "Increases colony population capacity by 5. Enables more workforce for critical tasks.",
+        effectDescription: "Adds +1 workforce (i.e. going from 0/8 to 1/9).",
         tier: 1,
     },
     'recreation-center': {
@@ -36,7 +36,7 @@ export const livingAreaProjects: Record<string, LivingAreaProject> = {
         description: "Build a small recreational facility to boost colony morale during off-duty hours.",
         cost: { colonyGoods: 25, power: 8 },
         duration: 9, // 3 + 6
-        effectDescription: "Increases workforce efficiency by 10%. Colonists are happier and more productive.",
+        effectDescription: "Decreases colony goods consumption in living dome by 15%.",
         tier: 1,
     },
     'youth-farming-program': {
@@ -45,16 +45,16 @@ export const livingAreaProjects: Record<string, LivingAreaProject> = {
         description: "Establish a hands-on educational program teaching young colonists sustainable farming techniques through small-scale hydroponic gardens. Creates stronger community bonds and practical skills.",
         cost: { colonyGoods: 15, power: 3 },
         duration: 8, // 2 + 6
-        effectDescription: "Reduces food-related Colony Goods consumption by 15%. Teaches the next generation of Martian farmers.",
+        effectDescription: "Decreases water consumption in living dome by 15%.",
         tier: 1,
     },
     'signal-shielding': {
         id: 'signal-shielding',
-        name: "Solar Radiation Interference",
-        description: "Research shielding and error-correction protocols to counter signal disruptions from solar flares, which are more intense with Mars' thin atmosphere. Improves colony morale by maintaining more reliable communication with Earth.",
+        name: "Optimize Earth-Mars Protocols",
+        description: "Improve communication protocols between Earth and Mars to maintain more reliable contact, boosting colony morale by maintaining better connection with home.",
         cost: { colonyGoods: 18, power: 12, minerals: 8 },
         duration: 9, // 3 + 6
-        effectDescription: "Reduces negative effects of solar radiation events by 30%. Keeps communication lines open during solar storms.",
+        effectDescription: "Increases colonist morale by 20% (morale not yet implemented).",
         tier: 1,
     },
     // Add Tier 2 Living Area Projects
@@ -65,7 +65,7 @@ export const livingAreaProjects: Record<string, LivingAreaProject> = {
         cost: { colonyGoods: 40, minerals: 25, researchPoints: 60 },
         duration: 16,
         prerequisites: ['__ANY_THREE_RESEARCH__'],
-        effectDescription: "Adds advanced hab model to Living Dome. Increases workforce capacity by 4. Improves base colonist morale.",
+        effectDescription: "Adds +15 Flow points flat to accumulated flow points.",
         tier: 2,
     },
     'upgrade-living-quarters': {

@@ -12,13 +12,15 @@ const DomeInfoPanel: React.FC<DomeInfoPanelProps> = ({ domeType }) => {
     population,
     water,
     colonyGoods,
-    completedProductionProjects
+    completedProductionProjects,
+    completedLivingProjects
   } = useGameStore(state => ({
     domeGeneration: state.domeGeneration,
     population: state.population,
     water: state.water,
     colonyGoods: state.colonyGoods,
-    completedProductionProjects: state.completedProductionProjects
+    completedProductionProjects: state.completedProductionProjects,
+    completedLivingProjects: state.completedLivingProjects
   }));
 
   const {
@@ -51,10 +53,37 @@ const DomeInfoPanel: React.FC<DomeInfoPanelProps> = ({ domeType }) => {
     return { baseAmount, bonusPercentage, totalAmount };
   };
 
+  // Calculate actual colony goods consumption with research effects
+  const calculateColonyGoodsConsumption = () => {
+    // Base consumption using full multiples of 10
+    let baseConsumption = Math.floor(population / 10);
+    let reductionPercentage = 0;
+    
+    // Apply research effects
+    if (completedLivingProjects.includes('improve-air')) {
+      baseConsumption *= 0.85; // 15% reduction
+      reductionPercentage += 15;
+    }
+    
+    if (completedLivingProjects.includes('recreation-center')) {
+      baseConsumption *= 0.85; // 15% reduction
+      reductionPercentage += 15;
+    }
+    
+    // Round to 2 decimal places
+    baseConsumption = Math.round(baseConsumption * 100) / 100;
+    
+    return { 
+      baseRate: Math.floor(population / 10), 
+      actualConsumption: baseConsumption,
+      reductionPercentage
+    };
+  };
+
   const renderLivingDomeInfo = () => {
     const growthRequirement = population * 2;
-    const baseConsumption = Math.ceil(population / 10);
-    const totalRequired = baseConsumption + growthRequirement;
+    const { baseRate, actualConsumption, reductionPercentage } = calculateColonyGoodsConsumption();
+    const totalRequired = actualConsumption + growthRequirement;
     const cyclesRemaining = populationGrowthThreshold - populationCycle;
     
     return (
@@ -81,10 +110,16 @@ const DomeInfoPanel: React.FC<DomeInfoPanelProps> = ({ domeType }) => {
             Colony Goods Requirements:
           </div>
           <div className={styles.consumptionBreakdown}>
-            <div>Base consumption: {baseConsumption} per round</div>
+            <div>Base consumption: {baseRate} per round</div>
+            {reductionPercentage > 0 && (
+              <div className={styles.bonusText}>
+                Research bonus: -{reductionPercentage}%
+              </div>
+            )}
+            <div>Actual consumption: {actualConsumption.toFixed(2)} per round</div>
             <div>Growth requirement: {growthRequirement}</div>
             <div className={styles.totalRequirement}>
-              Total required: {totalRequired} {totalRequired > colonyGoods ? '❌' : '✓'}
+              Total required: {totalRequired.toFixed(2)} {totalRequired > colonyGoods ? '❌' : '✓'}
             </div>
           </div>
         </div>

@@ -548,7 +548,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     let dialogueShownThisRound = false; // Flag to prevent multiple popups
 
     // Clear any existing resource generations to avoid accumulation
-    set({ roundResourceGenerations: [] });
+    get().clearResourceGenerations();
     
     // Initialize resource change tracking
     const resourceChanges = {
@@ -604,13 +604,32 @@ export const useGameStore = create<GameState>((set, get) => ({
       waterConsumed *= 0.85; // Apply 15% reduction
     }
     
+    // Apply living dome research effects for water consumption
+    if (get().completedLivingProjects.includes('youth-farming-program')) {
+      waterConsumed *= 0.85; // Apply 15% reduction
+    }
+    
     resourceChanges.water -= waterConsumed;
     console.log(`Total Water Consumption this round: ${waterConsumed.toFixed(2)}`);
     
-    // Calculate colony goods consumption (1 per 10 population)
-    const goodsConsumed = Math.ceil(population / 10);
+    // Calculate colony goods consumption using full multiples of 10
+    // 1-9: 0, 10-19: 1, 20-29: 2, etc.
+    let goodsConsumed = Math.floor(population / 10);
+    
+    // Apply living dome research effects for colony goods consumption
+    if (get().completedLivingProjects.includes('improve-air')) {
+      goodsConsumed *= 0.85; // Apply 15% reduction
+    }
+    
+    if (get().completedLivingProjects.includes('recreation-center')) {
+      goodsConsumed *= 0.85; // Apply 15% reduction
+    }
+    
+    // Round to nearest decimal for display
+    goodsConsumed = Math.round(goodsConsumed * 100) / 100;
+    
     resourceChanges.colonyGoods -= goodsConsumed;
-    console.log(`Colony Goods Consumption this round: ${goodsConsumed} (population: ${population})`);
+    console.log(`Colony Goods Consumption this round: ${goodsConsumed.toFixed(2)} (population: ${population})`);
     
     // ----- STEP 2: Calculate ALL resource generation -----
     
@@ -668,6 +687,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     // Call generateDomeResources to handle dome-based generation including mineral conversion
     // This internally updates the resource amounts for colony goods and research points
     get().generateDomeResources();
+    
+    // NOTE: generateDomeResources now directly updates the state with generated resources,
+    // so we don't need to add them to resourceChanges here
     
     // Log all resource changes
     console.log(`Resource changes this round - Power: ${resourceChanges.power.toFixed(2)}, Water: ${resourceChanges.water.toFixed(2)}, Minerals: ${resourceChanges.minerals.toFixed(2)}, Colony Goods: ${resourceChanges.colonyGoods.toFixed(2)}, Research Points: ${resourceChanges.researchPoints.toFixed(2)}`);
@@ -799,63 +821,77 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
 
         // Recalculate workforce
-      const newTotalWorkforce = Math.floor(state.population * 0.8);
-      const currentAssigned = Object.values(state.activeTasks).reduce((sum, task) => sum + task.assignedWorkforce, 0);
-      const newAvailableWorkforce = Math.max(0, newTotalWorkforce - currentAssigned);
-
-      // Update the flow tier based on the current resource trends
-      const activeTier = get().updateFlowTier();
-      
-      // Add flow points based on the active tier
-      if (activeTier) {
-        let flowPointsToAdd = 0;
+        const newTotalWorkforce = Math.floor(state.population * 0.8);
+        const currentAssigned = Object.values(state.activeTasks).reduce((sum, task) => sum + task.assignedWorkforce, 0);
         
-        switch (activeTier) {
-          case 'master':
-            flowPointsToAdd = 4;
-            break;
-          case 'strong':
-            flowPointsToAdd = 2;
-            break;
-          case 'basic':
-            flowPointsToAdd = 1;
-            break;
+        // Check for Advanced Tool Fabrication project effect
+        // If completed and there's at least one operational mining task, add 1 workforce
+        let toolFabricationBonus = 0;
+        if (state.completedProductionProjects.includes('tool-fabrication')) {
+          const hasOperationalMining = Object.values(state.activeTasks).some(
+            task => task.type === 'deploy-mining' && task.status === 'operational'
+          );
+          if (hasOperationalMining) {
+            toolFabricationBonus = 1;
+            console.log('Advanced Tool Fabrication effect: +1 workforce returned from mining operations');
+          }
         }
         
-        if (flowPointsToAdd > 0) {
-          get().addFlowPoints(flowPointsToAdd);
-          console.log(`Added ${flowPointsToAdd} Flow Points (${activeTier} tier active)`);
-        }
-      }
+        const newAvailableWorkforce = Math.max(0, newTotalWorkforce - currentAssigned + toolFabricationBonus);
 
-      return {
-        currentRound: state.currentRound + 1,
-          power: Math.max(0, newPower),
-          water: Math.max(0, newWater),
-          minerals: Math.max(0, newMinerals),
-          colonyGoods: Math.max(0, newColonyGoods),
-          researchPoints: Math.max(0, newResearchPoints),
+        // Update the flow tier based on the current resource trends
+        const activeTier = get().updateFlowTier();
+        
+        // Add flow points based on the active tier
+        if (activeTier) {
+          let flowPointsToAdd = 0;
           
-          // Store previous values for next round comparison
-          previousRoundResources: {
-            power: newPower,
-            water: newWater,
-            minerals: newMinerals,
-            colonyGoods: newColonyGoods,
-            researchPoints: newResearchPoints
-          },
+          switch (activeTier) {
+            case 'master':
+              flowPointsToAdd = 4;
+              break;
+            case 'strong':
+              flowPointsToAdd = 2;
+              break;
+            case 'basic':
+              flowPointsToAdd = 1;
+              break;
+          }
           
-          // Set new resource trends
-          resourceTrends: newResourceTrends,
-          
-          // Set new resource trend history
-          resourceTrendHistory: newResourceTrendHistory,
-          // selectedTile: null, // Removed to keep tile selected between rounds
-        totalWorkforce: newTotalWorkforce,
-        availableWorkforce: newAvailableWorkforce,
-          isLowWaterPenaltyActive: isWaterPenaltyNowActive,
-          isLowPowerPenaltyActive: isPowerPenaltyNowActive,
-          isEndingRound: false // Reset the flag when done
+          if (flowPointsToAdd > 0) {
+            get().addFlowPoints(flowPointsToAdd);
+            console.log(`Added ${flowPointsToAdd} Flow Points (${activeTier} tier active)`);
+          }
+        }
+
+        return {
+          currentRound: state.currentRound + 1,
+            power: Math.max(0, newPower),
+            water: Math.max(0, newWater),
+            minerals: Math.max(0, newMinerals),
+            colonyGoods: Math.max(0, newColonyGoods),
+            researchPoints: Math.max(0, newResearchPoints),
+            
+            // Store previous values for next round comparison
+            previousRoundResources: {
+              power: newPower,
+              water: newWater,
+              minerals: newMinerals,
+              colonyGoods: newColonyGoods,
+              researchPoints: newResearchPoints
+            },
+            
+            // Set new resource trends
+            resourceTrends: newResourceTrends,
+            
+            // Set new resource trend history
+            resourceTrendHistory: newResourceTrendHistory,
+            // selectedTile: null, // Removed to keep tile selected between rounds
+          totalWorkforce: newTotalWorkforce,
+          availableWorkforce: newAvailableWorkforce,
+            isLowWaterPenaltyActive: isWaterPenaltyNowActive,
+            isLowPowerPenaltyActive: isPowerPenaltyNowActive,
+            isEndingRound: false // Reset the flag when done
       };
     });
       
@@ -1074,8 +1110,15 @@ export const useGameStore = create<GameState>((set, get) => ({
       console.warn("Not enough available workforce.");
       return 'insufficient_workforce';
     }
-    if (workforce !== taskConfig.workforceRequired) {
-      console.warn(`Incorrect workforce amount specified. Required: ${taskConfig.workforceRequired}`);
+    
+    // Check if this is a mining operation and the tool-fabrication project is completed
+    let actualWorkforceRequired = taskConfig.workforceRequired;
+    if (taskType === 'deploy-mining' && get().completedProductionProjects.includes('tool-fabrication')) {
+      actualWorkforceRequired = 2; // Reduced workforce requirement for mining
+    }
+    
+    if (workforce !== actualWorkforceRequired) {
+      console.warn(`Incorrect workforce amount specified. Required: ${actualWorkforceRequired}`);
       return 'insufficient_workforce';
     }
 
@@ -1409,23 +1452,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
     });
     
-    // IMPORTANT FIX: Instead of updating resources directly, just store minerals for Production Dome
-    // and keep track of the generated resources for visualization
-    
-    // Remove these direct state updates:
-    // if (totalMineralsGenerated > 0) state.addMinerals(totalMineralsGenerated);
-    // if (totalResearchPointsGenerated > 0) set(s => ({ researchPoints: s.researchPoints + totalResearchPointsGenerated }));
-    // if (totalPowerGenerated > 0) state.addPower(totalPowerGenerated);
-    // if (totalWaterGenerated > 0) set(s => ({ water: s.water + totalWaterGenerated }));
-
-    // Store minerals for Production Dome
+    // Store minerals for Production Dome and update the roundResourceGenerations
     set(state => ({ 
       domeGeneration: {
         ...state.domeGeneration,
         storedMinerals: state.domeGeneration.storedMinerals + totalMineralsForProduction
       },
       // Store the resource generations for visualization
-      roundResourceGenerations: resourceGenerations
+      roundResourceGenerations: [...state.roundResourceGenerations, ...resourceGenerations]
     }));
 
     // Consolidated log message
@@ -1688,6 +1722,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       resourceChanges.colonyGoods += colonyGoodsGenerated;
       
       console.log(`Production Dome generated ${colonyGoodsGenerated} colony goods (base: ${colonyGoodsBaseAmount}, minerals boost: ${mineralConversion})`);
+      
+      // Update the actual colony goods amount in the state
+      set(state => ({ colonyGoods: state.colonyGoods + colonyGoodsGenerated }));
     }
     
     // Research Dome: Generate research points every 4 rounds
@@ -1706,14 +1743,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       
       // Add the generated research points to the resource changes
       resourceChanges.researchPoints += researchPointsGenerated;
-    }
-    
-    // Update store with generated resources
-    if (colonyGoodsGenerated > 0) {
-      set(state => ({ colonyGoods: state.colonyGoods + colonyGoodsGenerated }));
-    }
-    
-    if (researchPointsGenerated > 0) {
+      
+      // Update the actual research points amount in the state
       set(state => ({ researchPoints: state.researchPoints + researchPointsGenerated }));
     }
     
@@ -1726,7 +1757,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         storedMinerals: updatedStoredMinerals
       },
       // Add resource generations to the existing ones
-      roundResourceGenerations: resourceGenerations
+      roundResourceGenerations: [...state.roundResourceGenerations, ...resourceGenerations]
     }));
   },
   
@@ -1740,9 +1771,21 @@ export const useGameStore = create<GameState>((set, get) => ({
     const waterPositive = water > 0;
     
     // 2. Colony goods must be sufficient for both growth and base consumption
-    // Base consumption: 1 per 10 population
-    // Growth requirement: 2 per population
-    const baseConsumption = Math.ceil(population / 10);
+    // Base consumption: using full multiples of 10 (0 for 1-9, 1 for 10-19, etc.)
+    let baseConsumption = Math.floor(population / 10);
+    
+    // Apply living dome research effects for colony goods consumption
+    if (get().completedLivingProjects.includes('improve-air')) {
+      baseConsumption *= 0.85; // Apply 15% reduction
+    }
+    
+    if (get().completedLivingProjects.includes('recreation-center')) {
+      baseConsumption *= 0.85; // Apply 15% reduction
+    }
+    
+    // Round to nearest decimal for consistency
+    baseConsumption = Math.round(baseConsumption * 100) / 100;
+    
     const growthRequirement = population * 2;
     const totalRequired = baseConsumption + growthRequirement;
     const goodsSufficient = colonyGoods >= totalRequired;

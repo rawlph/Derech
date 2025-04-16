@@ -157,6 +157,7 @@ const ManagementUI = () => {
         // --- NEW: Import resource sidebar state and action ---
         isResourceSidebarOpen,
         setResourceSidebarOpen,
+        completedProductionProjects,
     } = useGameStore();
 
     // --- State for button feedback ---
@@ -215,12 +216,18 @@ const ManagementUI = () => {
         if (selectedTile) {
             const config = getTaskConfig(taskType);
             if (config) {
+                // Calculate actual workforce required (reduced for mining operations if tool-fabrication is completed)
+                const actualWorkforceRequired = 
+                    taskType === 'deploy-mining' && completedProductionProjects.includes('tool-fabrication')
+                    ? 2 // Reduced workforce for mining with Advanced Tool Fabrication
+                    : config.workforceRequired;
+                
                 // Immediately deselect the tile to prevent multiple assignments visually
                 const tileCopy = { ...selectedTile }; // Create a copy for use in callback/checks
                 deselectTile(); // Immediately deselect to prevent further actions on this click
 
                 // Call the store action which now returns a detailed status
-                const assignmentResult = assignWorkforceToTask(taskType, tileCopy, config.workforceRequired);
+                const assignmentResult = assignWorkforceToTask(taskType, tileCopy, actualWorkforceRequired);
 
                 if (assignmentResult === true) {
                     console.log(`Successfully initiated task: ${config.name}`);
@@ -452,7 +459,10 @@ const ManagementUI = () => {
                             <div className={styles.taskButtonContent}>
                                 <span className={styles.taskButtonName}>Deconstruct</span>
                                 <span className={styles.taskButtonCost}>
-                                    {'👷'.repeat(currentTask.assignedWorkforce)}
+                                    {currentTask.type === 'deploy-mining' && completedProductionProjects.includes('tool-fabrication')
+                                        ? '👷'.repeat(2) // Show 2 workers for mining operations with Advanced Tool Fabrication
+                                        : '👷'.repeat(currentTask.assignedWorkforce)
+                                    }
                                 </span>
                             </div>
                         </button>
@@ -521,7 +531,9 @@ const ManagementUI = () => {
                         }
 
                         // Generate workforce emoji string
-                        const workforceEmoji = '👷'.repeat(config.workforceRequired);
+                        const workforceEmoji = config.type === 'deploy-mining' && completedProductionProjects.includes('tool-fabrication') 
+                            ? '👷'.repeat(2) // Reduced workforce (2) for mining when project is completed
+                            : '👷'.repeat(config.workforceRequired);
                         
                         // Generate cost emojis
                         let costIcons = [];
@@ -559,7 +571,7 @@ const ManagementUI = () => {
 
         return <p>No specific actions available for this tile type.</p>; // No actions
 
-    }, [selectedTile, activeTasks, availableWorkforce, power, minerals, colonyGoods, assignWorkforceToTask, recallWorkforce, setGameView, showResearchWindow, showLivingDomeWindow, showProductionDomeWindow, deselectTile, feedbackState, completedResearch, isAudioPuzzleCompleted]); // Added new dependencies
+    }, [selectedTile, activeTasks, availableWorkforce, power, minerals, colonyGoods, assignWorkforceToTask, recallWorkforce, setGameView, showResearchWindow, showLivingDomeWindow, showProductionDomeWindow, deselectTile, feedbackState, completedResearch, isAudioPuzzleCompleted, completedProductionProjects]); // Added new dependencies
 
 
     return (
