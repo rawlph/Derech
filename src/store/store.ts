@@ -276,6 +276,12 @@ interface GameState {
   showFlowWindow: () => void;
   hideFlowWindow: () => void;
   getConsecutivePositiveTrends: (resourceKey: keyof ResourceTrendHistory) => number; // Helper to get consecutive positive trends for a resource
+
+  // --- NEW: Resource Sidebar State ---
+  isResourceSidebarOpen: boolean;
+
+  // --- NEW: Resource Sidebar Actions ---
+  setResourceSidebarOpen: (isOpen: boolean) => void;
 }
 
 // Define return types for assignWorkforceToTask
@@ -369,12 +375,15 @@ const generateInitialGrid = (radius: number): GridTiles => {
       tiles[key].height = 0;
     }
   }
-  ensureFlatPlain(0,0);
-  ensureFlatPlain(1,0);
-  ensureFlatPlain(-1,0);
+  ensureFlatPlain(0,0);  // Flow Project Site
+  ensureFlatPlain(-1,0); // Research Dome
+  ensureFlatPlain(-1,1); // Living Dome
+  ensureFlatPlain(0,1);  // Production Dome
 
-  if (tiles['0,0']) tiles['0,0'].building = 'Living Dome';
-  if (tiles['1,0']) tiles['1,0'].building = 'Production Dome';
+  // Assign buildings to their tiles
+  if (tiles['0,0']) tiles['0,0'].building = 'Flow Project Site';  // New Flow Project Site
+  if (tiles['-1,1']) tiles['-1,1'].building = 'Living Dome';
+  if (tiles['0,1']) tiles['0,1'].building = 'Production Dome';
   if (tiles['-1,0']) tiles['-1,0'].building = 'Research Dome';
 
   return tiles;
@@ -726,7 +735,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       // Add to resource generations for visualization
       resourceGenerations.push({
         taskId: 'production-dome',
-        targetTileKey: '1,0', // Production Dome is at 1,0
+        targetTileKey: '0,1', // Production Dome is at 0,1 (changed from 1,0)
         type: 'production-dome',
         resourceType: 'colonyGoods',
         amount: colonyGoodsGenerated
@@ -744,7 +753,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       // Add to resource generations for visualization
       resourceGenerations.push({
         taskId: 'research-dome',
-        targetTileKey: '-1,0', // Research Dome is at -1,0
+        targetTileKey: '-1,0', // Research Dome is at -1,0 (unchanged)
         type: 'research-dome',
         resourceType: 'researchPoints',
         amount: researchPointsGenerated
@@ -1090,7 +1099,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       
       // Remove building and taskId from all tiles except the initial domes
       Object.keys(updatedGridTiles).forEach(key => {
-        if (!['0,0', '1,0', '-1,0'].includes(key)) { 
+        if (!['0,1', '-1,1', '-1,0'].includes(key)) { 
           // Keep the initial domes intact
           updatedGridTiles[key] = {
             ...updatedGridTiles[key],
@@ -1712,7 +1721,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       // Add to resource generations for visualization
       resourceGenerations.push({
         taskId: 'production-dome',
-        targetTileKey: '1,0', // Production Dome is at 1,0
+        targetTileKey: '0,1', // Production Dome is at 0,1 (changed from 1,0)
         type: 'production-dome',
         resourceType: 'colonyGoods',
         amount: colonyGoodsGenerated
@@ -1730,7 +1739,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       // Add to resource generations for visualization
       resourceGenerations.push({
         taskId: 'research-dome',
-        targetTileKey: '-1,0', // Research Dome is at -1,0
+        targetTileKey: '-1,0', // Research Dome is at -1,0 (unchanged)
         type: 'research-dome',
         resourceType: 'researchPoints',
         amount: researchPointsGenerated
@@ -2100,6 +2109,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     
     return newTier;
   },
+
+  // --- NEW: Resource Sidebar State ---
+  isResourceSidebarOpen: false,
+
+  // --- NEW: Resource Sidebar Actions ---
+  setResourceSidebarOpen: (isOpen: boolean) => set({ isResourceSidebarOpen: isOpen }),
 
 }));
 

@@ -1,28 +1,27 @@
-import React, { useState } from 'react';
+import React from 'react';
 import FlowWindow from './FlowWindow';
+import { useGameStore } from '@store/store';
 
 const FlowWindowContainer: React.FC = () => {
-    const [isVisible, setIsVisible] = useState(false);
-
-    // Function to toggle visibility
-    const toggleVisibility = () => {
-        setIsVisible(!isVisible);
-    };
-
-    // Function to hide window
-    const hideWindow = () => {
-        setIsVisible(false);
-    };
+    const isFlowWindowVisible = useGameStore((state) => state.isFlowWindowVisible);
+    const showFlowWindow = useGameStore((state) => state.showFlowWindow);
+    const hideFlowWindow = useGameStore((state) => state.hideFlowWindow);
 
     // Expose the toggle function through a global handler
     if (typeof window !== 'undefined') {
-        (window as any).toggleFlowWindow = toggleVisibility;
+        (window as any).toggleFlowWindow = () => {
+            if (isFlowWindowVisible) {
+                hideFlowWindow();
+            } else {
+                showFlowWindow();
+            }
+        };
     }
 
     return (
         <FlowWindow
-            isVisible={isVisible}
-            onClose={hideWindow}
+            isVisible={isFlowWindowVisible}
+            onClose={hideFlowWindow}
         />
     );
 };

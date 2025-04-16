@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/Derech/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Derech - Previous Development Updates</title>
+    <style>
+        :root {
+            --mars-light: #fff1e9;
+            --mars-medium: #f7d4c4;
+            --mars-accent: #e07a5f;
+            --mars-dark: #81492c;
+            --mars-deepdark: #5a2d18;
+            --text-dark: #382418;
+            --text-light: #f9f4f0;
+            --spacing-unit: 1rem;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            background-color: var(--mars-light);
+            color: var(--text-dark);
+            line-height: 1.6;
+            font-size: 16px;
+        }
+        
+        a {
+            color: var(--mars-dark);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        
+        a:hover {
+            color: var(--mars-accent);
+            text-decoration: underline;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-unit);
+        }
+        
+        header {
+            background-color: var(--mars-deepdark);
+            color: var(--text-light);
+            padding: calc(var(--spacing-unit) * 2) var(--spacing-unit);
+            text-align: center;
+            border-bottom: 4px solid var(--mars-accent);
+            margin-bottom: calc(var(--spacing-unit) * 2);
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        nav {
+            background-color: var(--mars-dark);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .nav-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        nav a {
+            color: var(--text-light);
+            padding: calc(var(--spacing-unit) * 0.75) var(--spacing-unit);
+            display: inline-block;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: background-color 0.3s;
+        }
+        
+        nav a:hover {
+            background-color: var(--mars-accent);
+            color: var(--text-light);
+            text-decoration: none;
+        }
+        
+        .section {
+            background-color: white;
+            border-radius: 8px;
+            padding: calc(var(--spacing-unit) * 2);
+            margin-bottom: calc(var(--spacing-unit) * 2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--mars-accent);
+        }
+        
+        .section h2 {
+            color: var(--mars-deepdark);
+            margin-bottom: var(--spacing-unit);
+            font-size: 1.8rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--mars-medium);
+        }
+        
+        .article {
+            margin-bottom: calc(var(--spacing-unit) * 2);
+        }
+        
+        .article h3 {
+            font-size: 1.4rem;
+            color: var(--mars-dark);
+            margin-bottom: calc(var(--spacing-unit) * 0.5);
+        }
+        
+        .article p, .article ul {
+            margin-bottom: var(--spacing-unit);
+        }
+        
+        .article ul, .article ol {
+            padding-left: calc(var(--spacing-unit) * 1.5);
+        }
+        
+        .article li {
+            margin-bottom: calc(var(--spacing-unit) * 0.5);
+        }
+        
+        .category {
+            display: inline-block;
+            background-color: var(--mars-medium);
+            color: var(--mars-deepdark);
+            font-weight: 600;
+            padding: 0.3rem 0.8rem;
+            border-radius: 50px;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            background-color: var(--mars-medium);
+            transition: background-color 0.2s;
+            margin-bottom: var(--spacing-unit);
+        }
+        
+        .back-link:hover {
+            background-color: var(--mars-accent);
+            color: var(--text-light);
+            text-decoration: none;
+        }
+        
+        footer {
+            text-align: center;
+            padding: var(--spacing-unit);
+            margin-top: calc(var(--spacing-unit) * 3);
+            color: var(--mars-dark);
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            :root {
+                --spacing-unit: 0.8rem;
+            }
+            
+            header h1 {
+                font-size: 1.8rem;
+            }
+            
+            header p {
+                font-size: 1rem;
+            }
+            
+            .section {
+                padding: var(--spacing-unit);
+            }
+            
+            .section h2 {
+                font-size: 1.5rem;
+            }
+            
+            .article h3 {
+                font-size: 1.2rem;
+            }
+            
+            body {
+                font-size: 15px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            nav a {
+                padding: 0.5rem;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Derech Previous Development Updates</h1>
+        <p>Mars Colony Simulation</p>
+    </header>
+    
+    <nav>
+        <div class="nav-container">
+            <a href="changes.html">Current Changes</a>
+            <a href="#previous-changes">Previous Changes (15.04.2025)</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <a href="changes.html" class="back-link">← Back to Current Changes</a>
+        
+        <section id="previous-changes" class="section">
+            <h2>Previous Changes</h2>
+            
+            <article class="article">
+                <span class="category">New Features</span>
+                <ul>
+                    <li>Introduced a comprehensive in-game tutorial window with tabbed sections for gameplay guidance.</li>
+                    <li>Added a flow window displaying detailed resource flow analytics, flow points, and rewards.</li>
+                    <li>Implemented a collapsible resource sidebar for quick access to resource details and trends.</li>
+                    <li>Enhanced production dome info to display dynamic bonuses from completed projects.</li>
+                </ul>
+                
+                <span class="category">Bug Fixes</span>
+                <ul>
+                    <li>Improved population growth logic and resource trend tracking for more accurate gameplay feedback.</li>
+                </ul>
+                
+                <span class="category">Refactor</span>
+                <ul>
+                    <li>Removed the entire issues system, including related UI, logic, and configuration.</li>
+                    <li>Streamlined status indicators by eliminating issue and operational types.</li>
+                </ul>
+                
+                <span class="category">Style</span>
+                <ul>
+                    <li>Updated and added CSS modules for the new tutorial and flow windows, resource sidebar, and improved responsive layouts.</li>
+                </ul>
+                
+                <span class="category">Documentation</span>
+                <ul>
+                    <li>Updated project structure documentation and removed obsolete implementation plans and issue-related docs.</li>
+                </ul>
+                
+                <span class="category">Chores</span>
+                <ul>
+                    <li>Cleaned up unused files and references related to the issues system.</li>
+                </ul>
+            </article>
+        </section>
+    </div>
+    
+    <footer>
+        <p>© 2025 Derech Mars Colony Simulation</p>
+    </footer>
+</body>
+</html> 

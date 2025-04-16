@@ -692,9 +692,16 @@ const BuildingInstances = () => {
 
     return (
         <>
-            {Object.keys(buildingConfigs).map(buildingName => (
-                <SingleBuildingTypeInstances key={buildingName} buildingName={buildingName} />
-            ))}
+            {Object.keys(buildingConfigs)
+                .filter(buildingName => {
+                    const config = buildingConfigs[buildingName];
+                    // Skip buildings with customRender flag
+                    return !config.customRender;
+                })
+                .map(buildingName => (
+                    <SingleBuildingTypeInstances key={buildingName} buildingName={buildingName} />
+                ))
+            }
         </>
     );
 };

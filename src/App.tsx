@@ -10,41 +10,24 @@ import ResearchWindow from '@components/ui/ResearchWindow'
 import LivingDomeWindow from '@components/ui/LivingDomeWindow'
 import ProductionDomeWindow from '@components/ui/ProductionDomeWindow'
 import BackgroundMusic from '@components/audio/BackgroundMusic' // Import the BackgroundMusic component
-import { TutorialWindow } from '@components/TutorialWindow'
+import TutorialWindow from '@components/ui/TutorialWindow'
 import FlowWindowContainer from './components/ui/FlowWindowContainer' // Import FlowWindowContainer with relative path
 
 // Add a style block for the Vibe Jam link
-const vibeJamStyles: {
-  link: CSSProperties;
-  smallScreen: CSSProperties;
-} = {
-  link: {
-    fontFamily: 'system-ui, sans-serif',
-    position: 'fixed',
-    bottom: '-1px',
-    right: '-1px',
-    padding: '7px',
-    fontSize: '14px',
-    fontWeight: 'bold',
-    background: '#fff',
-    color: '#000',
-    textDecoration: 'none',
-    borderTopLeftRadius: '12px',
-    zIndex: 10000,
-    border: '1px solid #fff'
-  },
-  // Add a media query programmatically for small screens
-  smallScreen: {
-    position: 'fixed',
-    bottom: '0',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    right: 'auto',
-    fontSize: '12px',
-    padding: '5px',
-    borderRadius: '8px 8px 0 0',
-    zIndex: 10000
-  }
+const vibeJamStyles: CSSProperties = {
+  fontFamily: 'system-ui, sans-serif',
+  position: 'fixed',
+  bottom: '-1px',
+  right: '-1px',
+  padding: '7px',
+  fontSize: '14px',
+  fontWeight: 'bold',
+  background: '#fff',
+  color: '#000',
+  textDecoration: 'none',
+  borderTopLeftRadius: '12px',
+  zIndex: 10000,
+  border: '1px solid #fff'
 };
 
 function App() {
@@ -65,33 +48,15 @@ function App() {
   // --- Get Tutorial Window state and actions ---
   const isTutorialWindowVisible = useGameStore((state) => state.isTutorialWindowVisible)
   const hideTutorialWindow = useGameStore((state) => state.hideTutorialWindow)
+  // --- Get Flow Window state ---
+  const isFlowWindowVisible = useGameStore((state) => state.isFlowWindowVisible)
+  // --- Get Resource Sidebar state ---
+  const isResourceSidebarOpen = useGameStore((state) => state.isResourceSidebarOpen)
   // --- ---
 
   // State for forcing remount on view change remains
   const [key, setKey] = useState(0)
   
-  // State to track if we're on a small screen
-  const [isSmallScreen, setIsSmallScreen] = useState(false)
-  
-  // Check screen size
-  useEffect(() => {
-    const checkScreenSize = () => {
-      // Check specifically for Samsung S8+ landscape or similar small screens
-      setIsSmallScreen(window.innerWidth <= 740 && window.innerHeight <= 360);
-    };
-    
-    // Check initially
-    checkScreenSize();
-    
-    // Add resize listener
-    window.addEventListener('resize', checkScreenSize);
-    
-    // Cleanup
-    return () => {
-      window.removeEventListener('resize', checkScreenSize);
-    };
-  }, []);
-
   // Check for portal URL parameter on mount to set initial view
   useEffect(() => {
     // Check if we need to force welcome scene
@@ -173,20 +138,30 @@ function App() {
       {/* --- --- */}
       
       {/* --- Render Tutorial Window --- */}
-      {isTutorialWindowVisible && <TutorialWindow />}
+      <TutorialWindow 
+        isVisible={isTutorialWindowVisible}
+        onClose={hideTutorialWindow}
+      />
       {/* --- --- */}
       
       {/* Flow Window Container */}
       <FlowWindowContainer />
       
-      {/* Vibe Jam Link */}
-      <a 
-        target="_blank" 
-        href="https://jam.pieter.com" 
-        style={isSmallScreen ? {...vibeJamStyles.link, ...vibeJamStyles.smallScreen} : vibeJamStyles.link}
-      >
-        🕹️ Vibe Jam 2025
-      </a>
+      {/* Vibe Jam Link - Only show when no sidebar or windows are open */}
+      {!isResourceSidebarOpen && 
+       !isResearchWindowVisible && 
+       !isLivingDomeWindowVisible && 
+       !isProductionDomeWindowVisible && 
+       !isTutorialWindowVisible && 
+       !isFlowWindowVisible && (
+        <a 
+          target="_blank" 
+          href="https://jam.pieter.com" 
+          style={vibeJamStyles}
+        >
+          🕹️ Vibe Jam 2025
+        </a>
+      )}
     </div>
   )
 }

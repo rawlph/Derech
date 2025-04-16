@@ -4,6 +4,7 @@ export interface BuildingConfig {
     upgradeModelPath?: string; // Path to upgraded model
     scale?: [number, number, number]; // Optional default scale
     resourceYield?: { resource: string; baseAmount: number }; // Add resource generation
+    customRender?: boolean; // Add flag for custom rendered buildings
 }
 
 // Map building names used in the store to their config
@@ -30,6 +31,12 @@ export const buildingConfigs: Record<string, BuildingConfig> = {
         upgradeModelPath: '/Derech/models/mars_resupgrade.glb',
         scale: [0.06, 0.06, 0.06],
         resourceYield: { resource: 'researchPoints', baseAmount: 1 }, // Generate 1 research point per round
+    },
+    'Flow Project Site': {
+        name: 'Flow Project Site',
+        modelPath: '', // Empty since this is a special custom-rendered building
+        customRender: true, // Flag to indicate this is a custom rendered building
+        // No scale needed since it's custom rendered via FlowProjectSite component
     },
     // Add 'Farm' if it corresponds to a building type you plan to use
     // 'Farm': {
