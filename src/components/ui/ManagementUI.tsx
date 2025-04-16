@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react'; // Import useMemo and useState
 import ConfirmationDialog from './ConfirmationDialog'; // Import the new component
 import EmergencyDecisions from './EmergencyDecisions'; // Import the emergency component
 import DomeInfoPanel from './DomeInfoPanel'; // Import the dome info component
+import FlowProjectInfoPanel from './FlowProjectInfoPanel'; // Import the flow project info component
 import VolumeControl from './VolumeControl'; // Import the volume control component
 
 // Status Display Component
@@ -290,8 +291,6 @@ const ManagementUI = () => {
 
         // --- Check for Research Dome Action ---
         if (selectedTile.building === 'Research Dome') {
-            const showEmbodimentButton = completedResearch.includes('embodiment-prelim') && !isAudioPuzzleCompleted;
-            
             return (
                 <div>
                     <p><strong>Research Facility Actions:</strong></p>
@@ -301,16 +300,6 @@ const ManagementUI = () => {
                     >
                         View Projects
                     </button>
-                    
-                    {/* Display Embodiment Phase 0 button when research is completed */}
-                    {showEmbodimentButton && (
-                        <button
-                            onClick={handleInitiateEmbodiment}
-                            className={`${styles.actionButtonSmall} ${styles.embodimentButton}`}
-                        >
-                            EMBODIMENT PHASE 0
-                        </button>
-                    )}
                     
                     {/* Display Research Dome Info Panel */}
                     <DomeInfoPanel domeType="research" />
@@ -323,7 +312,7 @@ const ManagementUI = () => {
             return (
                 <div>
                     <p><strong>Flow Project Site</strong></p>
-                    <p>Status: Under construction</p>
+                    <FlowProjectInfoPanel />
                 </div>
             );
         }
