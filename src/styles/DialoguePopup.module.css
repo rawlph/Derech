@@ -30,6 +30,27 @@
     animation: pulseBackground 3s infinite;
 }
 
+/* Overlay state after first click - provides visual feedback */
+.overlayFirstClick {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding-bottom: 30px;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    animation: pulseFirstClick 2.5s infinite;
+}
+
+@keyframes pulseFirstClick {
+    0%, 100% { background-color: rgba(0, 0, 0, 0.7); }
+    50% { background-color: rgba(0, 0, 0, 0.9); }
+}
+
 @keyframes pulseBackground {
     0%, 100% { background-color: rgba(0, 0, 0, 0.7); }
     50% { background-color: rgba(0, 0, 0, 0.8); }
@@ -103,6 +124,23 @@
 
 .closeButton:hover {
     transform: scale(1.2);
+}
+
+/* Click again indicator */
+.clickAgainIndicator {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #FFD700;
+    margin-top: 0.5rem;
+    padding: 0.25rem;
+    background-color: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    animation: fadeInOut 2s infinite;
+}
+
+@keyframes fadeInOut {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
 }
 
 /* Pulse animation */

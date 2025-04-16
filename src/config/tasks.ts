@@ -27,8 +27,8 @@ export const taskConfigs: Record<string, TaskConfig> = {
     workforceRequired: 3,
     duration: 9, // UPDATED: Was 2, factor 3 -> 6, user wants 9
     operationalModelPath: '/Derech/models/mars_workforce_mining.glb',
-    resourceYield: { resource: 'minerals', baseAmount: 8 },
-    powerConsumption: 5, // NEW
+    resourceYield: { resource: 'minerals', baseAmount: 5 },
+    powerConsumption: 6, // Increased from 5 to 6
     scale: [0.06, 0.06, 0.06],
     yOffset: 0.2,
   },
@@ -42,7 +42,7 @@ export const taskConfigs: Record<string, TaskConfig> = {
     duration: 3, // UPDATED: Was 1, factor 3 -> 3
     operationalModelPath: '/Derech/models/mars_building_scout.glb',
     resourceYield: { resource: 'researchPoints', baseAmount: 4 },
-    powerConsumption: 2, // NEW
+    powerConsumption: 3, // Increased from 2 to 3
     scale: [0.04, 0.04, 0.04],
     yOffset: 0.2,
   },
@@ -84,7 +84,7 @@ export const taskConfigs: Record<string, TaskConfig> = {
     duration: 6, // UPDATED: Was 2, factor 3 -> 6
     operationalModelPath: '/Derech/models/mars_waterwell.glb',
     resourceYield: { resource: 'water', baseAmount: 12 },
-    powerConsumption: 4, // NEW
+    powerConsumption: 5, // Increased from 4 to 5
     scale: [0.08, 0.08, 0.08],
     yOffset: 0.15,
   },

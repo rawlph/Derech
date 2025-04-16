@@ -8,6 +8,57 @@ import DomeInfoPanel from './DomeInfoPanel'; // Import the dome info component
 import FlowProjectInfoPanel from './FlowProjectInfoPanel'; // Import the flow project info component
 import VolumeControl from './VolumeControl'; // Import the volume control component
 
+// Helper function to calculate resource generation with bonuses
+const calculateResourceGeneration = (taskType: string, resourceType: string, baseAmount: number, completedResearch: string[], completedProduction: string[], mountain?: {type: string, height: number}) => {
+    let amount = baseAmount;
+    
+    // Apply research and production project bonuses
+    if (resourceType === 'water' && taskType === 'build-waterwell') {
+        if (completedResearch.includes('water-reclamation-1')) {
+            amount *= 1.20; // +20%
+        }
+        if (completedProduction.includes('thermal-extractors')) {
+            amount *= 1.10; // +10% (multiplicative)
+        }
+    } else if (resourceType === 'minerals' && taskType === 'deploy-mining') {
+        if (completedResearch.includes('improved-extraction')) {
+            amount *= 1.25; // +25%
+        }
+        // Apply mountain height bonus if applicable
+        if (mountain?.type === 'Mountain') {
+            const heightBonus = mountain.height * 0.5;
+            amount *= (1 + heightBonus);
+        }
+    } else if (resourceType === 'researchPoints' && taskType === 'deploy-scout') {
+        if (completedResearch.includes('embodiment-prelim')) {
+            amount *= 1.15; // +15%
+        }
+    } else if (resourceType === 'power' && taskType === 'build-geothermal') {
+        if (completedResearch.includes('seismic-mapping')) {
+            amount *= 1.30; // +30%
+        }
+    }
+    
+    return Math.floor(amount);
+};
+
+// Helper function to calculate power consumption with bonuses
+const calculatePowerConsumption = (taskType: string, basePowerConsumption: number, completedProduction: string[], mountain?: {type: string, height: number}) => {
+    let consumption = basePowerConsumption;
+    
+    // Apply production project bonuses
+    if (taskType === 'build-waterwell' && completedProduction.includes('thermal-extractors')) {
+        consumption *= 0.75; // -25% power consumption for water wells
+    }
+    
+    // Add mountain height power consumption
+    if (taskType === 'deploy-mining' && mountain?.type === 'Mountain') {
+        consumption += mountain.height; // +1 power per mountain height level
+    }
+    
+    return Math.floor(consumption);
+};
+
 // Status Display Component
 const StatusDisplay = () => {
     const { 
@@ -329,6 +380,59 @@ const ManagementUI = () => {
                 statusDisplay += ` (${Math.floor(currentTask.deconstructProgress || 0)}%)`;
             }
 
+            // Get task configuration to display resource info
+            const taskConfig = getTaskConfig(currentTask.type);
+            
+            // Resource summary for operational buildings
+            let resourceSummary = null;
+            if (currentTask.status === 'operational' && taskConfig) {
+                if (taskConfig.resourceYield) {
+                    const resourceType = taskConfig.resourceYield.resource;
+                    const baseAmount = taskConfig.resourceYield.baseAmount;
+                    
+                    // Calculate the actual resource generation with bonuses
+                    const generatedAmount = calculateResourceGeneration(
+                        currentTask.type, 
+                        resourceType, 
+                        baseAmount, 
+                        completedResearch, 
+                        useGameStore.getState().completedProductionProjects,
+                        selectedTile.type === 'Mountain' ? { type: selectedTile.type, height: selectedTile.height } : undefined
+                    );
+                    
+                    // Calculate power consumption if any
+                    let powerConsumption = 0;
+                    if (taskConfig.powerConsumption) {
+                        powerConsumption = calculatePowerConsumption(
+                            currentTask.type,
+                            taskConfig.powerConsumption,
+                            useGameStore.getState().completedProductionProjects,
+                            selectedTile.type === 'Mountain' ? { type: selectedTile.type, height: selectedTile.height } : undefined
+                        );
+                    }
+                    
+                    // Create resource icon based on type
+                    let resourceIcon = '';
+                    switch (resourceType) {
+                        case 'power': resourceIcon = '⚡'; break;
+                        case 'water': resourceIcon = '💧'; break;
+                        case 'minerals': resourceIcon = '⛏️'; break;
+                        case 'researchPoints': resourceIcon = '🔬'; break;
+                        case 'colonyGoods': resourceIcon = '📦'; break;
+                    }
+                    
+                    resourceSummary = (
+                        <div style={{ marginTop: '8px', padding: '8px', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '4px' }}>
+                            <p style={{ margin: '0 0 4px 0' }}><strong>Resource Summary:</strong></p>
+                            <p style={{ margin: '0 0 4px 0' }}>Generates: +{generatedAmount} {resourceIcon}</p>
+                            {powerConsumption > 0 && (
+                                <p style={{ margin: '0' }}>Costs: {powerConsumption} ⚡</p>
+                            )}
+                        </div>
+                    );
+                }
+            }
+
             return (
                 <div className={styles.actionsContainer}>
                     <p><strong>Active Task:</strong> {
@@ -337,6 +441,7 @@ const ManagementUI = () => {
                             : getTaskConfig(currentTask.type)?.name
                     }</p>
                     <p>{statusDisplay}</p>
+                    {resourceSummary}
                     {currentTask.status === 'event-pending' && (
                          <button onClick={() => handleInvestigateEvent(currentTask)} className={styles.actionButtonSmall}>
                             Investigate Event
