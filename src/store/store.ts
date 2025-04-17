@@ -135,6 +135,7 @@ interface GameState {
   // --- Workforce ---
   totalWorkforce: number; // NEW: Calculated from population
   availableWorkforce: number; // NEW: Workforce not assigned to tasks
+  workforceBonus: number; // NEW: Permanent workforce bonuses from projects
 
   // --- Game State ---
   currentRound: number;
@@ -425,6 +426,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   // Initial Workforce (derived)
   totalWorkforce: 8, // Example: 10 pop * 0.8 = 8
   availableWorkforce: 8,
+  workforceBonus: 0, // Initial workforce bonus is 0
 
   // Initial Game State
   currentRound: 1,
@@ -853,7 +855,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
 
         // Recalculate workforce
-        const newTotalWorkforce = Math.floor(state.population * 0.8);
+        const newTotalWorkforce = Math.floor(state.population * 0.8) + state.workforceBonus;
         const currentAssigned = Object.values(state.activeTasks).reduce((sum, task) => sum + task.assignedWorkforce, 0);
         
         // Check for Advanced Tool Fabrication project effect
@@ -1001,6 +1003,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       minerals: 20,
       totalWorkforce: 8,
       availableWorkforce: 8,
+      workforceBonus: 0, // Reset workforce bonus
       currentRound: 1,
       gridTiles: {}, // Will be replaced by initializeGrid call
       selectedTile: null, // Reset selected tile when resetting colony
@@ -1132,6 +1135,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         isFlowWindowVisible: false, // Reset flow window visibility
         flowPoints: 0,
         activeFlowTier: null,
+        workforceBonus: 0, // Reset workforce bonus during emergency reset
       };
     });
     
@@ -1671,19 +1675,21 @@ export const useGameStore = create<GameState>((set, get) => ({
           
           // Apply special effects for specific living projects when completed
           if (activeLivingProject.id === 'expand-housing') {
-            // Add +1 to totalWorkforce for Modular Housing Unit
+            // Add +1 to workforceBonus for Modular Housing Unit
             set(state => ({
-              totalWorkforce: state.totalWorkforce + 1,
+              workforceBonus: state.workforceBonus + 1,
+              totalWorkforce: state.totalWorkforce + 1, // Still update totalWorkforce for immediate effect
               availableWorkforce: state.availableWorkforce + 1
             }));
-            console.log('Modular Housing Unit effect applied: +1 workforce added');
+            console.log('Modular Housing Unit effect applied: +1 workforce bonus added');
           } else if (activeLivingProject.id === 'upgrade-living-quarters') {
-            // Advanced Living Quarters also increases workforce by 1
+            // Advanced Living Quarters also increases workforce bonus by 1
             set(state => ({
-              totalWorkforce: state.totalWorkforce + 1,
+              workforceBonus: state.workforceBonus + 1,
+              totalWorkforce: state.totalWorkforce + 1, // Still update totalWorkforce for immediate effect
               availableWorkforce: state.availableWorkforce + 1
             }));
-            console.log('Advanced Living Quarters effect applied: +1 workforce added');
+            console.log('Advanced Living Quarters effect applied: +1 workforce bonus added');
           } else if (activeLivingProject.id === 'upgrade-living-dome') {
             // Apply +15 Flow points for Living Dome Upgrade
             set(state => ({
@@ -2122,19 +2128,21 @@ export const useGameStore = create<GameState>((set, get) => ({
       
       // Apply special effects for specific living projects when completed
       if (activeLivingProject.id === 'expand-housing') {
-        // Add +1 to totalWorkforce for Modular Housing Unit
+        // Add +1 to workforceBonus for Modular Housing Unit instead of directly modifying totalWorkforce
         set(state => ({
-          totalWorkforce: state.totalWorkforce + 1,
+          workforceBonus: state.workforceBonus + 1,
+          totalWorkforce: state.totalWorkforce + 1, // Still update totalWorkforce for immediate effect
           availableWorkforce: state.availableWorkforce + 1
         }));
-        console.log('Modular Housing Unit effect applied: +1 workforce added');
+        console.log('Modular Housing Unit effect applied: +1 workforce bonus added');
       } else if (activeLivingProject.id === 'upgrade-living-quarters') {
-        // Advanced Living Quarters also increases workforce by 1
+        // Advanced Living Quarters also increases workforce bonus by 1
         set(state => ({
-          totalWorkforce: state.totalWorkforce + 1,
+          workforceBonus: state.workforceBonus + 1,
+          totalWorkforce: state.totalWorkforce + 1, // Still update totalWorkforce for immediate effect
           availableWorkforce: state.availableWorkforce + 1
         }));
-        console.log('Advanced Living Quarters effect applied: +1 workforce added');
+        console.log('Advanced Living Quarters effect applied: +1 workforce bonus added');
       } else if (activeLivingProject.id === 'upgrade-living-dome') {
         // Apply +15 Flow points for Living Dome Upgrade
         set(state => ({
