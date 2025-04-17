@@ -18,7 +18,7 @@ export const productionProjects: Record<string, ProductionProject> = {
         description: "Reconfigure assembly lines to increase the output efficiency of Colony Goods.",
         cost: { minerals: 25, power: 10 },
         duration: 9, // 3 + 6
-        effectDescription: "Instead of +9 all 5 rounds, +3 each round.",
+        effectDescription: "Instead of +9 every 5 rounds, produces +3 each round and converts all minerals continuously.",
         tier: 1,
     },
     'tool-fabrication': {
@@ -27,7 +27,7 @@ export const productionProjects: Record<string, ProductionProject> = {
         description: "Produce higher quality tools, slightly increasing workforce efficiency across various tasks.",
         cost: { minerals: 40, colonyGoods: 15 },
         duration: 11, // 5 + 6
-        effectDescription: "-1 WF used for mines. After research, gain +1 Workforce back if there's an operating mine. Otherwise, building and operating mines will cost 2 WF instead of 3 WF.",
+        effectDescription: "-1 WF used for mines.",
         tier: 1,
     },
     'power-efficiency': {
@@ -36,7 +36,7 @@ export const productionProjects: Record<string, ProductionProject> = {
         description: "Improve power distribution within the dome, reducing the energy cost of production processes.",
         cost: { colonyGoods: 30, power: 5 }, // Requires goods to implement
         duration: 10, // 4 + 6
-        effectDescription: "Converting minerals to colony goods is now more efficient. 33.33 minerals / 9 = 3.70 colony goods per round, instead of 33.33/10 = 3.33.",
+        effectDescription: "Converting Minerals to Colony Goods is more efficient.",
         tier: 1,
     },
     'hydroponic-equipment': {

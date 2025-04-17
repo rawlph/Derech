@@ -160,8 +160,13 @@ const DomeInfoPanel: React.FC<DomeInfoPanelProps> = ({ domeType }) => {
     const cyclesRemaining = 5 - colonyGoodsCycle;
     const { baseAmount, bonusPercentage, totalAmount } = calculateColonyGoodsGeneration();
     
-    // Calculate mineral conversion to colony goods
-    const mineralConversion = storedMinerals / 10;
+    // Check for Optimized Assembly Line project
+    const hasOptimizedAssembly = completedProductionProjects.includes('optimize-assembly');
+    
+    // Check for Production Power Rerouting project effect
+    const conversionRate = completedProductionProjects.includes('power-efficiency') ? 9 : 10;
+    // Calculate mineral conversion to colony goods with correct rate
+    const mineralConversion = storedMinerals / conversionRate;
     const totalGoodsWithMinerals = Math.round((totalAmount + mineralConversion) * 100) / 100;
     
     return (
@@ -176,7 +181,9 @@ const DomeInfoPanel: React.FC<DomeInfoPanelProps> = ({ domeType }) => {
             />
           </div>
           <div className={styles.cycleValue}>
-            {cyclesRemaining > 0 ? `${cyclesRemaining} rounds` : "Ready!"}
+            {hasOptimizedAssembly 
+              ? "+3 per round" 
+              : cyclesRemaining > 0 ? `${cyclesRemaining} rounds` : "Ready!"}
           </div>
         </div>
         
@@ -187,32 +194,57 @@ const DomeInfoPanel: React.FC<DomeInfoPanelProps> = ({ domeType }) => {
           {storedMinerals > 0 && (
             <div className={styles.conversionInfo}>
               Will convert to +{mineralConversion.toFixed(2)} colony goods
+              {hasOptimizedAssembly 
+                ? " (continuously)" 
+                : ""}
             </div>
           )}
         </div>
         
         <div className={styles.generationInfo}>
-          Base generation: +{baseAmount} goods every 5 rounds
-          {bonusPercentage > 0 && (
+          {hasOptimizedAssembly ? (
             <>
-              <br/>
               <span className={styles.bonusText}>
-                Project bonus: +{bonusPercentage}%
+                Optimized Assembly: +3 goods per round
+              </span>
+              {storedMinerals > 0 && (
+                <>
+                  <br/>
+                  <span className={styles.bonusText}>
+                    + Continuous mineral conversion
+                  </span>
+                </>
+              )}
+              <br/>
+              <span className={styles.totalText}>
+                Continuous production active!
+              </span>
+            </>
+          ) : (
+            <>
+              Base generation: +{baseAmount} goods every 5 rounds
+              {bonusPercentage > 0 && (
+                <>
+                  <br/>
+                  <span className={styles.bonusText}>
+                    Project bonus: +{bonusPercentage}%
+                  </span>
+                </>
+              )}
+              {storedMinerals > 0 && (
+                <>
+                  <br/>
+                  <span className={styles.bonusText}>
+                    Mineral boost: +{mineralConversion.toFixed(2)}
+                  </span>
+                </>
+              )}
+              <br/>
+              <span className={styles.totalText}>
+                Total next harvest: +{totalGoodsWithMinerals} goods
               </span>
             </>
           )}
-          {storedMinerals > 0 && (
-            <>
-              <br/>
-              <span className={styles.bonusText}>
-                Mineral boost: +{mineralConversion.toFixed(2)}
-              </span>
-            </>
-          )}
-          <br/>
-          <span className={styles.totalText}>
-            Total next harvest: +{totalGoodsWithMinerals} goods
-          </span>
         </div>
       </div>
     );

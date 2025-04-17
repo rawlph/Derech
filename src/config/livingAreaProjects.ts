@@ -27,7 +27,7 @@ export const livingAreaProjects: Record<string, LivingAreaProject> = {
         description: "Construct an additional standardized housing module, increasing maximum population capacity.",
         cost: { colonyGoods: 35, minerals: 15 },
         duration: 10, // 4 + 6
-        effectDescription: "Adds +1 workforce (i.e. going from 0/8 to 1/9).",
+        effectDescription: "Adds +1 available workforce.",
         tier: 1,
     },
     'recreation-center': {

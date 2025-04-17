@@ -432,6 +432,10 @@ const ManagementUI = () => {
                         <div style={{ marginTop: '8px', padding: '8px', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '4px' }}>
                             <p style={{ margin: '0 0 4px 0' }}><strong>Resource Summary:</strong></p>
                             <p style={{ margin: '0 0 4px 0' }}>Generates: +{generatedAmount} {resourceIcon}</p>
+                            {/* Add research points notification for geothermal plants when research dome is upgraded */}
+                            {currentTask.type === 'build-geothermal' && completedResearch.includes('upgrade-research-dome') && (
+                                <p style={{ margin: '0 0 4px 0' }}>Generates: +3 🔬</p>
+                            )}
                             {powerConsumption > 0 && (
                                 <p style={{ margin: '0' }}>Costs: {powerConsumption} ⚡</p>
                             )}
