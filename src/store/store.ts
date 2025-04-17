@@ -650,12 +650,19 @@ export const useGameStore = create<GameState>((set, get) => ({
     // Round to nearest decimal for display
     goodsConsumed = Math.round(goodsConsumed * 100) / 100;
     
+    // Only track consumption in resourceChanges to avoid double-counting
     resourceChanges.colonyGoods -= goodsConsumed;
     console.log(`Colony Goods Consumption this round: ${goodsConsumed.toFixed(2)} (population: ${population})`);
     
-    // Update the currentEndRoundResourceChanges to track consumption
+    // Update currentEndRoundResourceChanges but DON'T subtract consumption again
     const currentChanges = get().currentEndRoundResourceChanges || { power: 0, water: 0, minerals: 0, colonyGoods: 0, researchPoints: 0 };
-    currentChanges.colonyGoods -= goodsConsumed;
+    // Removed: currentChanges.colonyGoods -= goodsConsumed;
+    
+    // Log the current colony goods status before consumption
+    console.log(`Colony Goods before consumption: ${get().colonyGoods.toFixed(2)}`);
+    console.log(`Colony Goods resource changes: ${resourceChanges.colonyGoods.toFixed(2)} (includes consumption)`);
+    console.log(`Colony Goods current changes: ${currentChanges.colonyGoods.toFixed(2)} (from dome production)`);
+    
     set({ currentEndRoundResourceChanges: currentChanges });
     
     // ----- STEP 2: Calculate ALL resource generation -----
@@ -800,28 +807,60 @@ export const useGameStore = create<GameState>((set, get) => ({
           researchPoints: state.researchPoints
         };
         
-        // Calculate new resource values based on current values plus changes
-        const newPower = state.power + resourceChanges.power;
-        const newWater = state.water + resourceChanges.water;
-        const newMinerals = state.minerals + resourceChanges.minerals;
-        const newColonyGoods = state.colonyGoods + resourceChanges.colonyGoods;
-        const newResearchPoints = state.researchPoints + resourceChanges.researchPoints;
-        
         // Get any additional resource changes from dome generation (like Optimized Assembly Line)
         const additionalChanges = state.currentEndRoundResourceChanges || {
           power: 0, water: 0, minerals: 0, colonyGoods: 0, researchPoints: 0
         };
+        
+        // Calculate new resource values based on current values plus changes
+        const newPower = state.power + resourceChanges.power + additionalChanges.power;
+        const newWater = state.water + resourceChanges.water + additionalChanges.water;
+        const newMinerals = state.minerals + resourceChanges.minerals + additionalChanges.minerals;
+        const newColonyGoods = state.colonyGoods + resourceChanges.colonyGoods + additionalChanges.colonyGoods;
+        const newResearchPoints = state.researchPoints + resourceChanges.researchPoints + additionalChanges.researchPoints;
+        
+        // Detailed logging for trend calculations
+        console.log('------ Resource Trend Calculation ------');
+        console.log(`Power: ${previousValues.power.toFixed(2)} → ${newPower.toFixed(2)} (${resourceChanges.power.toFixed(2)})`);
+        console.log(`Water: ${previousValues.water.toFixed(2)} → ${newWater.toFixed(2)} (${resourceChanges.water.toFixed(2)})`);
+        console.log(`Minerals: ${previousValues.minerals.toFixed(2)} → ${newMinerals.toFixed(2)} (${resourceChanges.minerals.toFixed(2)})`);
+        console.log(`Colony Goods: ${previousValues.colonyGoods.toFixed(2)} → ${newColonyGoods.toFixed(2)} (${resourceChanges.colonyGoods.toFixed(2)})`);
+        console.log(`Research Points: ${previousValues.researchPoints.toFixed(2)} → ${newResearchPoints.toFixed(2)} (${resourceChanges.researchPoints.toFixed(2)})`);
+        console.log(`Additional Power changes: ${additionalChanges.power.toFixed(2)}`);
+        console.log(`Additional Water changes: ${additionalChanges.water.toFixed(2)}`);
+        console.log(`Additional Minerals changes: ${additionalChanges.minerals.toFixed(2)}`);
+        console.log(`Additional Colony Goods changes: ${additionalChanges.colonyGoods.toFixed(2)}`);
+        console.log(`Additional Research Points changes: ${additionalChanges.researchPoints.toFixed(2)}`);
         
         // Calculate resource trends incorporating all changes
         const newResourceTrends: ResourceTrends = {
           power: newPower > previousValues.power ? 'up' : newPower < previousValues.power ? 'down' : 'same',
           water: newWater > previousValues.water ? 'up' : newWater < previousValues.water ? 'down' : 'same',
           minerals: newMinerals > previousValues.minerals ? 'up' : newMinerals < previousValues.minerals ? 'down' : 'same',
-          // Use total changes (from resourceChanges + currentEndRoundResourceChanges) to determine trend
-          colonyGoods: (resourceChanges.colonyGoods + additionalChanges.colonyGoods) > 0 ? 'up' : 
-                       (resourceChanges.colonyGoods + additionalChanges.colonyGoods) < 0 ? 'down' : 'same',
+          // Fixed trend calculation for colony goods - compare new value with previous value
+          colonyGoods: newColonyGoods > previousValues.colonyGoods ? 'up' : 
+                       newColonyGoods < previousValues.colonyGoods ? 'down' : 'same',
           researchPoints: newResearchPoints > previousValues.researchPoints ? 'up' : newResearchPoints < previousValues.researchPoints ? 'down' : 'same'
         };
+        
+        // Log the resulting trends with detailed comparison
+        console.log('------ Resource Trends Calculation ------');
+        console.log(`Power: ${previousValues.power.toFixed(2)} vs ${newPower.toFixed(2)} = ${newResourceTrends.power}`);
+        console.log(`Water: ${previousValues.water.toFixed(2)} vs ${newWater.toFixed(2)} = ${newResourceTrends.water}`);
+        console.log(`Minerals: ${previousValues.minerals.toFixed(2)} vs ${newMinerals.toFixed(2)} = ${newResourceTrends.minerals}`);
+        console.log(`Colony Goods: ${previousValues.colonyGoods.toFixed(2)} vs ${newColonyGoods.toFixed(2)} = ${newResourceTrends.colonyGoods}`);
+        console.log(`Research Points: ${previousValues.researchPoints.toFixed(2)} vs ${newResearchPoints.toFixed(2)} = ${newResourceTrends.researchPoints}`);
+        
+        // Log total colony goods changes for better visibility
+        const totalColonyGoodsChange = resourceChanges.colonyGoods + additionalChanges.colonyGoods;
+        console.log(`------ Colony Goods Change Summary ------`);
+        console.log(`Consumption (in resourceChanges): ${resourceChanges.colonyGoods.toFixed(2)}`);
+        console.log(`Production (in additionalChanges): ${additionalChanges.colonyGoods.toFixed(2)}`);
+        console.log(`Total change: ${totalColonyGoodsChange.toFixed(2)}`);
+        console.log(`Starting value: ${previousValues.colonyGoods.toFixed(2)}`);
+        console.log(`Ending value: ${newColonyGoods.toFixed(2)}`);
+        console.log(`Net change: ${(newColonyGoods - previousValues.colonyGoods).toFixed(2)}`);
+        console.log(`Trend: ${newResourceTrends.colonyGoods}`);
         
         // NEW: Update resource trend history
         const newResourceTrendHistory: ResourceTrendHistory = {
@@ -942,6 +981,16 @@ export const useGameStore = create<GameState>((set, get) => ({
       console.log(`Resources - Power: ${get().power.toFixed(2)}, Water: ${get().water.toFixed(2)}, Minerals: ${get().minerals}, Colony Goods: ${get().colonyGoods}, Research: ${get().researchPoints}`);
       console.log(`Penalties - Power: ${get().isLowPowerPenaltyActive}, Water: ${get().isLowWaterPenaltyActive}`);
     console.log("Available Workforce:", get().availableWorkforce, "/", get().totalWorkforce);
+    console.log("------ End of Round Resource Summary ------");
+    console.log(`Colony Goods: Final value = ${get().colonyGoods.toFixed(2)}`);
+    console.log(`Colony Goods: Previous value = ${get().previousRoundResources.colonyGoods.toFixed(2)}`);
+    console.log(`Colony Goods: Actual change = ${(get().colonyGoods - get().previousRoundResources.colonyGoods).toFixed(2)}`);
+    // Log research points
+    console.log(`Research Points: Final value = ${get().researchPoints.toFixed(2)}`);
+    console.log(`Research Points: Previous value = ${get().previousRoundResources.researchPoints.toFixed(2)}`);
+    console.log(`Research Points: Actual change = ${(get().researchPoints - get().previousRoundResources.researchPoints).toFixed(2)}`);
+    // Log stored minerals for Production Dome
+    console.log(`Production Dome: Stored minerals = ${get().domeGeneration.storedMinerals.toFixed(2)}`);
     }, 500); // Short delay to allow for visuals
   },
 
@@ -1470,7 +1519,10 @@ export const useGameStore = create<GameState>((set, get) => ({
               totalMineralsGenerated += mineralsForPlayer; // Add only 1/3 to player's minerals
               totalMineralsForProduction += mineralsForProduction; // Track 2/3 for Production Dome
               
-              console.log(`Task ${task.id} generated ${yieldAmount} minerals: ${mineralsForPlayer} for player, ${mineralsForProduction} for Production Dome`);
+              // Enhanced logging for mining operations
+              console.log(`[MINING OPERATION] Task ${task.id} generated ${yieldAmount} total minerals`);
+              console.log(`[MINING OPERATION] Split: ${mineralsForPlayer} (1/3) for player, ${mineralsForProduction} (2/3) for Production Dome`);
+              console.log(`[MINING OPERATION] Current stored minerals: ${get().domeGeneration.storedMinerals}, Will be: ${get().domeGeneration.storedMinerals + mineralsForProduction}`);
               
               // Update the resource generation visualization to show the split
               resourceGenerations.push({
@@ -1762,11 +1814,26 @@ export const useGameStore = create<GameState>((set, get) => ({
   generateDomeResources: () => {
     const { colonyGoodsCycle, colonyGoodsBaseAmount, researchCycle, researchBaseAmount, storedMinerals } = get().domeGeneration;
     
+    // Helper function to update resource changes for any resource type
+    const updateResourceChanges = (resourceType: keyof typeof resourceChanges, amount: number) => {
+      // Add to resource changes tracking
+      resourceChanges[resourceType] += amount;
+      
+      // Update the end round resource changes tracking
+      const currentResourceChanges = get().currentEndRoundResourceChanges || { 
+        power: 0, water: 0, minerals: 0, colonyGoods: 0, researchPoints: 0 
+      };
+      currentResourceChanges[resourceType] += amount;
+      set({ currentEndRoundResourceChanges: currentResourceChanges });
+      
+      console.log(`[DOME EFFECT] ${resourceType} added to tracking: +${amount.toFixed(2)} (will be applied in endRound)`);
+    };
+    
     let updatedColonyGoodsCycle = colonyGoodsCycle + 1;
     let updatedResearchCycle = researchCycle + 1;
+    let updatedStoredMinerals = storedMinerals;
     let colonyGoodsGenerated = 0;
     let researchPointsGenerated = 0;
-    let updatedStoredMinerals = storedMinerals; // Keep track of remaining stored minerals
     
     // Tracking for resource visualizations
     const resourceGenerations: ResourceGeneration[] = [];
@@ -1783,28 +1850,52 @@ export const useGameStore = create<GameState>((set, get) => ({
     // Check if Optimized Assembly Line project is completed
     const hasOptimizedAssembly = get().completedProductionProjects.includes('optimize-assembly');
     
-    // If Optimized Assembly Line is completed, generate +3 colony goods every round
+    // If Optimized Assembly Line is completed, generate colony goods every round
     if (hasOptimizedAssembly) {
-      colonyGoodsGenerated = 3; // Base amount per round
+      const baseProduction = 3; // Base amount per round
+      let mineralConversion = 0; // Default if no minerals stored
       
-      // Process minerals every round with Optimized Assembly
+      // Process minerals every round with Optimized Assembly if available
       if (storedMinerals > 0) {
         // Check for Production Power Rerouting project effect (improved conversion rate)
         const conversionRate = get().completedProductionProjects.includes('power-efficiency') ? 9 : 10;
         
-        // Convert minerals continuously every round - process ALL stored minerals instead of capping at 2
-        const mineralsToConvert = storedMinerals; // Process all stored minerals
-        const mineralConversion = mineralsToConvert / conversionRate;
+        // Convert minerals continuously every round - process ALL stored minerals
+        const mineralsToConvert = storedMinerals;
+        mineralConversion = mineralsToConvert / conversionRate;
         updatedStoredMinerals = 0; // All minerals are consumed
         
-        // Add mineral conversion to colony goods generated
-        colonyGoodsGenerated += mineralConversion;
-        
-        // Round to 2 decimal places for display consistency
-        colonyGoodsGenerated = Math.round(colonyGoodsGenerated * 100) / 100;
-        
-        console.log(`Production Dome converted ${mineralsToConvert.toFixed(2)} minerals to ${mineralConversion.toFixed(2)} colony goods (continuous conversion)`);
+        console.log(`-------------- PRODUCTION DOME DETAILS --------------`);
+        console.log(`Minerals stored before: ${mineralsToConvert.toFixed(2)}`);
+        console.log(`Mineral conversion rate: 1:${conversionRate}`);
+        console.log(`Minerals converted to goods: ${mineralConversion.toFixed(2)}`);
+        console.log(`Base production (Optimized Assembly): ${baseProduction}`);
+      } else {
+        console.log(`[PRODUCTION DOME] Base production only: ${baseProduction.toFixed(2)} (no minerals for conversion)`);
       }
+      
+      // Calculate total production (base + mineral conversion if any)
+      colonyGoodsGenerated = baseProduction + mineralConversion;
+      
+      // Round to 2 decimal places for display consistency
+      colonyGoodsGenerated = Math.round(colonyGoodsGenerated * 100) / 100;
+      
+      // Calculate the population's goods consumption for logging purposes
+      const population = get().population;
+      let goodsConsumed = Math.floor(population / 10);
+      // Apply living dome projects if available
+      if (get().completedLivingProjects.includes('improve-air')) {
+        goodsConsumed *= 0.85; // Apply 15% reduction
+      }
+      if (get().completedLivingProjects.includes('recreation-center')) {
+        goodsConsumed *= 0.85; // Apply 15% reduction
+      }
+      goodsConsumed = Math.round(goodsConsumed * 100) / 100;
+      
+      console.log(`Total colony goods produced: ${colonyGoodsGenerated.toFixed(2)}`);
+      console.log(`Population consumption: ${goodsConsumed.toFixed(2)}`);
+      console.log(`Net colony goods (production - consumption): ${(colonyGoodsGenerated - goodsConsumed).toFixed(2)}`);
+      console.log(`-------------------------------------------------`);
       
       // Add to resource generations for visualization
       resourceGenerations.push({
@@ -1813,67 +1904,43 @@ export const useGameStore = create<GameState>((set, get) => ({
         type: 'production-dome',
         resourceType: 'colonyGoods',
         amount: colonyGoodsGenerated,
-        details: storedMinerals > 0 
-          ? `Optimized Assembly: +3 base, +${(colonyGoodsGenerated - 3).toFixed(2)} from minerals` 
+        details: mineralConversion > 0 
+          ? `Optimized Assembly: +3 base, +${mineralConversion.toFixed(2)} from minerals` 
           : 'Optimized Assembly Line: +3 per round'
       });
-      
-      // Add the generated goods to the resource changes
-      resourceChanges.colonyGoods += colonyGoodsGenerated;
-      
-      console.log(`Production Dome generated ${colonyGoodsGenerated} colony goods (continuous production)`);
-      
-      // Get the current endRound resourceChanges object and update it with our colony goods
-      const currentResourceChanges = get().currentEndRoundResourceChanges || { power: 0, water: 0, minerals: 0, colonyGoods: 0, researchPoints: 0 };
-      currentResourceChanges.colonyGoods += colonyGoodsGenerated;
-      set({ currentEndRoundResourceChanges: currentResourceChanges });
-      
-      // Update the actual colony goods amount in the state
-      set(state => ({ colonyGoods: state.colonyGoods + colonyGoodsGenerated }));
     }
-    
-    // Check if we've completed a 5-round cycle for mineral conversion
-    if (updatedColonyGoodsCycle >= 5) {
-      // Reset the cycle counter regardless of whether we're using Optimized Assembly
+    // Check if we've completed a 5-round cycle for mineral conversion in standard mode
+    else if (updatedColonyGoodsCycle >= 5) {
+      // Reset the cycle counter
       updatedColonyGoodsCycle = 0;
       
-      // Only proceed with batch production if Optimized Assembly Line is NOT completed
-      if (!hasOptimizedAssembly) {
-        // Convert stored minerals to colony goods production
-        // Check for Production Power Rerouting project effect (improved conversion rate)
-        const conversionRate = get().completedProductionProjects.includes('power-efficiency') ? 9 : 10;
-        const mineralConversion = storedMinerals / conversionRate;
-        updatedStoredMinerals = 0; // Reset stored minerals after using them
-        
-        // Start with base amount plus mineral conversion
-        colonyGoodsGenerated = colonyGoodsBaseAmount + mineralConversion;
-        
-        // Round to 2 decimal places for display consistency
-        colonyGoodsGenerated = Math.round(colonyGoodsGenerated * 100) / 100;
-        
-        // Add to resource generations for visualization
-        resourceGenerations.push({
-          taskId: 'production-dome',
-          targetTileKey: '1,0', // Production Dome is at 1,0
-          type: 'production-dome',
-          resourceType: 'colonyGoods',
-          amount: colonyGoodsGenerated,
-          details: storedMinerals > 0 ? `With ${storedMinerals.toFixed(2)} minerals conversion` : undefined
-        });
-        
-        // Add the generated goods to the resource changes
-        resourceChanges.colonyGoods += colonyGoodsGenerated;
-        
-        console.log(`Production Dome generated ${colonyGoodsGenerated} colony goods (base: ${colonyGoodsBaseAmount}, minerals boost: ${mineralConversion})`);
-        
-        // Update the actual colony goods amount in the state
-        set(state => ({ colonyGoods: state.colonyGoods + colonyGoodsGenerated }));
-        
-        // Get the current endRound resourceChanges object and update it with our colony goods
-        const currentResourceChanges = get().currentEndRoundResourceChanges || { power: 0, water: 0, minerals: 0, colonyGoods: 0, researchPoints: 0 };
-        currentResourceChanges.colonyGoods += colonyGoodsGenerated;
-        set({ currentEndRoundResourceChanges: currentResourceChanges });
-      }
+      // Standard production every 5 rounds if Optimized Assembly Line is NOT completed
+      const conversionRate = get().completedProductionProjects.includes('power-efficiency') ? 9 : 10;
+      const mineralConversion = storedMinerals / conversionRate;
+      updatedStoredMinerals = 0; // Reset stored minerals after using them
+      
+      // Start with base amount plus mineral conversion
+      colonyGoodsGenerated = colonyGoodsBaseAmount + mineralConversion;
+      
+      // Round to 2 decimal places for display consistency
+      colonyGoodsGenerated = Math.round(colonyGoodsGenerated * 100) / 100;
+      
+      console.log(`Production Dome generated ${colonyGoodsGenerated.toFixed(2)} colony goods (base: ${colonyGoodsBaseAmount}, minerals: ${mineralConversion.toFixed(2)})`);
+      
+      // Add to resource generations for visualization
+      resourceGenerations.push({
+        taskId: 'production-dome',
+        targetTileKey: '1,0', // Production Dome is at 1,0
+        type: 'production-dome',
+        resourceType: 'colonyGoods',
+        amount: colonyGoodsGenerated,
+        details: mineralConversion > 0 ? `With ${storedMinerals.toFixed(2)} minerals conversion` : undefined
+      });
+    }
+    
+    // *** Only update colony goods state and tracking once, if any were generated ***
+    if (colonyGoodsGenerated > 0) {
+      updateResourceChanges('colonyGoods', colonyGoodsGenerated);
     }
     
     // Research Dome: Generate research points every 4 rounds
@@ -1890,16 +1957,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         amount: researchPointsGenerated
       });
       
-      // Add the generated research points to the resource changes
-      resourceChanges.researchPoints += researchPointsGenerated;
-      
-      // Update the actual research points amount in the state
-      set(state => ({ researchPoints: state.researchPoints + researchPointsGenerated }));
-      
-      // Get the current endRound resourceChanges object and update it with our research points
-      const currentResourceChanges = get().currentEndRoundResourceChanges || { power: 0, water: 0, minerals: 0, colonyGoods: 0, researchPoints: 0 };
-      currentResourceChanges.researchPoints += researchPointsGenerated;
-      set({ currentEndRoundResourceChanges: currentResourceChanges });
+      updateResourceChanges('researchPoints', researchPointsGenerated);
     }
     
     // Update dome generation cycles
