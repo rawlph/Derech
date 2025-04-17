@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styles from '@styles/DialoguePopup.module.css';
 import welcomeStyles from '@styles/WelcomeScene.module.css';
 
@@ -26,7 +26,14 @@ const DialoguePopup: React.FC<DialoguePopupProps> = ({
     speakerName,
     choices
 }) => {
+    // Add state to track first click
+    const [firstClickMade, setFirstClickMade] = useState(false);
+
     if (!isVisible) {
+        // Reset the click state when the dialog is hidden
+        if (firstClickMade) {
+            setFirstClickMade(false);
+        }
         return null; // Don't render anything if not visible
     }
 
@@ -47,18 +54,53 @@ const DialoguePopup: React.FC<DialoguePopupProps> = ({
     // Determine if this is a critical dialogue (with choices)
     const hasCriticalChoices = choices && choices.length > 0;
     
-    // Handle overlay click - only close if no choices are present
+    // Handle overlay click - implement two-click dismissal
     const handleOverlayClick = (e: React.MouseEvent) => {
-        if (!hasCriticalChoices && onClose) {
+        // If critical choices present, don't close on overlay click
+        if (hasCriticalChoices) {
+            e.stopPropagation();
+            return;
+        }
+        
+        // If no close handler, do nothing
+        if (!onClose) {
+            e.stopPropagation();
+            return;
+        }
+        
+        if (!firstClickMade) {
+            // First click - just set the state
+            setFirstClickMade(true);
+        } else {
+            // Second click - actually close
+            setFirstClickMade(false);
             onClose();
         }
-        // If choices are present, don't close on overlay click
+        
+        // Prevent click from propagating
         e.stopPropagation();
     };
 
+    // Handle direct close button click - always single click
+    const handleCloseButtonClick = () => {
+        if (onClose) {
+            setFirstClickMade(false);
+            onClose();
+        }
+    };
+
+    // Calculate overlay class based on state
+    const overlayClass = isEngineer || isCC 
+        ? '' 
+        : (hasCriticalChoices 
+            ? styles.overlayProtected 
+            : firstClickMade 
+                ? styles.overlayFirstClick 
+                : styles.overlay);
+
     return (
         <div 
-            className={isEngineer || isCC ? '' : (hasCriticalChoices ? styles.overlayProtected : styles.overlay)} 
+            className={overlayClass} 
             onClick={handleOverlayClick}
             style={{position: 'fixed', zIndex: 1000, pointerEvents: 'auto'}}
         > 
@@ -92,7 +134,7 @@ const DialoguePopup: React.FC<DialoguePopupProps> = ({
                             ))}
                         </div>
                     ) : onClose && (
-                        <button className={styles.closeButton} onClick={onClose}>
+                        <button className={styles.closeButton} onClick={handleCloseButtonClick}>
                             &gt;
                         </button>
                     )}

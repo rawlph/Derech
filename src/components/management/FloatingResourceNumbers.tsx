@@ -14,6 +14,7 @@ export interface ResourceGeneration {
   position?: THREE.Vector3;
   id?: string; // Unique ID for each generation
   timestamp?: number; // When it was created
+  details?: string; // Additional context about the resource generation
 }
 
 interface FloatingNumberProps {

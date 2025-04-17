@@ -12,13 +12,15 @@ const DomeInfoPanel: React.FC<DomeInfoPanelProps> = ({ domeType }) => {
     population,
     water,
     colonyGoods,
-    completedProductionProjects
+    completedProductionProjects,
+    completedLivingProjects
   } = useGameStore(state => ({
     domeGeneration: state.domeGeneration,
     population: state.population,
     water: state.water,
     colonyGoods: state.colonyGoods,
-    completedProductionProjects: state.completedProductionProjects
+    completedProductionProjects: state.completedProductionProjects,
+    completedLivingProjects: state.completedLivingProjects
   }));
 
   const {
@@ -29,7 +31,8 @@ const DomeInfoPanel: React.FC<DomeInfoPanelProps> = ({ domeType }) => {
     populationCycle,
     populationGrowthThreshold,
     waterPositive,
-    colonyGoodsSufficient
+    colonyGoodsSufficient,
+    storedMinerals
   } = domeGeneration;
 
   // Calculate colony goods generation rate with bonuses
@@ -50,8 +53,37 @@ const DomeInfoPanel: React.FC<DomeInfoPanelProps> = ({ domeType }) => {
     return { baseAmount, bonusPercentage, totalAmount };
   };
 
+  // Calculate actual colony goods consumption with research effects
+  const calculateColonyGoodsConsumption = () => {
+    // Base consumption using full multiples of 10
+    let baseConsumption = Math.floor(population / 10);
+    let reductionPercentage = 0;
+    
+    // Apply research effects
+    if (completedLivingProjects.includes('improve-air')) {
+      baseConsumption *= 0.85; // 15% reduction
+      reductionPercentage += 15;
+    }
+    
+    if (completedLivingProjects.includes('recreation-center')) {
+      baseConsumption *= 0.85; // 15% reduction
+      reductionPercentage += 15;
+    }
+    
+    // Round to 2 decimal places
+    baseConsumption = Math.round(baseConsumption * 100) / 100;
+    
+    return { 
+      baseRate: Math.floor(population / 10), 
+      actualConsumption: baseConsumption,
+      reductionPercentage
+    };
+  };
+
   const renderLivingDomeInfo = () => {
-    const requiredGoods = population * 2;
+    const growthRequirement = population * 2;
+    const { baseRate, actualConsumption, reductionPercentage } = calculateColonyGoodsConsumption();
+    const totalRequired = actualConsumption + growthRequirement;
     const cyclesRemaining = populationGrowthThreshold - populationCycle;
     
     return (
@@ -64,7 +96,7 @@ const DomeInfoPanel: React.FC<DomeInfoPanelProps> = ({ domeType }) => {
               className={styles.progressFill} 
               style={{ 
                 width: `${(populationCycle / populationGrowthThreshold) * 100}%`,
-                backgroundColor: (!waterPositive || !colonyGoodsSufficient) ? '#a5514f' : '#4f8ea5' 
+                backgroundColor: (!waterPositive || !colonyGoodsSufficient) ? '#a5514f' : '#4fa57b' 
               }} 
             />
           </div>
@@ -73,11 +105,27 @@ const DomeInfoPanel: React.FC<DomeInfoPanelProps> = ({ domeType }) => {
           </div>
         </div>
         
-        <div className={styles.generationInfo}>
-          Required goods: {requiredGoods} ({requiredGoods > colonyGoods ? 'Insufficient' : 'Sufficient'})
+        <div className={styles.mineralsInfo}>
+          <div className={styles.consumptionLabel}>
+            Colony Goods Requirements:
+          </div>
+          <div className={styles.consumptionBreakdown}>
+            <div>Base consumption: {baseRate} per round</div>
+            {reductionPercentage > 0 && (
+              <div className={styles.bonusText}>
+                Research bonus: -{reductionPercentage}%
+              </div>
+            )}
+            <div>Actual consumption: {actualConsumption.toFixed(2)} per round</div>
+            <div>Growth requirement: {growthRequirement}</div>
+            <div className={styles.totalRequirement}>
+              Total required: {totalRequired.toFixed(2)} {totalRequired > colonyGoods ? '❌' : '✓'}
+            </div>
+          </div>
         </div>
+        
         <div className={styles.generationInfo}>
-          Water status: {waterPositive ? 'Positive' : 'Negative'}
+          Water status: {waterPositive ? 'Positive ✓' : 'Negative ❌'}
         </div>
       </div>
     );
@@ -112,6 +160,15 @@ const DomeInfoPanel: React.FC<DomeInfoPanelProps> = ({ domeType }) => {
     const cyclesRemaining = 5 - colonyGoodsCycle;
     const { baseAmount, bonusPercentage, totalAmount } = calculateColonyGoodsGeneration();
     
+    // Check for Optimized Assembly Line project
+    const hasOptimizedAssembly = completedProductionProjects.includes('optimize-assembly');
+    
+    // Check for Production Power Rerouting project effect
+    const conversionRate = completedProductionProjects.includes('power-efficiency') ? 9 : 10;
+    // Calculate mineral conversion to colony goods with correct rate
+    const mineralConversion = storedMinerals / conversionRate;
+    const totalGoodsWithMinerals = Math.round((totalAmount + mineralConversion) * 100) / 100;
+    
     return (
       <div>
         <h4>Production Dome</h4>
@@ -124,20 +181,67 @@ const DomeInfoPanel: React.FC<DomeInfoPanelProps> = ({ domeType }) => {
             />
           </div>
           <div className={styles.cycleValue}>
-            {cyclesRemaining > 0 ? `${cyclesRemaining} rounds` : "Ready!"}
+            {hasOptimizedAssembly 
+              ? "+3 per round" 
+              : cyclesRemaining > 0 ? `${cyclesRemaining} rounds` : "Ready!"}
           </div>
         </div>
+        
+        <div className={styles.mineralsInfo}>
+          <div className={styles.mineralLabel}>
+            ⛏️ Stored Minerals: <span className={styles.mineralValue}>{storedMinerals.toFixed(2)}</span>
+          </div>
+          {storedMinerals > 0 && (
+            <div className={styles.conversionInfo}>
+              Will convert to +{mineralConversion.toFixed(2)} colony goods
+              {hasOptimizedAssembly 
+                ? " (continuously)" 
+                : ""}
+            </div>
+          )}
+        </div>
+        
         <div className={styles.generationInfo}>
-          Base generation: +{baseAmount} goods every 5 rounds
-          {bonusPercentage > 0 && (
+          {hasOptimizedAssembly ? (
             <>
-              <br/>
               <span className={styles.bonusText}>
-                Project bonus: +{bonusPercentage}%
+                Optimized Assembly: +3 goods per round
               </span>
+              {storedMinerals > 0 && (
+                <>
+                  <br/>
+                  <span className={styles.bonusText}>
+                    + Continuous mineral conversion
+                  </span>
+                </>
+              )}
               <br/>
               <span className={styles.totalText}>
-                Total: +{totalAmount} goods
+                Continuous production active!
+              </span>
+            </>
+          ) : (
+            <>
+              Base generation: +{baseAmount} goods every 5 rounds
+              {bonusPercentage > 0 && (
+                <>
+                  <br/>
+                  <span className={styles.bonusText}>
+                    Project bonus: +{bonusPercentage}%
+                  </span>
+                </>
+              )}
+              {storedMinerals > 0 && (
+                <>
+                  <br/>
+                  <span className={styles.bonusText}>
+                    Mineral boost: +{mineralConversion.toFixed(2)}
+                  </span>
+                </>
+              )}
+              <br/>
+              <span className={styles.totalText}>
+                Total next harvest: +{totalGoodsWithMinerals} goods
               </span>
             </>
           )}

@@ -18,7 +18,7 @@ export const productionProjects: Record<string, ProductionProject> = {
         description: "Reconfigure assembly lines to increase the output efficiency of Colony Goods.",
         cost: { minerals: 25, power: 10 },
         duration: 9, // 3 + 6
-        effectDescription: "Increases Colony Goods production efficiency by 15%. More output from the same raw materials.",
+        effectDescription: "Instead of +9 every 5 rounds, produces +3 each round and converts all minerals continuously.",
         tier: 1,
     },
     'tool-fabrication': {
@@ -27,7 +27,7 @@ export const productionProjects: Record<string, ProductionProject> = {
         description: "Produce higher quality tools, slightly increasing workforce efficiency across various tasks.",
         cost: { minerals: 40, colonyGoods: 15 },
         duration: 11, // 5 + 6
-        effectDescription: "Reduces workforce requirements for all production tasks by 10%. Better tools mean fewer workers needed.",
+        effectDescription: "-1 WF used for mines.",
         tier: 1,
     },
     'power-efficiency': {
@@ -36,7 +36,7 @@ export const productionProjects: Record<string, ProductionProject> = {
         description: "Improve power distribution within the dome, reducing the energy cost of production processes.",
         cost: { colonyGoods: 30, power: 5 }, // Requires goods to implement
         duration: 10, // 4 + 6
-        effectDescription: "Reduces power consumption of Production Dome operations by 20%. More efficient energy distribution.",
+        effectDescription: "Converting Minerals to Colony Goods is more efficient.",
         tier: 1,
     },
     'hydroponic-equipment': {
@@ -45,7 +45,7 @@ export const productionProjects: Record<string, ProductionProject> = {
         description: "Manufacture specialized vertical growing chambers with integrated nutrient delivery systems, allowing for more efficient use of space and water in colony farm operations.",
         cost: { minerals: 30, colonyGoods: 20, power: 8 },
         duration: 10, // 4 + 6
-        effectDescription: "Increases food production by 25%. Reduces water consumption in hydroponics by 15%.",
+        effectDescription: "Reduce water consumption by 15%.",
         tier: 1,
     },
     'thermal-extractors': {
@@ -65,7 +65,7 @@ export const productionProjects: Record<string, ProductionProject> = {
         cost: { minerals: 35, colonyGoods: 30, researchPoints: 50 },
         duration: 14,
         prerequisites: ['__ANY_THREE_RESEARCH__'],
-        effectDescription: "Adds advanced manufacturing model to Production Dome. Decreases power consumption of Mining Operations by 20%. Reduces workforce requirements for Geothermal Reactors and Solar Arrays by 1.",
+        effectDescription: "Increases colonist morale (not yet implemented).",
         tier: 2,
     },
     'transporter-mkii': {

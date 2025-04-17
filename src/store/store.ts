@@ -87,6 +87,7 @@ export interface DomeGenerationValues {
   populationGrowthThreshold: number; // Living dome: Number of consecutive rounds with sufficient resources
   waterPositive: boolean; // Was water positive last round?
   colonyGoodsSufficient: boolean; // Were colony goods sufficient last round?
+  storedMinerals: number; // NEW: Minerals stored for colony goods production
 }
 
 // Define the store state interface
@@ -134,6 +135,7 @@ interface GameState {
   // --- Workforce ---
   totalWorkforce: number; // NEW: Calculated from population
   availableWorkforce: number; // NEW: Workforce not assigned to tasks
+  workforceBonus: number; // NEW: Permanent workforce bonuses from projects
 
   // --- Game State ---
   currentRound: number;
@@ -221,7 +223,12 @@ interface GameState {
   // Task Management Actions (NEW)
   assignWorkforceToTask: (taskType: TaskState['type'], targetTile: TileData, workforce: number) => AssignTaskResult;
   updateTaskProgress: () => boolean;
-  generateTaskResources: () => void;
+  generateTaskResources: () => {
+    minerals: number;
+    researchPoints: number;
+    power: number;
+    water: number;
+  };
   triggerTaskEvent: (taskId: string, eventType: string) => void; // Simplified event trigger
   resolveTaskEvent: (taskId: string, outcome: any) => void;
   recallWorkforce: (taskId: string) => void;
@@ -282,6 +289,15 @@ interface GameState {
 
   // --- NEW: Resource Sidebar Actions ---
   setResourceSidebarOpen: (isOpen: boolean) => void;
+
+  // --- NEW: Track resource changes during a round ---
+  currentEndRoundResourceChanges?: {
+    power: number;
+    water: number;
+    minerals: number;
+    colonyGoods: number;
+    researchPoints: number;
+  };
 }
 
 // Define return types for assignWorkforceToTask
@@ -398,18 +414,19 @@ export const useGameStore = create<GameState>((set, get) => ({
   population: 10,
   researchPoints: 0,
   colonyGoods: 50,
-  minerals: 50, // Start with more minerals
+  minerals: 20,
 
   // Flow Points
   flowPoints: 0,
   activeFlowTier: null,
 
   // Insights
-  embodimentInsight: 0, // NEW: Start with 0 embodiment insights
+  embodimentInsight: 0,
 
   // Initial Workforce (derived)
   totalWorkforce: 8, // Example: 10 pop * 0.8 = 8
   availableWorkforce: 8,
+  workforceBonus: 0, // Initial workforce bonus is 0
 
   // Initial Game State
   currentRound: 1,
@@ -456,32 +473,33 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   // --- Dome Generation Tracking ---
   domeGeneration: {
-    colonyGoodsCycle: 0,
-    colonyGoodsBaseAmount: 3, // Base: +3 every 5 rounds
-    researchCycle: 0,
+    colonyGoodsCycle: 0, // Counts up to 5 rounds
+    colonyGoodsBaseAmount: 9, // Base: +9 every 5 rounds (increased from 3 to 5 now 9)
+    researchCycle: 0, // Counts up to 4 rounds
     researchBaseAmount: 1, // Base: +1 every 4 rounds
-    populationCycle: 0,
-    populationGrowthThreshold: 10, // Need 10 consecutive rounds with sufficient resources
+    populationCycle: 0, // Counts up to 10 rounds with sufficient resources
+    populationGrowthThreshold: 10, // Need 10 consecutive good rounds for growth
     waterPositive: true, // Start assuming positive water
     colonyGoodsSufficient: true, // Start assuming sufficient goods
+    storedMinerals: 0, // NEW: Minerals stored for colony goods production
   },
 
   // --- Previous Round Resources ---
   previousRoundResources: {
     power: 100,
     water: 100,
-    minerals: 50,
+    minerals: 20,
     colonyGoods: 50,
     researchPoints: 0
   },
   
   // --- Resource Trends ---
   resourceTrends: {
-    power: 'same',
-    water: 'same',
-    minerals: 'same',
-    colonyGoods: 'same',
-    researchPoints: 'same'
+    power: null,
+    water: null,
+    minerals: null,
+    colonyGoods: null,
+    researchPoints: null
   },
   
   // --- NEW: Resource Trend History ---
@@ -541,9 +559,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     let dialogueShownThisRound = false; // Flag to prevent multiple popups
 
     // Clear any existing resource generations to avoid accumulation
-    set({ roundResourceGenerations: [] });
+    get().clearResourceGenerations();
     
-    // Initialize resource change tracking
+    // Initialize resource change tracking and reset currentEndRoundResourceChanges
     const resourceChanges = {
       power: 0,
       water: 0,
@@ -551,6 +569,17 @@ export const useGameStore = create<GameState>((set, get) => ({
       colonyGoods: 0,
       researchPoints: 0
     };
+    
+    // Initialize or reset the currentEndRoundResourceChanges property
+    set({
+      currentEndRoundResourceChanges: {
+        power: 0,
+        water: 0,
+        minerals: 0,
+        colonyGoods: 0,
+        researchPoints: 0
+      }
+    });
     
     // ----- STEP 1: Calculate ALL resource consumption -----
     const { population } = get();
@@ -567,6 +596,16 @@ export const useGameStore = create<GameState>((set, get) => ({
           // Apply project effects for power consumption
           if (task.type === 'build-waterwell' && get().completedProductionProjects.includes('thermal-extractors')) {
             consumption *= 0.75; // Apply 25% reduction
+          }
+          
+          // Add extra power cost for mining operations based on mountain height
+          if (task.type === 'deploy-mining') {
+            const tile = get().gridTiles[task.targetTileKey];
+            if (tile && tile.type === 'Mountain') {
+              // Add 1 extra power cost per mountain height level
+              consumption += tile.height;
+              console.log(`Added +${tile.height} power cost for mining on height ${tile.height} mountain`);
+            }
           }
           
           totalPowerConsumed += consumption;
@@ -587,8 +626,37 @@ export const useGameStore = create<GameState>((set, get) => ({
       waterConsumed *= 0.85; // Apply 15% reduction
     }
     
+    // Apply living dome research effects for water consumption
+    if (get().completedLivingProjects.includes('youth-farming-program')) {
+      waterConsumed *= 0.85; // Apply 15% reduction
+    }
+    
     resourceChanges.water -= waterConsumed;
     console.log(`Total Water Consumption this round: ${waterConsumed.toFixed(2)}`);
+    
+    // Calculate colony goods consumption using full multiples of 10
+    // 1-9: 0, 10-19: 1, 20-29: 2, etc.
+    let goodsConsumed = Math.floor(population / 10);
+    
+    // Apply living dome research effects for colony goods consumption
+    if (get().completedLivingProjects.includes('improve-air')) {
+      goodsConsumed *= 0.85; // Apply 15% reduction
+    }
+    
+    if (get().completedLivingProjects.includes('recreation-center')) {
+      goodsConsumed *= 0.85; // Apply 15% reduction
+    }
+    
+    // Round to nearest decimal for display
+    goodsConsumed = Math.round(goodsConsumed * 100) / 100;
+    
+    resourceChanges.colonyGoods -= goodsConsumed;
+    console.log(`Colony Goods Consumption this round: ${goodsConsumed.toFixed(2)} (population: ${population})`);
+    
+    // Update the currentEndRoundResourceChanges to track consumption
+    const currentChanges = get().currentEndRoundResourceChanges || { power: 0, water: 0, minerals: 0, colonyGoods: 0, researchPoints: 0 };
+    currentChanges.colonyGoods -= goodsConsumed;
+    set({ currentEndRoundResourceChanges: currentChanges });
     
     // ----- STEP 2: Calculate ALL resource generation -----
     
@@ -620,162 +688,38 @@ export const useGameStore = create<GameState>((set, get) => ({
     resourceChanges.power += shutdownPowerSavings;
     console.log(`Shutdown Power Savings: ${shutdownPowerSavings.toFixed(2)}`);
     
-    // ----- STEP 3: Collect resource generations from buildings -----
+    // ----- STEP 3: Generate resources from tasks using generateTaskResources -----
     
     // Check for resource penalties first
     const lowWaterPenalty = get().water < 0;
     const lowPowerPenalty = get().power < 0;
     
-    // Track individual building resource generation for visual effects
-    const resourceGenerations: ResourceGeneration[] = [];
-    
-    Object.values(currentTasks).forEach(task => {
-      if (task.status === 'operational') {
-        const taskConfig = getTaskConfig(task.type);
-        const tile = get().gridTiles[task.targetTileKey];
-        if (taskConfig?.resourceYield && tile) {
-          const resourceType = taskConfig.resourceYield.resource;
-          let yieldAmount = taskConfig.resourceYield.baseAmount;
-          let generateResource = true; // Flag to control generation
-          
-          // Apply penalties (Power penalty check first)
-          if (lowPowerPenalty && (resourceType === 'minerals' || resourceType === 'researchPoints')) {
-            generateResource = false;
-          } else if (lowWaterPenalty && (resourceType === 'minerals' || resourceType === 'researchPoints')) {
-            generateResource = false;
-          }
-          
-          // Apply project bonuses if resource generation is not skipped
-          if (generateResource) {
-            // Apply project effects for resource generation
-            if (resourceType === 'minerals' && task.type === 'deploy-mining') {
-              if (get().completedResearch.includes('improved-extraction')) {
-                yieldAmount *= 1.25; // +25%
-              }
-              // Apply mountain height bonus after research bonus
-              if (tile.type === 'Mountain') {
-                const heightBonus = tile.height * 0.5;
-                yieldAmount *= (1 + heightBonus);
-              }
-            } else if (resourceType === 'water' && task.type === 'build-waterwell') {
-              if (get().completedResearch.includes('water-reclamation-1')) {
-                yieldAmount *= 1.20; // +20%
-              }
-              if (get().completedProductionProjects.includes('thermal-extractors')) {
-                yieldAmount *= 1.10; // +10% (multiplicative)
-              }
-            } else if (resourceType === 'researchPoints' && task.type === 'deploy-scout') {
-              if (get().completedResearch.includes('embodiment-prelim')) {
-                yieldAmount *= 1.15; // +15%
-              }
-            } else if (resourceType === 'power' && task.type === 'build-geothermal') {
-              if (get().completedResearch.includes('seismic-mapping')) {
-                yieldAmount *= 1.30; // +30%
-              }
-            }
-            
-            // Floor the yield after all bonuses
-            yieldAmount = Math.floor(yieldAmount);
-            
-            // Add to individual generation tracking for visualization
-            resourceGenerations.push({
-              taskId: task.id,
-              targetTileKey: task.targetTileKey,
-              type: task.type,
-              resourceType,
-              amount: yieldAmount
-            });
-            
-            // Add to resource changes
-            switch (resourceType) {
-              case 'minerals':
-                resourceChanges.minerals += yieldAmount;
-                break;
-              case 'researchPoints':
-                resourceChanges.researchPoints += yieldAmount;
-                break;
-              case 'power':
-                resourceChanges.power += yieldAmount;
-                break;
-              case 'water':
-                resourceChanges.water += yieldAmount;
-                break;
-              case 'colonyGoods':
-                resourceChanges.colonyGoods += yieldAmount;
-                break;
-            }
-          }
-        }
-      }
+    // Update penalty flags for this round
+    set({
+      isLowWaterPenaltyActive: lowWaterPenalty,
+      isLowPowerPenaltyActive: lowPowerPenalty
     });
+    
+    // Use generateTaskResources to handle all resource generation
+    const generatedResources = get().generateTaskResources();
+    
+    // Add generated resources to resourceChanges
+    resourceChanges.minerals += generatedResources.minerals;
+    resourceChanges.researchPoints += generatedResources.researchPoints;
+    resourceChanges.power += generatedResources.power;
+    resourceChanges.water += generatedResources.water;
     
     // ----- STEP 4: Calculate dome-based resource generation -----
     
-    const { colonyGoodsCycle, colonyGoodsBaseAmount, researchCycle, researchBaseAmount } = get().domeGeneration;
+    // Call generateDomeResources to handle dome-based generation including mineral conversion
+    // This internally updates the resource amounts for colony goods and research points
+    get().generateDomeResources();
     
-    let updatedColonyGoodsCycle = colonyGoodsCycle + 1;
-    let updatedResearchCycle = researchCycle + 1;
-    let colonyGoodsGenerated = 0;
-    let researchPointsGenerated = 0;
+    // NOTE: generateDomeResources now directly updates the state with generated resources,
+    // so we don't need to add them to resourceChanges here
     
-    // Production Dome: Generate colony goods every 5 rounds
-    if (updatedColonyGoodsCycle >= 5) {
-      // Start with base amount
-      colonyGoodsGenerated = colonyGoodsBaseAmount;
-      
-      // Apply production project bonuses
-      if (get().completedProductionProjects.includes('optimize-assembly')) {
-        // Add 15% bonus from Optimized Assembly Line
-        colonyGoodsGenerated = Math.round((colonyGoodsGenerated * 1.15) * 100) / 100;
-        console.log(`Production bonus applied: ${colonyGoodsGenerated}`);
-      }
-      
-      updatedColonyGoodsCycle = 0;
-      
-      // Add to resource generations for visualization
-      resourceGenerations.push({
-        taskId: 'production-dome',
-        targetTileKey: '0,1', // Production Dome is at 0,1 (changed from 1,0)
-        type: 'production-dome',
-        resourceType: 'colonyGoods',
-        amount: colonyGoodsGenerated
-      });
-      
-      // Add the generated goods to the resource changes
-      resourceChanges.colonyGoods += colonyGoodsGenerated;
-    }
-    
-    // Research Dome: Generate research points every 4 rounds
-    if (updatedResearchCycle >= 4) {
-      researchPointsGenerated = researchBaseAmount;
-      updatedResearchCycle = 0;
-      
-      // Add to resource generations for visualization
-      resourceGenerations.push({
-        taskId: 'research-dome',
-        targetTileKey: '-1,0', // Research Dome is at -1,0 (unchanged)
-        type: 'research-dome',
-        resourceType: 'researchPoints',
-        amount: researchPointsGenerated
-      });
-      
-      // Add the generated research points to the resource changes
-      resourceChanges.researchPoints += researchPointsGenerated;
-    }
-    
-    // Save dome generation cycle updates
-    set(state => ({
-      domeGeneration: {
-        ...state.domeGeneration,
-        colonyGoodsCycle: updatedColonyGoodsCycle,
-        researchCycle: updatedResearchCycle
-      },
-      // Add resource generations for visualization
-      roundResourceGenerations: resourceGenerations
-    }));
-    
-    // Log resource changes
-    console.log(`Resource changes this round - Power: ${resourceChanges.power.toFixed(2)}, Water: ${resourceChanges.water.toFixed(2)}, Minerals: ${resourceChanges.minerals}, RP: ${resourceChanges.researchPoints}, Goods: ${resourceChanges.colonyGoods}`);
+    // Log all resource changes
+    console.log(`Resource changes this round - Power: ${resourceChanges.power.toFixed(2)}, Water: ${resourceChanges.water.toFixed(2)}, Minerals: ${resourceChanges.minerals.toFixed(2)}, Colony Goods: ${resourceChanges.colonyGoods.toFixed(2)}, Research Points: ${resourceChanges.researchPoints.toFixed(2)}`);
     
     // ----- STEP 5: Process the rest of round logic -----
     
@@ -863,12 +807,19 @@ export const useGameStore = create<GameState>((set, get) => ({
         const newColonyGoods = state.colonyGoods + resourceChanges.colonyGoods;
         const newResearchPoints = state.researchPoints + resourceChanges.researchPoints;
         
-        // Calculate resource trends
+        // Get any additional resource changes from dome generation (like Optimized Assembly Line)
+        const additionalChanges = state.currentEndRoundResourceChanges || {
+          power: 0, water: 0, minerals: 0, colonyGoods: 0, researchPoints: 0
+        };
+        
+        // Calculate resource trends incorporating all changes
         const newResourceTrends: ResourceTrends = {
           power: newPower > previousValues.power ? 'up' : newPower < previousValues.power ? 'down' : 'same',
           water: newWater > previousValues.water ? 'up' : newWater < previousValues.water ? 'down' : 'same',
           minerals: newMinerals > previousValues.minerals ? 'up' : newMinerals < previousValues.minerals ? 'down' : 'same',
-          colonyGoods: newColonyGoods > previousValues.colonyGoods ? 'up' : newColonyGoods < previousValues.colonyGoods ? 'down' : 'same',
+          // Use total changes (from resourceChanges + currentEndRoundResourceChanges) to determine trend
+          colonyGoods: (resourceChanges.colonyGoods + additionalChanges.colonyGoods) > 0 ? 'up' : 
+                       (resourceChanges.colonyGoods + additionalChanges.colonyGoods) < 0 ? 'down' : 'same',
           researchPoints: newResearchPoints > previousValues.researchPoints ? 'up' : newResearchPoints < previousValues.researchPoints ? 'down' : 'same'
         };
         
@@ -904,63 +855,86 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
 
         // Recalculate workforce
-      const newTotalWorkforce = Math.floor(state.population * 0.8);
-      const currentAssigned = Object.values(state.activeTasks).reduce((sum, task) => sum + task.assignedWorkforce, 0);
-      const newAvailableWorkforce = Math.max(0, newTotalWorkforce - currentAssigned);
-
-      // Update the flow tier based on the current resource trends
-      const activeTier = get().updateFlowTier();
-      
-      // Add flow points based on the active tier
-      if (activeTier) {
-        let flowPointsToAdd = 0;
+        const newTotalWorkforce = Math.floor(state.population * 0.8) + state.workforceBonus;
+        const currentAssigned = Object.values(state.activeTasks).reduce((sum, task) => sum + task.assignedWorkforce, 0);
         
-        switch (activeTier) {
-          case 'master':
-            flowPointsToAdd = 4;
-            break;
-          case 'strong':
-            flowPointsToAdd = 2;
-            break;
-          case 'basic':
-            flowPointsToAdd = 1;
-            break;
+        // Check for Advanced Tool Fabrication project effect
+        // If completed and there's at least one operational mining task, add 1 workforce
+        let toolFabricationBonus = 0;
+        if (state.completedProductionProjects.includes('tool-fabrication')) {
+          const hasOperationalMining = Object.values(state.activeTasks).some(
+            task => task.type === 'deploy-mining' && task.status === 'operational'
+          );
+          if (hasOperationalMining) {
+            toolFabricationBonus = 1;
+            console.log('Advanced Tool Fabrication effect: +1 workforce returned from mining operations');
+          }
         }
         
-        if (flowPointsToAdd > 0) {
-          get().addFlowPoints(flowPointsToAdd);
-          console.log(`Added ${flowPointsToAdd} Flow Points (${activeTier} tier active)`);
-        }
-      }
+        const newAvailableWorkforce = Math.max(0, newTotalWorkforce - currentAssigned + toolFabricationBonus);
 
-      return {
-        currentRound: state.currentRound + 1,
-          power: Math.max(0, newPower),
-          water: Math.max(0, newWater),
-          minerals: Math.max(0, newMinerals),
-          colonyGoods: Math.max(0, newColonyGoods),
-          researchPoints: Math.max(0, newResearchPoints),
+        // Update the flow tier based on the current resource trends
+        const activeTier = get().updateFlowTier();
+        
+        // Add flow points based on the active tier
+        if (activeTier) {
+          let flowPointsToAdd = 0;
           
-          // Store previous values for next round comparison
-          previousRoundResources: {
-            power: newPower,
-            water: newWater,
-            minerals: newMinerals,
-            colonyGoods: newColonyGoods,
-            researchPoints: newResearchPoints
-          },
+          switch (activeTier) {
+            case 'master':
+              flowPointsToAdd = 4;
+              break;
+            case 'strong':
+              flowPointsToAdd = 2;
+              break;
+            case 'basic':
+              flowPointsToAdd = 1;
+              break;
+          }
           
-          // Set new resource trends
-          resourceTrends: newResourceTrends,
-          
-          // Set new resource trend history
-          resourceTrendHistory: newResourceTrendHistory,
-          // selectedTile: null, // Removed to keep tile selected between rounds
-        totalWorkforce: newTotalWorkforce,
-        availableWorkforce: newAvailableWorkforce,
-          isLowWaterPenaltyActive: isWaterPenaltyNowActive,
-          isLowPowerPenaltyActive: isPowerPenaltyNowActive,
-          isEndingRound: false // Reset the flag when done
+          if (flowPointsToAdd > 0) {
+            get().addFlowPoints(flowPointsToAdd);
+            console.log(`Added ${flowPointsToAdd} Flow Points (${activeTier} tier active)`);
+          }
+        }
+
+        return {
+          currentRound: state.currentRound + 1,
+            power: Math.max(0, newPower),
+            water: Math.max(0, newWater),
+            minerals: Math.max(0, newMinerals),
+            colonyGoods: Math.max(0, newColonyGoods),
+            researchPoints: Math.max(0, newResearchPoints),
+            
+            // Store previous values for next round comparison
+            previousRoundResources: {
+              power: newPower,
+              water: newWater,
+              minerals: newMinerals,
+              colonyGoods: newColonyGoods,
+              researchPoints: newResearchPoints
+            },
+            
+            // Set new resource trends
+            resourceTrends: newResourceTrends,
+            
+            // Set new resource trend history
+            resourceTrendHistory: newResourceTrendHistory,
+            // selectedTile: null, // Removed to keep tile selected between rounds
+          totalWorkforce: newTotalWorkforce,
+          availableWorkforce: newAvailableWorkforce,
+            isLowWaterPenaltyActive: isWaterPenaltyNowActive,
+            isLowPowerPenaltyActive: isPowerPenaltyNowActive,
+            isEndingRound: false, // Reset the flag when done
+            
+            // Reset the currentEndRoundResourceChanges for the next round
+            currentEndRoundResourceChanges: {
+              power: 0,
+              water: 0,
+              minerals: 0,
+              colonyGoods: 0,
+              researchPoints: 0
+            }
       };
     });
       
@@ -1029,6 +1003,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       minerals: 20,
       totalWorkforce: 8,
       availableWorkforce: 8,
+      workforceBonus: 0, // Reset workforce bonus
       currentRound: 1,
       gridTiles: {}, // Will be replaced by initializeGrid call
       selectedTile: null, // Reset selected tile when resetting colony
@@ -1053,16 +1028,16 @@ export const useGameStore = create<GameState>((set, get) => ({
       previousRoundResources: {
         power: 100,
         water: 100,
-        minerals: 50,
+        minerals: 20,
         colonyGoods: 50,
         researchPoints: 0
       },
       resourceTrends: {
-        power: 'same',
-        water: 'same',
-        minerals: 'same',
-        colonyGoods: 'same',
-        researchPoints: 'same'
+        power: null,
+        water: null,
+        minerals: null,
+        colonyGoods: null,
+        researchPoints: null
       },
       resourceTrendHistory: {
         power: [],
@@ -1074,6 +1049,13 @@ export const useGameStore = create<GameState>((set, get) => ({
       isFlowWindowVisible: false, // Reset flow window visibility
       flowPoints: 0,
       activeFlowTier: null,
+      currentEndRoundResourceChanges: {
+        power: 0,
+        water: 0,
+        minerals: 0,
+        colonyGoods: 0,
+        researchPoints: 0
+      },
     });
     
     // Initialize a fresh grid with radius 5
@@ -1128,11 +1110,11 @@ export const useGameStore = create<GameState>((set, get) => ({
           researchPoints: state.researchPoints
         },
         resourceTrends: {
-          power: 'same',
-          water: 'same',
-          minerals: 'same',
-          colonyGoods: 'same',
-          researchPoints: 'same'
+          power: null,
+          water: null,
+          minerals: null,
+          colonyGoods: null,
+          researchPoints: null
         },
         domeGeneration: {
           ...state.domeGeneration,
@@ -1140,7 +1122,8 @@ export const useGameStore = create<GameState>((set, get) => ({
           researchCycle: 0,
           populationCycle: 0,
           waterPositive: true,
-          colonyGoodsSufficient: true
+          colonyGoodsSufficient: true,
+          colonyGoodsBaseAmount: 9 // Update to match new base value
         },
         resourceTrendHistory: {
           power: [],
@@ -1152,6 +1135,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         isFlowWindowVisible: false, // Reset flow window visibility
         flowPoints: 0,
         activeFlowTier: null,
+        workforceBonus: 0, // Reset workforce bonus during emergency reset
       };
     });
     
@@ -1178,8 +1162,15 @@ export const useGameStore = create<GameState>((set, get) => ({
       console.warn("Not enough available workforce.");
       return 'insufficient_workforce';
     }
-    if (workforce !== taskConfig.workforceRequired) {
-      console.warn(`Incorrect workforce amount specified. Required: ${taskConfig.workforceRequired}`);
+    
+    // Check if this is a mining operation and the tool-fabrication project is completed
+    let actualWorkforceRequired = taskConfig.workforceRequired;
+    if (taskType === 'deploy-mining' && get().completedProductionProjects.includes('tool-fabrication')) {
+      actualWorkforceRequired = 2; // Reduced workforce requirement for mining
+    }
+    
+    if (workforce !== actualWorkforceRequired) {
+      console.warn(`Incorrect workforce amount specified. Required: ${actualWorkforceRequired}`);
       return 'insufficient_workforce';
     }
 
@@ -1385,6 +1376,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     let totalMineralsGenerated = 0;
+    let totalMineralsForProduction = 0; // NEW: Track minerals allocated to Production Dome
     let totalResearchPointsGenerated = 0;
     let totalPowerGenerated = 0;
     let totalWaterGenerated = 0;
@@ -1422,7 +1414,7 @@ export const useGameStore = create<GameState>((set, get) => ({
               }
               // Apply mountain height bonus *after* research bonus
               if (tile.type === 'Mountain') {
-            const heightBonus = tile.height * 0.5;
+                const heightBonus = tile.height * 0.5;
                 yieldAmount *= (1 + heightBonus);
               }
             } else if (resourceType === 'water' && task.type === 'build-waterwell') {
@@ -1444,54 +1436,112 @@ export const useGameStore = create<GameState>((set, get) => ({
                 yieldAmount *= 1.30; // +30%
                 bonusApplied = true;
               }
+              
+              // Add Research Points production for Geothermal Plants when Research Dome is upgraded
+              if (completedResearch.includes('upgrade-research-dome')) {
+                // Generate additional Research Points notification
+                resourceGenerations.push({
+                  taskId: task.id,
+                  targetTileKey: task.targetTileKey,
+                  type: task.type,
+                  resourceType: 'researchPoints',
+                  amount: 3  // Fixed 3 RP as per the project description
+                });
+                
+                // Add to total research points
+                totalResearchPointsGenerated += 3;
+                console.log(`Geothermal Plant ${task.id} generated 3 Research Points due to Research Dome Upgrade`);
+              }
             }
-            // --- END PROJECT EFFECTS ---
-
-            // Floor the yield *after* all bonuses
-            yieldAmount = Math.floor(yieldAmount);
+            
             if (bonusApplied) {
-                console.log(`Project bonus applied to ${task.type} (${task.id}), new yield: ${yieldAmount}`);
+              console.log(`Task ${task.id} (${task.type}) - Project bonus applied to resource generation.`);
             }
-
-            // Add to individual generation tracking
-            resourceGenerations.push({
-              taskId: task.id,
-              targetTileKey: task.targetTileKey,
-              type: task.type,
-              resourceType,
-              amount: yieldAmount
-            });
-
-            // Add to totals
+            
+            // Floor the yield after all bonuses
+            yieldAmount = Math.floor(yieldAmount);
+            
+            // Track resource totals
             if (resourceType === 'minerals') {
-            totalMineralsGenerated += yieldAmount;
-          } else if (resourceType === 'researchPoints') {
-            totalResearchPointsGenerated += yieldAmount;
-          } else if (resourceType === 'power') {
-            totalPowerGenerated += yieldAmount;
-          } else if (resourceType === 'water') {
-            totalWaterGenerated += yieldAmount;
+              // Split minerals: 2/3 for Production Dome, 1/3 for player's resources
+              const mineralsForPlayer = Math.round((yieldAmount / 3) * 100) / 100;  // 1/3 rounded to 2 decimal places
+              const mineralsForProduction = Math.round((yieldAmount * 2 / 3) * 100) / 100;  // 2/3 rounded to 2 decimal places
+              
+              totalMineralsGenerated += mineralsForPlayer; // Add only 1/3 to player's minerals
+              totalMineralsForProduction += mineralsForProduction; // Track 2/3 for Production Dome
+              
+              console.log(`Task ${task.id} generated ${yieldAmount} minerals: ${mineralsForPlayer} for player, ${mineralsForProduction} for Production Dome`);
+              
+              // Update the resource generation visualization to show the split
+              resourceGenerations.push({
+                taskId: task.id,
+                targetTileKey: task.targetTileKey,
+                type: task.type,
+                resourceType,
+                amount: yieldAmount,
+                details: `${mineralsForPlayer} stored, ${mineralsForProduction} to Production Dome`
+              });
+            } else if (resourceType === 'researchPoints') {
+              totalResearchPointsGenerated += yieldAmount;
+              
+              // Add to individual generation tracking for visualization
+              resourceGenerations.push({
+                taskId: task.id,
+                targetTileKey: task.targetTileKey,
+                type: task.type,
+                resourceType,
+                amount: yieldAmount
+              });
+            } else if (resourceType === 'power') {
+              totalPowerGenerated += yieldAmount;
+              
+              // Add to individual generation tracking for visualization
+              resourceGenerations.push({
+                taskId: task.id,
+                targetTileKey: task.targetTileKey,
+                type: task.type,
+                resourceType,
+                amount: yieldAmount
+              });
+            } else if (resourceType === 'water') {
+              totalWaterGenerated += yieldAmount;
+              
+              // Add to individual generation tracking for visualization
+              resourceGenerations.push({
+                taskId: task.id,
+                targetTileKey: task.targetTileKey,
+                type: task.type,
+                resourceType,
+                amount: yieldAmount
+              });
             }
           }
         }
       }
     });
-
-    // Update resources based on generated amounts
-    if (totalMineralsGenerated > 0) state.addMinerals(totalMineralsGenerated);
-    if (totalResearchPointsGenerated > 0) set(s => ({ researchPoints: s.researchPoints + totalResearchPointsGenerated }));
-    if (totalPowerGenerated > 0) state.addPower(totalPowerGenerated);
-    if (totalWaterGenerated > 0) set(s => ({ water: s.water + totalWaterGenerated }));
-
-    // Store the resource generations for visualization
-      set(state => ({ 
-      roundResourceGenerations: resourceGenerations
+    
+    // Store minerals for Production Dome and update the roundResourceGenerations
+    set(state => ({ 
+      domeGeneration: {
+        ...state.domeGeneration,
+        storedMinerals: state.domeGeneration.storedMinerals + totalMineralsForProduction
+      },
+      // Store the resource generations for visualization
+      roundResourceGenerations: [...state.roundResourceGenerations, ...resourceGenerations]
     }));
 
     // Consolidated log message
     if (totalMineralsGenerated > 0 || totalResearchPointsGenerated > 0 || totalPowerGenerated > 0 || totalWaterGenerated > 0) {
-        console.log(`Total generated this round - Minerals: ${totalMineralsGenerated}, RP: ${totalResearchPointsGenerated}, Power: ${totalPowerGenerated}, Water: ${totalWaterGenerated}`);
+        console.log(`Total generated this round - Minerals: ${totalMineralsGenerated} (player) + ${totalMineralsForProduction} (stored for Production), RP: ${totalResearchPointsGenerated}, Power: ${totalPowerGenerated}, Water: ${totalWaterGenerated}`);
     }
+    
+    // Return the generated resources to be added to resourceChanges in endRound
+    return {
+      minerals: totalMineralsGenerated,
+      researchPoints: totalResearchPointsGenerated,
+      power: totalPowerGenerated,
+      water: totalWaterGenerated
+    };
   },
 
   triggerTaskEvent: (taskId, eventType) => {
@@ -1623,6 +1673,31 @@ export const useGameStore = create<GameState>((set, get) => ({
             activeLivingProject: null
           }));
           
+          // Apply special effects for specific living projects when completed
+          if (activeLivingProject.id === 'expand-housing') {
+            // Add +1 to workforceBonus for Modular Housing Unit
+            set(state => ({
+              workforceBonus: state.workforceBonus + 1,
+              totalWorkforce: state.totalWorkforce + 1, // Still update totalWorkforce for immediate effect
+              availableWorkforce: state.availableWorkforce + 1
+            }));
+            console.log('Modular Housing Unit effect applied: +1 workforce bonus added');
+          } else if (activeLivingProject.id === 'upgrade-living-quarters') {
+            // Advanced Living Quarters also increases workforce bonus by 1
+            set(state => ({
+              workforceBonus: state.workforceBonus + 1,
+              totalWorkforce: state.totalWorkforce + 1, // Still update totalWorkforce for immediate effect
+              availableWorkforce: state.availableWorkforce + 1
+            }));
+            console.log('Advanced Living Quarters effect applied: +1 workforce bonus added');
+          } else if (activeLivingProject.id === 'upgrade-living-dome') {
+            // Apply +15 Flow points for Living Dome Upgrade
+            set(state => ({
+              flowPoints: state.flowPoints + 15
+            }));
+            console.log('Living Dome Upgrade effect applied: +15 Flow points added');
+          }
+          
           if (canShowMessage && !messageShown) {
             get().showDialogue(
               `Living area project completed: ${activeLivingProject.name}. ${completedProject.effectDescription}`,
@@ -1685,12 +1760,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   clearResourceGenerations: () => set({ roundResourceGenerations: [] }),
 
   generateDomeResources: () => {
-    const { colonyGoodsCycle, colonyGoodsBaseAmount, researchCycle, researchBaseAmount } = get().domeGeneration;
+    const { colonyGoodsCycle, colonyGoodsBaseAmount, researchCycle, researchBaseAmount, storedMinerals } = get().domeGeneration;
     
     let updatedColonyGoodsCycle = colonyGoodsCycle + 1;
     let updatedResearchCycle = researchCycle + 1;
     let colonyGoodsGenerated = 0;
     let researchPointsGenerated = 0;
+    let updatedStoredMinerals = storedMinerals; // Keep track of remaining stored minerals
     
     // Tracking for resource visualizations
     const resourceGenerations: ResourceGeneration[] = [];
@@ -1704,31 +1780,100 @@ export const useGameStore = create<GameState>((set, get) => ({
       researchPoints: 0
     };
     
-    // Production Dome: Generate colony goods every 5 rounds
-    if (updatedColonyGoodsCycle >= 5) {
-      // Start with base amount
-      colonyGoodsGenerated = colonyGoodsBaseAmount;
+    // Check if Optimized Assembly Line project is completed
+    const hasOptimizedAssembly = get().completedProductionProjects.includes('optimize-assembly');
+    
+    // If Optimized Assembly Line is completed, generate +3 colony goods every round
+    if (hasOptimizedAssembly) {
+      colonyGoodsGenerated = 3; // Base amount per round
       
-      // Apply production project bonuses
-      if (get().completedProductionProjects.includes('optimize-assembly')) {
-        // Add 15% bonus from Optimized Assembly Line
-        colonyGoodsGenerated = Math.round((colonyGoodsGenerated * 1.15) * 100) / 100;
-        console.log(`Production bonus applied: ${colonyGoodsGenerated}`);
+      // Process minerals every round with Optimized Assembly
+      if (storedMinerals > 0) {
+        // Check for Production Power Rerouting project effect (improved conversion rate)
+        const conversionRate = get().completedProductionProjects.includes('power-efficiency') ? 9 : 10;
+        
+        // Convert minerals continuously every round - process ALL stored minerals instead of capping at 2
+        const mineralsToConvert = storedMinerals; // Process all stored minerals
+        const mineralConversion = mineralsToConvert / conversionRate;
+        updatedStoredMinerals = 0; // All minerals are consumed
+        
+        // Add mineral conversion to colony goods generated
+        colonyGoodsGenerated += mineralConversion;
+        
+        // Round to 2 decimal places for display consistency
+        colonyGoodsGenerated = Math.round(colonyGoodsGenerated * 100) / 100;
+        
+        console.log(`Production Dome converted ${mineralsToConvert.toFixed(2)} minerals to ${mineralConversion.toFixed(2)} colony goods (continuous conversion)`);
       }
-      
-      updatedColonyGoodsCycle = 0;
       
       // Add to resource generations for visualization
       resourceGenerations.push({
         taskId: 'production-dome',
-        targetTileKey: '0,1', // Production Dome is at 0,1 (changed from 1,0)
+        targetTileKey: '1,0', // Production Dome is at 1,0
         type: 'production-dome',
         resourceType: 'colonyGoods',
-        amount: colonyGoodsGenerated
+        amount: colonyGoodsGenerated,
+        details: storedMinerals > 0 
+          ? `Optimized Assembly: +3 base, +${(colonyGoodsGenerated - 3).toFixed(2)} from minerals` 
+          : 'Optimized Assembly Line: +3 per round'
       });
       
       // Add the generated goods to the resource changes
       resourceChanges.colonyGoods += colonyGoodsGenerated;
+      
+      console.log(`Production Dome generated ${colonyGoodsGenerated} colony goods (continuous production)`);
+      
+      // Get the current endRound resourceChanges object and update it with our colony goods
+      const currentResourceChanges = get().currentEndRoundResourceChanges || { power: 0, water: 0, minerals: 0, colonyGoods: 0, researchPoints: 0 };
+      currentResourceChanges.colonyGoods += colonyGoodsGenerated;
+      set({ currentEndRoundResourceChanges: currentResourceChanges });
+      
+      // Update the actual colony goods amount in the state
+      set(state => ({ colonyGoods: state.colonyGoods + colonyGoodsGenerated }));
+    }
+    
+    // Check if we've completed a 5-round cycle for mineral conversion
+    if (updatedColonyGoodsCycle >= 5) {
+      // Reset the cycle counter regardless of whether we're using Optimized Assembly
+      updatedColonyGoodsCycle = 0;
+      
+      // Only proceed with batch production if Optimized Assembly Line is NOT completed
+      if (!hasOptimizedAssembly) {
+        // Convert stored minerals to colony goods production
+        // Check for Production Power Rerouting project effect (improved conversion rate)
+        const conversionRate = get().completedProductionProjects.includes('power-efficiency') ? 9 : 10;
+        const mineralConversion = storedMinerals / conversionRate;
+        updatedStoredMinerals = 0; // Reset stored minerals after using them
+        
+        // Start with base amount plus mineral conversion
+        colonyGoodsGenerated = colonyGoodsBaseAmount + mineralConversion;
+        
+        // Round to 2 decimal places for display consistency
+        colonyGoodsGenerated = Math.round(colonyGoodsGenerated * 100) / 100;
+        
+        // Add to resource generations for visualization
+        resourceGenerations.push({
+          taskId: 'production-dome',
+          targetTileKey: '1,0', // Production Dome is at 1,0
+          type: 'production-dome',
+          resourceType: 'colonyGoods',
+          amount: colonyGoodsGenerated,
+          details: storedMinerals > 0 ? `With ${storedMinerals.toFixed(2)} minerals conversion` : undefined
+        });
+        
+        // Add the generated goods to the resource changes
+        resourceChanges.colonyGoods += colonyGoodsGenerated;
+        
+        console.log(`Production Dome generated ${colonyGoodsGenerated} colony goods (base: ${colonyGoodsBaseAmount}, minerals boost: ${mineralConversion})`);
+        
+        // Update the actual colony goods amount in the state
+        set(state => ({ colonyGoods: state.colonyGoods + colonyGoodsGenerated }));
+        
+        // Get the current endRound resourceChanges object and update it with our colony goods
+        const currentResourceChanges = get().currentEndRoundResourceChanges || { power: 0, water: 0, minerals: 0, colonyGoods: 0, researchPoints: 0 };
+        currentResourceChanges.colonyGoods += colonyGoodsGenerated;
+        set({ currentEndRoundResourceChanges: currentResourceChanges });
+      }
     }
     
     // Research Dome: Generate research points every 4 rounds
@@ -1739,7 +1884,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       // Add to resource generations for visualization
       resourceGenerations.push({
         taskId: 'research-dome',
-        targetTileKey: '-1,0', // Research Dome is at -1,0 (unchanged)
+        targetTileKey: '-1,0', // Research Dome is at -1,0
         type: 'research-dome',
         resourceType: 'researchPoints',
         amount: researchPointsGenerated
@@ -1747,15 +1892,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       
       // Add the generated research points to the resource changes
       resourceChanges.researchPoints += researchPointsGenerated;
-    }
-    
-    // Update store with generated resources
-    if (colonyGoodsGenerated > 0) {
-      set(state => ({ colonyGoods: state.colonyGoods + colonyGoodsGenerated }));
-    }
-    
-    if (researchPointsGenerated > 0) {
+      
+      // Update the actual research points amount in the state
       set(state => ({ researchPoints: state.researchPoints + researchPointsGenerated }));
+      
+      // Get the current endRound resourceChanges object and update it with our research points
+      const currentResourceChanges = get().currentEndRoundResourceChanges || { power: 0, water: 0, minerals: 0, colonyGoods: 0, researchPoints: 0 };
+      currentResourceChanges.researchPoints += researchPointsGenerated;
+      set({ currentEndRoundResourceChanges: currentResourceChanges });
     }
     
     // Update dome generation cycles
@@ -1763,10 +1907,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       domeGeneration: {
         ...state.domeGeneration,
         colonyGoodsCycle: updatedColonyGoodsCycle,
-        researchCycle: updatedResearchCycle
+        researchCycle: updatedResearchCycle,
+        storedMinerals: updatedStoredMinerals
       },
       // Add resource generations to the existing ones
-      roundResourceGenerations: resourceGenerations
+      roundResourceGenerations: [...state.roundResourceGenerations, ...resourceGenerations]
     }));
   },
   
@@ -1779,9 +1924,25 @@ export const useGameStore = create<GameState>((set, get) => ({
     // 1. Water must be positive
     const waterPositive = water > 0;
     
-    // 2. Colony goods must be at least 2x population
-    const goodsThreshold = population * 2;
-    const goodsSufficient = colonyGoods >= goodsThreshold;
+    // 2. Colony goods must be sufficient for both growth and base consumption
+    // Base consumption: using full multiples of 10 (0 for 1-9, 1 for 10-19, etc.)
+    let baseConsumption = Math.floor(population / 10);
+    
+    // Apply living dome research effects for colony goods consumption
+    if (get().completedLivingProjects.includes('improve-air')) {
+      baseConsumption *= 0.85; // Apply 15% reduction
+    }
+    
+    if (get().completedLivingProjects.includes('recreation-center')) {
+      baseConsumption *= 0.85; // Apply 15% reduction
+    }
+    
+    // Round to nearest decimal for consistency
+    baseConsumption = Math.round(baseConsumption * 100) / 100;
+    
+    const growthRequirement = population * 2;
+    const totalRequired = baseConsumption + growthRequirement;
+    const goodsSufficient = colonyGoods >= totalRequired;
     
     // Update condition tracking in state
     set(state => ({
@@ -1965,6 +2126,31 @@ export const useGameStore = create<GameState>((set, get) => ({
         activeLivingProject: null
       }));
       
+      // Apply special effects for specific living projects when completed
+      if (activeLivingProject.id === 'expand-housing') {
+        // Add +1 to workforceBonus for Modular Housing Unit instead of directly modifying totalWorkforce
+        set(state => ({
+          workforceBonus: state.workforceBonus + 1,
+          totalWorkforce: state.totalWorkforce + 1, // Still update totalWorkforce for immediate effect
+          availableWorkforce: state.availableWorkforce + 1
+        }));
+        console.log('Modular Housing Unit effect applied: +1 workforce bonus added');
+      } else if (activeLivingProject.id === 'upgrade-living-quarters') {
+        // Advanced Living Quarters also increases workforce bonus by 1
+        set(state => ({
+          workforceBonus: state.workforceBonus + 1,
+          totalWorkforce: state.totalWorkforce + 1, // Still update totalWorkforce for immediate effect
+          availableWorkforce: state.availableWorkforce + 1
+        }));
+        console.log('Advanced Living Quarters effect applied: +1 workforce bonus added');
+      } else if (activeLivingProject.id === 'upgrade-living-dome') {
+        // Apply +15 Flow points for Living Dome Upgrade
+        set(state => ({
+          flowPoints: state.flowPoints + 15
+        }));
+        console.log('Living Dome Upgrade effect applied: +15 Flow points added');
+      }
+      
       get().showDialogue(
         `Living area project completed: ${activeLivingProject.name}. ${completedProject.effectDescription}`,
         '/Derech/avatars/AiHelper.jpg'
@@ -2116,6 +2302,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   // --- NEW: Resource Sidebar Actions ---
   setResourceSidebarOpen: (isOpen: boolean) => set({ isResourceSidebarOpen: isOpen }),
 
+  currentEndRoundResourceChanges: {
+    power: 0,
+    water: 0,
+    minerals: 0,
+    colonyGoods: 0,
+    researchPoints: 0
+  },
 }));
 
 useGameStore.getState().initializeGrid(5); 
