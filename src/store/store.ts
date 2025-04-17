@@ -414,7 +414,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   population: 10,
   researchPoints: 0,
   colonyGoods: 50,
-  minerals: 20,
+  minerals: 45,
 
   // Flow Points
   flowPoints: 0,
@@ -488,7 +488,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   previousRoundResources: {
     power: 100,
     water: 100,
-    minerals: 20,
+    minerals: 45,
     colonyGoods: 50,
     researchPoints: 0
   },
@@ -1000,7 +1000,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       population: 10,
       researchPoints: 0,
       colonyGoods: 50,
-      minerals: 20,
+      minerals: 45,
       totalWorkforce: 8,
       availableWorkforce: 8,
       workforceBonus: 0, // Reset workforce bonus
@@ -1028,7 +1028,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       previousRoundResources: {
         power: 100,
         water: 100,
-        minerals: 20,
+        minerals: 45,
         colonyGoods: 50,
         researchPoints: 0
       },
@@ -1095,7 +1095,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       return {
         power: 100,
         water: 100,
-        minerals: 20,
+        minerals: 45,
         colonyGoods: 20,
         activeTasks: {},
         gridTiles: updatedGridTiles,
@@ -1105,7 +1105,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         previousRoundResources: {
           power: 100,
           water: 100,
-          minerals: 20,
+          minerals: 45,
           colonyGoods: 20,
           researchPoints: state.researchPoints
         },
