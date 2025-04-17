@@ -813,10 +813,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         };
         
         // Calculate new resource values based on current values plus changes
-        const newPower = state.power + resourceChanges.power;
-        const newWater = state.water + resourceChanges.water;
-        const newMinerals = state.minerals + resourceChanges.minerals;
-        // Include additionalChanges for colony goods calculation
+        const newPower = state.power + resourceChanges.power + additionalChanges.power;
+        const newWater = state.water + resourceChanges.water + additionalChanges.water;
+        const newMinerals = state.minerals + resourceChanges.minerals + additionalChanges.minerals;
         const newColonyGoods = state.colonyGoods + resourceChanges.colonyGoods + additionalChanges.colonyGoods;
         const newResearchPoints = state.researchPoints + resourceChanges.researchPoints + additionalChanges.researchPoints;
         
@@ -827,6 +826,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         console.log(`Minerals: ${previousValues.minerals.toFixed(2)} → ${newMinerals.toFixed(2)} (${resourceChanges.minerals.toFixed(2)})`);
         console.log(`Colony Goods: ${previousValues.colonyGoods.toFixed(2)} → ${newColonyGoods.toFixed(2)} (${resourceChanges.colonyGoods.toFixed(2)})`);
         console.log(`Research Points: ${previousValues.researchPoints.toFixed(2)} → ${newResearchPoints.toFixed(2)} (${resourceChanges.researchPoints.toFixed(2)})`);
+        console.log(`Additional Power changes: ${additionalChanges.power.toFixed(2)}`);
+        console.log(`Additional Water changes: ${additionalChanges.water.toFixed(2)}`);
+        console.log(`Additional Minerals changes: ${additionalChanges.minerals.toFixed(2)}`);
         console.log(`Additional Colony Goods changes: ${additionalChanges.colonyGoods.toFixed(2)}`);
         console.log(`Additional Research Points changes: ${additionalChanges.researchPoints.toFixed(2)}`);
         
@@ -1812,11 +1814,26 @@ export const useGameStore = create<GameState>((set, get) => ({
   generateDomeResources: () => {
     const { colonyGoodsCycle, colonyGoodsBaseAmount, researchCycle, researchBaseAmount, storedMinerals } = get().domeGeneration;
     
+    // Helper function to update resource changes for any resource type
+    const updateResourceChanges = (resourceType: keyof typeof resourceChanges, amount: number) => {
+      // Add to resource changes tracking
+      resourceChanges[resourceType] += amount;
+      
+      // Update the end round resource changes tracking
+      const currentResourceChanges = get().currentEndRoundResourceChanges || { 
+        power: 0, water: 0, minerals: 0, colonyGoods: 0, researchPoints: 0 
+      };
+      currentResourceChanges[resourceType] += amount;
+      set({ currentEndRoundResourceChanges: currentResourceChanges });
+      
+      console.log(`[DOME EFFECT] ${resourceType} added to tracking: +${amount.toFixed(2)} (will be applied in endRound)`);
+    };
+    
     let updatedColonyGoodsCycle = colonyGoodsCycle + 1;
     let updatedResearchCycle = researchCycle + 1;
+    let updatedStoredMinerals = storedMinerals;
     let colonyGoodsGenerated = 0;
     let researchPointsGenerated = 0;
-    let updatedStoredMinerals = storedMinerals; // Keep track of remaining stored minerals
     
     // Tracking for resource visualizations
     const resourceGenerations: ResourceGeneration[] = [];
@@ -1923,20 +1940,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     
     // *** Only update colony goods state and tracking once, if any were generated ***
     if (colonyGoodsGenerated > 0) {
-      // Add to resource changes tracking
-      resourceChanges.colonyGoods += colonyGoodsGenerated;
-      
-      // Update the end round resource changes tracking
-      const currentResourceChanges = get().currentEndRoundResourceChanges || { 
-        power: 0, water: 0, minerals: 0, colonyGoods: 0, researchPoints: 0 
-      };
-      currentResourceChanges.colonyGoods += colonyGoodsGenerated;
-      set({ currentEndRoundResourceChanges: currentResourceChanges });
-      
-      // REMOVED: Direct state update to prevent double-counting with endRound's update
-      // The colony goods will be applied from resourceChanges and currentEndRoundResourceChanges in endRound
-      
-      console.log(`[PRODUCTION DOME] Colony goods added to tracking: +${colonyGoodsGenerated.toFixed(2)} (will be applied in endRound)`);
+      updateResourceChanges('colonyGoods', colonyGoodsGenerated);
     }
     
     // Research Dome: Generate research points every 4 rounds
@@ -1953,18 +1957,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         amount: researchPointsGenerated
       });
       
-      // Add the generated research points to the resource changes
-      resourceChanges.researchPoints += researchPointsGenerated;
-      
-      // REMOVED: Direct state update to prevent double-counting with endRound's update
-      // The research points will be applied in endRound
-      
-      // Get the current endRound resourceChanges object and update it with our research points
-      const currentResourceChanges = get().currentEndRoundResourceChanges || { power: 0, water: 0, minerals: 0, colonyGoods: 0, researchPoints: 0 };
-      currentResourceChanges.researchPoints += researchPointsGenerated;
-      set({ currentEndRoundResourceChanges: currentResourceChanges });
-      
-      console.log(`[RESEARCH DOME] Research points added to tracking: +${researchPointsGenerated} (will be applied in endRound)`);
+      updateResourceChanges('researchPoints', researchPointsGenerated);
     }
     
     // Update dome generation cycles
