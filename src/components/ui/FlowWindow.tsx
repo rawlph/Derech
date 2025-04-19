@@ -318,7 +318,7 @@ const FlowWindow: React.FC<FlowWindowProps> = ({ isVisible, onClose }) => {
                 </div>
                 
                 <div className={styles.rewardNote}>
-                    <p>Flow Points can be spent on colony enhancements in the Research Dome. Higher tiers take precedence: Master &gt; Strong &gt; Basic. Focus on maintaining stable, positive resource flows to maximize your Flow Points.</p>
+                    <p>Flow Points only used for main progression (Embodiment Research on Tile 0,0, Flow Project Site). Coming Soon: ways to spend Flow Points. Higher tiers take precedence: Master &gt; Strong &gt; Basic. Focus on maintaining stable, positive resource flows to maximize your Flow Points.</p>
                 </div>
             </div>
         );
