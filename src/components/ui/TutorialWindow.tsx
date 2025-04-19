@@ -15,12 +15,12 @@ const tutorialSections = [
     {
         id: 'basics',
         title: 'Game Basics',
-        content: 'Welcome to Derech! This game is a colony management simulation where you need to balance resources and make strategic decisions to help your colony thrive on Mars. Each round represents a day in your colony\'s life.'
+        content: 'Welcome to Derech! This game is a colony management simulation where you need to balance resources and make strategic decisions to help your colony thrive on Mars. Each round represents a day in your colony\'s life. You accumulate Flow Points throughout the game, which are used in the Flow Project site. Complete the four Embodiment quests to finish the game, after which your performance will be evaluated (not yet implemented).'
     },
     {
         id: 'resources',
         title: 'Resource Management',
-        content: 'Your colony needs three main resources to survive: Power, Water, and Minerals. Monitor your resource trends carefully - if any resource falls to zero, your colony will face serious issues.'
+        content: 'Your colony needs four main resources to survive: Power, Water, Minerals, and Colony Goods. Monitor your resource trends carefully - if any resource falls to zero, your colony will face serious issues. Colony Goods are consumed every round based on your population size, so ensure you have sufficient production to meet the needs of your growing colony.'
     },
     {
         id: 'domes',
@@ -30,7 +30,7 @@ const tutorialSections = [
     {
         id: 'research',
         title: 'Research & Development',
-        content: 'Research new technologies to improve your colony\'s efficiency and capabilities. Each research project requires research points and takes time to complete, but provides valuable benefits.'
+        content: 'Research new technologies to improve your colony\'s efficiency and capabilities. You can browse through Living Dome research projects, Research Dome projects, and Production Building projects. Each project category offers unique research rewards and can help re-balance your resources immensely. Projects require research points and take time to complete, but provide valuable benefits that can transform your colony\'s capabilities.'
     },
     {
         id: 'workforce',
@@ -96,6 +96,9 @@ const TutorialWindow: React.FC<TutorialWindowProps> = ({ isVisible, onClose }) =
                                         <div className={styles.resourceExample}>
                                             <span className={styles.resourceIcon}>⛏️</span> Minerals: Used for construction and upgrades
                                         </div>
+                                        <div className={styles.resourceExample}>
+                                            <span className={styles.resourceIcon}>📦</span> Colony Goods: Consumed by colonists each round
+                                        </div>
                                     </div>
                                 )}
                                 
@@ -117,10 +120,10 @@ const TutorialWindow: React.FC<TutorialWindowProps> = ({ isVisible, onClose }) =
                                     <div className={styles.exampleBox}>
                                         <p>Colonists can work in these areas:</p>
                                         <ul className={styles.workforceList}>
-                                            <li>Power Technicians: Maintain power generation</li>
+                                            <li>Power Technicians: Maintain power generation (solar array, geothermal)</li>
                                             <li>Water Specialists: Handle water purification and distribution</li>
                                             <li>Miners: Extract and process minerals</li>
-                                            <li>Researchers: Work on technological advancements</li>
+                                            <li>Researchers: Work on technological advancements (scout post)</li>
                                         </ul>
                                     </div>
                                 )}

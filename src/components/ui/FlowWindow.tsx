@@ -26,6 +26,11 @@ const flowSections = [
         id: 'tutorial',
         title: 'Flow Tutorial',
         type: 'tutorial'
+    },
+    {
+        id: 'balance',
+        title: 'BALANCE',
+        type: 'balance'
     }
 ];
 
@@ -43,7 +48,16 @@ const FlowWindow: React.FC<FlowWindowProps> = ({ isVisible, onClose }) => {
         domeGeneration,
         flowPoints,
         activeFlowTier,
-        getConsecutivePositiveTrends
+        getConsecutivePositiveTrends,
+        power,
+        water,
+        minerals,
+        colonyGoods,
+        researchPoints,
+        activeTasks,
+        completedResearch,
+        completedProductionProjects,
+        completedLivingProjects
     } = useGameStore();
     
     // Helper to calculate positive trend count
@@ -304,7 +318,7 @@ const FlowWindow: React.FC<FlowWindowProps> = ({ isVisible, onClose }) => {
                 </div>
                 
                 <div className={styles.rewardNote}>
-                    <p>Flow Points can be spent on colony enhancements in the Research Dome. Higher tiers take precedence: Master &gt; Strong &gt; Basic. Focus on maintaining stable, positive resource flows to maximize your Flow Points.</p>
+                    <p>Flow Points only used for main progression (Embodiment Research on Tile 0,0, Flow Project Site). Coming Soon: ways to spend Flow Points. Higher tiers take precedence: Master &gt; Strong &gt; Basic. Focus on maintaining stable, positive resource flows to maximize your Flow Points.</p>
                 </div>
             </div>
         );
@@ -363,6 +377,327 @@ const FlowWindow: React.FC<FlowWindowProps> = ({ isVisible, onClose }) => {
         );
     };
     
+    // Helper function to render Balance section
+    const renderBalance = () => {
+        // Calculate power production and consumption
+        let powerProduction = 5; // Base power production
+        let powerConsumption = 2; // Base colony consumption
+        
+        // Calculate water production and consumption
+        let waterProduction = 0;
+        let waterConsumption = population; // 1 per colonist
+        
+        // Calculate minerals production
+        let mineralsProduction = 0;
+        let mineralsPlayerPortion = 0;
+        let mineralsToDome = 0;
+        
+        // Calculate colony goods production and consumption
+        let colonyGoodsProduction = 0;
+        let colonyGoodsFromBase = 0;
+        let colonyGoodsFromMinerals = 0;
+        let colonyGoodsConsumption = Math.floor(population / 10); // 1 per 10 population
+        
+        // Calculate research points production
+        let researchPointsProduction = 0;
+        
+        // Check for water consumption reduction from research
+        if (completedResearch.includes('detoxifying-bacteria')) {
+            waterConsumption *= 0.85; // Apply 15% reduction
+        }
+        
+        // Check for water consumption reduction from living dome projects
+        if (completedLivingProjects.includes('youth-farming-program')) {
+            waterConsumption *= 0.85; // Apply 15% reduction
+        }
+        
+        // Calculate colony goods consumption with reductions
+        if (completedLivingProjects.includes('improve-air')) {
+            colonyGoodsConsumption *= 0.85; // Apply 15% reduction
+        }
+        
+        if (completedLivingProjects.includes('recreation-center')) {
+            colonyGoodsConsumption *= 0.85; // Apply 15% reduction
+        }
+        
+        // Calculate resource production from buildings
+        Object.values(activeTasks).forEach(task => {
+            if (task.status === 'operational') {
+                // Solar Arrays
+                if (task.type === 'build-solar') {
+                    powerProduction += 15;
+                }
+                
+                // Geothermal Plants
+                else if (task.type === 'build-geothermal') {
+                    let geothermalOutput = 30;
+                    if (completedResearch.includes('seismic-mapping')) {
+                        geothermalOutput *= 1.3; // +30%
+                    }
+                    powerProduction += geothermalOutput;
+                    
+                    // Additional Research Points if Research Dome upgraded
+                    if (completedResearch.includes('upgrade-research-dome')) {
+                        researchPointsProduction += 3;
+                    }
+                }
+                
+                // Water Wells
+                else if (task.type === 'build-waterwell') {
+                    let waterOutput = 12;
+                    if (completedResearch.includes('water-reclamation-1')) {
+                        waterOutput *= 1.2; // +20%
+                    }
+                    if (completedProductionProjects.includes('thermal-extractors')) {
+                        waterOutput *= 1.1; // +10%
+                    }
+                    waterProduction += waterOutput;
+                    
+                    // Power consumption for water wells
+                    let waterWellPowerCost = task.type === 'build-waterwell' ? 5 : 0;
+                    if (completedProductionProjects.includes('thermal-extractors')) {
+                        waterWellPowerCost *= 0.75; // -25% power cost
+                    }
+                    powerConsumption += waterWellPowerCost;
+                }
+                
+                // Mining Operations
+                else if (task.type === 'deploy-mining') {
+                    // Get the tile to check for mountain height
+                    const targetTile = useGameStore.getState().gridTiles[task.targetTileKey];
+                    let miningOutput = 5;
+                    let mountainBonus = 1;
+                    
+                    if (completedResearch.includes('improved-extraction')) {
+                        miningOutput *= 1.25; // +25%
+                    }
+                    
+                    if (targetTile && targetTile.type === 'Mountain') {
+                        mountainBonus = 1 + (targetTile.height * 0.5);
+                        miningOutput *= mountainBonus;
+                        powerConsumption += targetTile.height; // Additional power cost based on height
+                    }
+                    
+                    // Split: 1/3 for player, 2/3 for Production Dome
+                    mineralsProduction += miningOutput;
+                    mineralsPlayerPortion += miningOutput / 3;
+                    mineralsToDome += (miningOutput * 2) / 3; // 2/3 to Production Dome
+                    
+                    // Power consumption for mining operations
+                    powerConsumption += 6; // Base mining power consumption
+                }
+                
+                // Scout Outposts
+                else if (task.type === 'deploy-scout') {
+                    let scoutOutput = 4;
+                    if (completedResearch.includes('embodiment-prelim')) {
+                        scoutOutput *= 1.15; // +15%
+                    }
+                    researchPointsProduction += scoutOutput;
+                    
+                    // Power consumption for scout outposts
+                    powerConsumption += 3; // Base scout power consumption
+                }
+            }
+        });
+        
+        // Calculate research dome production
+        const researchCycle = domeGeneration.researchCycle;
+        const researchBaseAmount = domeGeneration.researchBaseAmount;
+        if ((researchCycle + 1) % 4 === 0) {
+            researchPointsProduction += researchBaseAmount;
+        }
+        
+        // Calculate colony goods production from Production Dome
+        const colonyGoodsCycle = domeGeneration.colonyGoodsCycle;
+        const hasOptimizedAssembly = completedProductionProjects.includes('optimize-assembly');
+        const conversionRate = completedProductionProjects.includes('power-efficiency') ? 9 : 10;
+        
+        if (hasOptimizedAssembly) {
+            // Every round with Optimized Assembly
+            colonyGoodsFromBase = 3; // Base production per round
+            
+            // Mineral conversion if minerals are stored
+            // In reality this is more complex with stored minerals, but for this display
+            // we'll show the conversion of currently produced minerals per round
+            colonyGoodsFromMinerals = mineralsToDome / conversionRate;
+        } else {
+            // Every 5 rounds without Optimized Assembly
+            if ((colonyGoodsCycle + 1) % 5 === 0) {
+                colonyGoodsFromBase = domeGeneration.colonyGoodsBaseAmount / 5; // Base amount averaged per round
+                
+                // For display purposes, we'll average the goods from minerals over 5 rounds
+                colonyGoodsFromMinerals = (mineralsToDome / conversionRate) / 5;
+            } else {
+                colonyGoodsFromBase = 0;
+                colonyGoodsFromMinerals = 0;
+            }
+        }
+        
+        // Total colony goods production
+        colonyGoodsProduction = colonyGoodsFromBase + colonyGoodsFromMinerals;
+        
+        // Round values to one decimal place for display
+        powerProduction = Math.round(powerProduction * 10) / 10;
+        powerConsumption = Math.round(powerConsumption * 10) / 10;
+        waterProduction = Math.round(waterProduction * 10) / 10;
+        waterConsumption = Math.round(waterConsumption * 10) / 10;
+        mineralsProduction = Math.round(mineralsProduction * 10) / 10;
+        mineralsPlayerPortion = Math.round(mineralsPlayerPortion * 10) / 10;
+        mineralsToDome = Math.round(mineralsToDome * 10) / 10;
+        colonyGoodsProduction = Math.round(colonyGoodsProduction * 10) / 10;
+        colonyGoodsFromBase = Math.round(colonyGoodsFromBase * 10) / 10;
+        colonyGoodsFromMinerals = Math.round(colonyGoodsFromMinerals * 10) / 10;
+        colonyGoodsConsumption = Math.round(colonyGoodsConsumption * 10) / 10;
+        researchPointsProduction = Math.round(researchPointsProduction * 10) / 10;
+        
+        // Calculate net values
+        const powerNet = powerProduction - powerConsumption;
+        const waterNet = waterProduction - waterConsumption;
+        const mineralsNet = mineralsPlayerPortion;
+        const colonyGoodsNet = colonyGoodsProduction - colonyGoodsConsumption;
+        
+        return (
+            <div className={styles.balanceContainer}>
+                <div className={styles.balanceHeader}>
+                    <h3>Resource Balance</h3>
+                    <p className={styles.balanceHeaderDesc}>
+                        Current production and consumption rates per round. Positive balance indicates stable resource flow.
+                    </p>
+                </div>
+                
+                <div className={styles.balanceResourceContainer}>
+                    {/* Power Balance */}
+                    <div className={styles.balanceResource}>
+                        <div className={styles.balanceResourceHeader}>
+                            <span className={styles.balanceResourceIcon}>⚡</span>
+                            <span className={styles.balanceResourceTitle}>Power</span>
+                            <span className={`${styles.balanceNet} ${powerNet >= 0 ? styles.positiveNet : styles.negativeNet}`}>
+                                {powerNet >= 0 ? '+' : ''}{powerNet.toFixed(1)}
+                            </span>
+                        </div>
+                        <div className={styles.balanceDetails}>
+                            <div className={styles.balanceRow}>
+                                <span className={styles.balanceLabel}>Production</span>
+                                <span className={styles.balanceValue}>+{powerProduction.toFixed(1)}</span>
+                            </div>
+                            <div className={styles.balanceRow}>
+                                <span className={styles.balanceLabel}>Consumption</span>
+                                <span className={styles.balanceValue}>−{powerConsumption.toFixed(1)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Water Balance */}
+                    <div className={styles.balanceResource}>
+                        <div className={styles.balanceResourceHeader}>
+                            <span className={styles.balanceResourceIcon}>💧</span>
+                            <span className={styles.balanceResourceTitle}>Water</span>
+                            <span className={`${styles.balanceNet} ${waterNet >= 0 ? styles.positiveNet : styles.negativeNet}`}>
+                                {waterNet >= 0 ? '+' : ''}{waterNet.toFixed(1)}
+                            </span>
+                        </div>
+                        <div className={styles.balanceDetails}>
+                            <div className={styles.balanceRow}>
+                                <span className={styles.balanceLabel}>Production</span>
+                                <span className={styles.balanceValue}>+{waterProduction.toFixed(1)}</span>
+                            </div>
+                            <div className={styles.balanceRow}>
+                                <span className={styles.balanceLabel}>Consumption</span>
+                                <span className={styles.balanceValue}>−{waterConsumption.toFixed(1)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Minerals Balance */}
+                    <div className={styles.balanceResource}>
+                        <div className={styles.balanceResourceHeader}>
+                            <span className={styles.balanceResourceIcon}>⛏️</span>
+                            <span className={styles.balanceResourceTitle}>Minerals</span>
+                            <span className={`${styles.balanceNet} ${mineralsNet >= 0 ? styles.positiveNet : styles.negativeNet}`}>
+                                {mineralsNet >= 0 ? '+' : ''}{mineralsNet.toFixed(1)}
+                            </span>
+                        </div>
+                        <div className={styles.balanceDetails}>
+                            <div className={styles.balanceRow}>
+                                <span className={styles.balanceLabel}>Total Mining</span>
+                                <span className={styles.balanceValue}>+{mineralsProduction.toFixed(1)}</span>
+                            </div>
+                            <div className={styles.balanceRow}>
+                                <span className={styles.balanceLabel}>Your Portion (1/3)</span>
+                                <span className={styles.balanceValue}>+{mineralsPlayerPortion.toFixed(1)}</span>
+                            </div>
+                            <div className={styles.balanceRow}>
+                                <span className={styles.balanceLabel}>To Production Dome (2/3)</span>
+                                <span className={styles.balanceValue}>+{mineralsToDome.toFixed(1)}</span>
+                            </div>
+                            <div className={styles.balanceNote}>⚠️ 2/3 of minerals go to Production Dome</div>
+                        </div>
+                    </div>
+                    
+                    {/* Colony Goods Balance */}
+                    <div className={styles.balanceResource}>
+                        <div className={styles.balanceResourceHeader}>
+                            <span className={styles.balanceResourceIcon}>📦</span>
+                            <span className={styles.balanceResourceTitle}>Colony Goods</span>
+                            <span className={`${styles.balanceNet} ${colonyGoodsNet >= 0 ? styles.positiveNet : styles.negativeNet}`}>
+                                {colonyGoodsNet >= 0 ? '+' : ''}{colonyGoodsNet.toFixed(1)}
+                            </span>
+                        </div>
+                        <div className={styles.balanceDetails}>
+                            <div className={styles.balanceRow}>
+                                <span className={styles.balanceLabel}>Base Production</span>
+                                <span className={styles.balanceValue}>+{colonyGoodsFromBase.toFixed(1)}</span>
+                            </div>
+                            <div className={styles.balanceRow}>
+                                <span className={styles.balanceLabel}>From Minerals (2/3 ÷ {conversionRate})</span>
+                                <span className={styles.balanceValue}>+{colonyGoodsFromMinerals.toFixed(1)}</span>
+                            </div>
+                            <div className={styles.balanceRow}>
+                                <span className={styles.balanceLabel}>Total Production</span>
+                                <span className={styles.balanceValue}>+{colonyGoodsProduction.toFixed(1)}</span>
+                            </div>
+                            <div className={styles.balanceRow}>
+                                <span className={styles.balanceLabel}>Consumption</span>
+                                <span className={styles.balanceValue}>−{colonyGoodsConsumption.toFixed(1)}</span>
+                            </div>
+                            <div className={styles.balanceNote}>
+                                {hasOptimizedAssembly 
+                                    ? "Optimized Assembly: production every round" 
+                                    : "Production Dome: goods every 5 rounds"}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Research Points Balance */}
+                    <div className={styles.balanceResource}>
+                        <div className={styles.balanceResourceHeader}>
+                            <span className={styles.balanceResourceIcon}>🔬</span>
+                            <span className={styles.balanceResourceTitle}>Research Points</span>
+                            <span className={`${styles.balanceNet} ${styles.positiveNet}`}>
+                                +{researchPointsProduction.toFixed(1)}
+                            </span>
+                        </div>
+                        <div className={styles.balanceDetails}>
+                            <div className={styles.balanceRow}>
+                                <span className={styles.balanceLabel}>Production</span>
+                                <span className={styles.balanceValue}>+{researchPointsProduction.toFixed(1)}</span>
+                            </div>
+                            <div className={styles.balanceRow}>
+                                <span className={styles.balanceLabel}>Consumption</span>
+                                <span className={styles.balanceValue}>−0.0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div className={styles.balanceTip}>
+                    <p><em>Note: Production values are averages per round. Dome production cycles may occur every several rounds.</em></p>
+                </div>
+            </div>
+        );
+    };
+    
     return (
         isVisible ? (
             <div className={styles.overlay} onClick={onClose}>
@@ -383,7 +718,7 @@ const FlowWindow: React.FC<FlowWindowProps> = ({ isVisible, onClose }) => {
                         {flowSections.map(section => (
                             <button 
                                 key={section.id}
-                                className={`${styles.tabButton} ${activeSection === section.id ? styles.activeTab : ''}`}
+                                className={`${styles.tabButton} ${activeSection === section.id ? styles.activeTab : ''} ${section.id === 'balance' ? styles.balanceTab : ''}`}
                                 onClick={() => setActiveSection(section.id)}
                             >
                                 {section.title}
@@ -426,6 +761,16 @@ const FlowWindow: React.FC<FlowWindowProps> = ({ isVisible, onClose }) => {
                             <h3 className={styles.sectionTitle}>Flow Tutorial</h3>
                             <div className={styles.sectionContent}>
                                 {renderFlowTutorial()}
+                            </div>
+                        </div>
+                        
+                        {/* Balance Section */}
+                        <div 
+                            className={`${styles.flowSection} ${activeSection === 'balance' ? styles.activeSection : ''}`}
+                        >
+                            <h3 className={styles.sectionTitle}>Balance</h3>
+                            <div className={styles.sectionContent}>
+                                {renderBalance()}
                             </div>
                         </div>
                     </div>

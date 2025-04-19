@@ -16,16 +16,16 @@
 ### Generation
 
 *   **Base Production:**
-    *   Power: +5 per round (Implicit base generation).
+    *   Power: +3 per round (Implicit base generation).
     *   Colony Goods: +3 every 5 rounds (Production Dome cycle).
     *   Research Points: +1 every 4 rounds (Research Dome cycle).
-    *   *Development Note:* Dome cycle logic is in `generateDomeResources` in `src/store/store.ts`. Base power is added directly in `endRound`.
+    *   *Development Note:* Dome cycle logic is in `generateDomeResources` in `src/store/store.ts`. Base power is added directly in `endRound`.  CRITICALLY IMPORTANT: 1. Minerals influence Colony Goods production 2. with research "Optimized Assembly Line" we switch our calculation to PER ROUND instead of PER 5 ROUNDS.
 *   **Building-Specific Generation (Operational Status):**
     *   *Development Note:* Yields defined in `resourceYield` within `src/config/tasks.ts`. Applied during `endRound` in `src/store/store.ts`. Bonuses from research/projects are applied here.
 
     | Building Type | Resource Generated | Base Amount | Location Bonus | Rate | Affected By Projects |
     |---|---|---|---|---|---|
-    | Mining Operation | Minerals | 5 | +50% per mountain height level | Every round | `improved-extraction` (+25%) |
+    | Mining Operation | Minerals | 5 | +50% per mountain height level | Every round | `improved-extraction` (+25%) | (perhaps outdated, check store.ts)
     | Solar Array | Power | 15 | None | Every round | - |
     | Geothermal Plant | Power | 30 | None | Every round | `seismic-mapping` (+30%) |
     | Water Well | Water | 12 | None | Every round | `water-reclamation-1` (+20%), `thermal-extractors` (+10% yield, -25% power cost) |
