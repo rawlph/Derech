@@ -1044,4 +1044,182 @@
 
 .activeSection {
   animation: fadeIn 0.4s ease-in-out;
+}
+
+/* Balance tab styling - special yellow-themed tab */
+.balanceTab {
+  background-color: #fef3c7;
+  color: #1e293b; 
+  border-color: #fbbf24;
+  font-family: 'Segoe Script', 'Brush Script MT', cursive;
+  font-weight: bold;
+}
+
+.balanceTab:hover {
+  background-color: #fde68a;
+}
+
+.balanceTab.activeTab {
+  background-color: #fbbf24;
+  color: #1e293b;
+  border-color: #fbbf24;
+  box-shadow: 0 0 5px rgba(251, 191, 36, 0.5);
+}
+
+/* Balance section styling */
+.balanceContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.balanceHeader h3 {
+  font-size: 20px;
+  color: #fbbf24;
+  margin-bottom: 8px;
+  text-align: center;
+  font-family: 'Segoe Script', 'Brush Script MT', cursive;
+}
+
+.balanceHeaderDesc {
+  text-align: center;
+  color: #cbd5e1;
+  font-size: 15px;
+  margin-bottom: 15px;
+}
+
+.balanceResourceContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.balanceResource {
+  background-color: #1e293b;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  padding: 12px;
+}
+
+.balanceResourceHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 8px;
+  position: relative;
+}
+
+.balanceResourceIcon {
+  font-size: 20px;
+}
+
+.balanceResourceTitle {
+  font-weight: 600;
+  font-size: 16px;
+  color: #e6e6e6;
+}
+
+.balanceNet {
+  margin-left: auto;
+  font-weight: 700;
+  font-size: 18px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.positiveNet {
+  color: #5eead4;
+}
+
+.negativeNet {
+  color: #f87171;
+}
+
+.balanceDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.balanceRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 10px;
+  background-color: rgba(30, 41, 59, 0.5);
+  border-radius: 4px;
+}
+
+.balanceLabel {
+  font-size: 14px;
+  color: #cbd5e1;
+}
+
+.balanceValue {
+  font-weight: 600;
+  color: #e6e6e6;
+}
+
+.balanceNote {
+  font-size: 12px;
+  color: #fbbf24;
+  padding: 4px 10px;
+  margin-top: 5px;
+  font-style: italic;
+}
+
+.balanceTip {
+  background-color: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 6px;
+  padding: 12px 15px;
+  margin-top: 10px;
+}
+
+.balanceTip p {
+  margin-bottom: 0;
+  color: #fbbf24;
+  font-family: 'Segoe Script', 'Brush Script MT', cursive;
+  text-align: center;
+}
+
+/* Mobile responsive styles for Balance tab */
+@media (max-width: 768px) {
+  .balanceResource {
+    padding: 10px;
+  }
+  
+  .balanceResourceHeader {
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+  }
+  
+  .balanceResourceTitle {
+    font-size: 15px;
+  }
+  
+  .balanceNet {
+    font-size: 16px;
+    padding: 1px 6px;
+  }
+  
+  .balanceLabel,
+  .balanceValue {
+    font-size: 13px;
+  }
+  
+  .balanceNote {
+    font-size: 11px;
+  }
+  
+  .balanceTip {
+    padding: 10px;
+  }
+  
+  .balanceTip p {
+    font-size: 12px;
+  }
 } 
