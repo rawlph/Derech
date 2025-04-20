@@ -15,6 +15,7 @@ interface CameraRigProps {
   selfieStickMaxDistance?: number;
   selfieStickSpeed?: number;
   initialYRotation?: number;
+  minCameraHeight?: number;
   children?: React.ReactNode;
 }
 
@@ -32,6 +33,7 @@ const CameraRig: React.FC<CameraRigProps> = ({
   selfieStickMaxDistance = 6, // Maximum distance when moving backward
   selfieStickSpeed = 0.05, // Speed of distance adjustment
   initialYRotation = 0, // Initial rotation around Y axis
+  minCameraHeight = 0.5,
   children
 }) => {
   // Create a ref for orbit controls
@@ -59,6 +61,12 @@ const CameraRig: React.FC<CameraRigProps> = ({
   // Keep track of whether initial rotation has been applied
   const initialRotationAppliedRef = useRef(false);
   
+  // Track if movement has been detected to preserve camera rotation
+  const movementDetectedRef = useRef(false);
+  
+  // Track the last user-set camera rotation
+  const lastUserRotationRef = useRef<{theta: number, phi: number} | null>(null);
+  
   // Set up listeners for detecting user interaction with controls
   useEffect(() => {
     if (!controlsRef.current) return;
@@ -79,6 +87,12 @@ const CameraRig: React.FC<CameraRigProps> = ({
         
         const spherical = new THREE.Spherical().setFromVector3(targetToCamera);
         originalSphereRef.current = spherical;
+        
+        // Also store the last user-set camera rotation angles
+        lastUserRotationRef.current = {
+          theta: spherical.theta,
+          phi: spherical.phi
+        };
       }
     };
     
@@ -98,9 +112,7 @@ const CameraRig: React.FC<CameraRigProps> = ({
   }, [controlsRef.current]);
   
   // Capture initial position on first render and apply initial rotation
-  // But now do this gently to not override Player's camera setup
   useEffect(() => {
-    // Get this position as spherical if possible
     if (!initialRotationAppliedRef.current && 
         camera && 
         controlsRef.current && 
@@ -117,6 +129,10 @@ const CameraRig: React.FC<CameraRigProps> = ({
         
         const spherical = new THREE.Spherical().setFromVector3(targetToCamera);
         originalSphereRef.current = spherical;
+        lastUserRotationRef.current = {
+          theta: spherical.theta,
+          phi: spherical.phi
+        };
         
         // Set better initial camera angles
         controlsRef.current.minPolarAngle = minPolarAngle;
@@ -127,9 +143,6 @@ const CameraRig: React.FC<CameraRigProps> = ({
         
         // Mark rotation as applied
         initialRotationAppliedRef.current = true;
-        
-        console.log('CameraRig initialized with existing camera position:', camera.position);
-        console.log('Min polar angle:', minPolarAngle, 'Max polar angle:', maxPolarAngle);
       }, 100); // Small delay to let Player component initialize first
       
       return () => clearTimeout(timer);
@@ -149,6 +162,22 @@ const CameraRig: React.FC<CameraRigProps> = ({
       temp.copy(controlsRef.current.target);
       temp.lerp(targetPosition, followSpeed);
       controlsRef.current.target.copy(temp);
+      
+      // Check if we're moving now
+      const { forward, right, up } = movementInput.current;
+      const isMoving = Math.abs(forward) > 0.01 || Math.abs(right) > 0.01 || Math.abs(up) > 0.01;
+      
+      // If we just started moving and we have a last user rotation, preserve it
+      if (isMoving && !movementDetectedRef.current && lastUserRotationRef.current) {
+        movementDetectedRef.current = true;
+        
+        // Don't adjust camera rotation when movement starts - let the user's last set view remain
+      }
+      
+      // If we stopped moving, reset our movement detection flag
+      if (!isMoving && movementDetectedRef.current) {
+        movementDetectedRef.current = false;
+      }
       
       // Selfie stick effect - adjust distance based on backward movement
       if (selfieStickEffect && movementInput) {
@@ -177,11 +206,9 @@ const CameraRig: React.FC<CameraRigProps> = ({
         controlsRef.current.minDistance = targetDistanceRef.current;
         controlsRef.current.maxDistance = Math.max(targetDistanceRef.current + 1, maxDistance);
         
-        // Adjust the minPolarAngle to keep camera lower when backing up
-        // Only do this if we're not in the middle of user interaction
-        if (isBackingUp && !userInteractingRef.current) {
+        // Only adjust polar angle if user isn't currently interacting AND we're not preserving user rotation
+        if (isBackingUp && !userInteractingRef.current && !lastUserRotationRef.current) {
           // Make minPolarAngle bigger (closer to horizontal) when backing up
-          // Scale between normal minPolarAngle and a more horizontal angle (e.g., 0.3 * PI)
           const targetMinPolarAngle = THREE.MathUtils.lerp(
             minPolarAngle,
             Math.PI * 0.3, // More horizontal angle (closer to ground level)
@@ -194,7 +221,7 @@ const CameraRig: React.FC<CameraRigProps> = ({
             targetMinPolarAngle,
             selfieStickSpeed * 2
           );
-        } else {
+        } else if (!isBackingUp && !userInteractingRef.current) {
           // Gradually return to normal minPolarAngle when not backing up
           controlsRef.current.minPolarAngle = THREE.MathUtils.lerp(
             controlsRef.current.minPolarAngle,
@@ -206,41 +233,6 @@ const CameraRig: React.FC<CameraRigProps> = ({
       
       // Update controls
       controlsRef.current.update();
-      
-      // If backing up and we have an original camera position and not interacting,
-      // help bias the camera toward a more horizontal position
-      if (selfieStickEffect && 
-          isBackingUpRef.current && 
-          !userInteractingRef.current && 
-          originalSphereRef.current) {
-        
-        // Only apply this adjustment if the camera is currently high above the target
-        const currentSpherical = new THREE.Spherical().setFromVector3(
-          new THREE.Vector3().subVectors(camera.position, controlsRef.current.target)
-        );
-        
-        // If camera is high up (small phi angle), start bringing it down
-        if (currentSpherical.phi < Math.PI * 0.3) {
-          // Create a new spherical position with the current distance, but a more
-          // horizontal angle (larger phi, as phi is measured from the top down)
-          const targetSpherical = new THREE.Spherical(
-            currentSpherical.radius, // Keep the same distance
-            THREE.MathUtils.lerp(
-              currentSpherical.phi,
-              Math.PI * 0.5, // Aim for horizontal position
-              Math.min(backwardAmountRef.current * 0.3, 0.3) // Subtle influence
-            ),
-            currentSpherical.theta // Keep the same horizontal rotation
-          );
-          
-          // Convert back to cartesian coordinates
-          const targetPosition = new THREE.Vector3().setFromSpherical(targetSpherical)
-            .add(controlsRef.current.target);
-          
-          // Apply a subtle adjustment toward this position
-          camera.position.lerp(targetPosition, selfieStickSpeed * 0.5);
-        }
-      }
       
       // Optional: After controls update, ensure we maintain minimum distance when backing up
       if (selfieStickEffect && isBackingUpRef.current && !userInteractingRef.current) {
@@ -259,6 +251,11 @@ const CameraRig: React.FC<CameraRigProps> = ({
           // Apply position change smoothly
           camera.position.lerp(newPosition, selfieStickSpeed * 2);
         }
+      }
+      
+      // Apply floor clamp - prevent camera from going below minimum height
+      if (camera.position.y < minCameraHeight) {
+        camera.position.y = minCameraHeight;
       }
     }
   });

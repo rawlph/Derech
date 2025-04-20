@@ -1268,6 +1268,7 @@ const WelcomeScene: React.FC = () => {
         playerMaxHeight={12} // Allow flying up to see ceiling
         initialYRotation={Math.PI} // Camera rotation - pointing north
         initialLookDirection={new THREE.Vector3(0, 0, -1)} // Player direction - make sure this matches the scene orientation
+        minCameraHeight={1.2} // Prevent camera from going below the floor
       >
         <WelcomeContent />
       </InteractiveSceneLayout>
