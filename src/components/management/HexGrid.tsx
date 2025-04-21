@@ -1,4 +1,4 @@
-import { Environment, OrbitControls, useGLTF } from '@react-three/drei';
+import { Environment, OrbitControls, useGLTF, Sky, Preload } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useRef, useEffect, useMemo } from 'react';
 import ColonyCameraSetup from './ColonyCamera';
@@ -13,10 +13,11 @@ import FlowProjectSite from './FlowProjectSite';
 import StarterBuildingFloors from './StarterBuildingFloors';
 import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { taskConfigs } from '@config/tasks';
+import * as THREE from 'three';
 
 const HexGrid = () => {
     const controlsRef = useRef<OrbitControlsImpl>(null);
-    const { camera, gl } = useThree();
+    const { camera, gl, scene } = useThree();
 
     // Keep frame update for damping if needed
     useFrame(() => {
@@ -37,18 +38,33 @@ const HexGrid = () => {
         // console.log("Preloading task models in HexGrid:", Array.from(modelPaths)); // Keep one log
     }, []);
 
+    // Add soft shadows setup
+    useEffect(() => {
+        // Configure renderer for better shadows
+        if (gl) {
+            gl.shadowMap.enabled = true;
+            gl.shadowMap.type = THREE.PCFSoftShadowMap;
+            gl.toneMapping = THREE.ACESFilmicToneMapping;
+            gl.toneMappingExposure = 1.2;
+        }
+        
+        // Add subtle ambient occlusion
+        scene.background = new THREE.Color('#3D1F1D');
+    }, [gl, scene]);
+
     return (
         <>
             <ColonyCameraSetup />
 
             {/* --- Enhanced Lighting --- */}
-            <ambientLight intensity={0.5} color={'#FFF8E8'} /> {/* Warmer ambient light */}
+            {/* Reduced ambient light for better shadow contrast */}
+            <ambientLight intensity={0.4} color={'#E8D9C5'} />
             
-            {/* Main directional light (sun) */}
+            {/* Main directional light (sun) with improved shadows */}
             <directionalLight
-                color={'#FFF5E0'}
-                position={[50, 80, 30]}
-                intensity={1.8}
+                color={'#FFE0B3'}
+                position={[50, 100, 30]}
+                intensity={1.6}
                 castShadow
                 shadow-mapSize={[2048, 2048]}
                 shadow-camera-near={0.5}
@@ -60,19 +76,53 @@ const HexGrid = () => {
                 shadow-bias={-0.0001}
             />
             
-            {/* Secondary fill light */}
+            {/* Secondary rim light for depth */}
             <directionalLight 
-                color={'#FDE8CD'} 
-                position={[-30, 40, -20]} 
-                intensity={0.7} 
+                color={'#F08C8C'} 
+                position={[-40, 20, -30]} 
+                intensity={0.4} 
                 castShadow={false} 
             />
+            
+            {/* Accent point light */}
+            <pointLight
+                position={[20, 15, 20]}
+                intensity={30}
+                color={'#FFC773'}
+                distance={100}
+                decay={2}
+            />
+            
+            {/* Subtle blue fill from opposite side */}
+            <pointLight
+                position={[-30, 10, -20]}
+                intensity={20}
+                color={'#A6CFFF'}
+                distance={80}
+                decay={2}
+            />
 
-            {/* Add environment map for reflections (especially for ice) */}
+            {/* Sky for ambient light and atmosphere */}
+            <Sky
+                distance={450000}
+                sunPosition={[50, 30, 30]}
+                inclination={0.52}
+                azimuth={0.25}
+                mieCoefficient={0.001}
+                mieDirectionalG={0.8}
+                rayleigh={0.5}
+                turbidity={10}
+            />
+
+            {/* Add environment map for subtle reflections */}
             <Environment 
                 preset="sunset" 
                 background={false}
+                resolution={256} // Lower resolution for performance
             />
+
+            {/* More realistic fog with gradient effect */}
+            <fog attach="fog" args={['#7A3E3B', 90, 200]} />
 
             <HexTileInstances />
             <BuildingInstances />
@@ -98,8 +148,7 @@ const HexGrid = () => {
                 rotateSpeed={1.2}
             />
             
-            {/* Temporarily remove Environment */}
-            {/* <Environment preset="sunset" /> */}
+            <Preload all />
         </>
     );
 };

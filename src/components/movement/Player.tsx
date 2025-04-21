@@ -104,7 +104,7 @@ const Player = forwardRef<THREE.Mesh, PlayerProps>(({
   useFrame((_, delta) => {
     if (!sphereRef.current) return;
     
-    const { forward, right, up } = movementInput.current;
+    const { forward, right, up, joystickTouchId } = movementInput.current;
     
     // Detect if this is the first movement after being stationary
     const wasStationary = 
@@ -135,6 +135,7 @@ const Player = forwardRef<THREE.Mesh, PlayerProps>(({
     
     // Check if the camera is directly or almost directly above
     let forwardVector: THREE.Vector3;
+    
     if (toCameraXZ.lengthSq() < 0.01) {
       // Camera is directly above or very close - use last valid direction or fallback
       forwardVector = lastValidForwardRef.current.clone();
@@ -143,20 +144,27 @@ const Player = forwardRef<THREE.Mesh, PlayerProps>(({
       toCameraXZ.normalize();
       forwardVector = toCameraXZ.clone().negate();
       
-      // Save this as the last valid direction
-      // But don't update this if it's the first frame of movement on mobile (preserves camera direction)
-      if (!(isMobileRef.current && wasStationary && isMoving)) {
+      // Special handling for joystick movement vs. camera movement:
+      // If using joystick, we want to preserve the current camera direction
+      // If not using joystick, update our reference vector
+      if (!joystickTouchId) {
+        // No joystick active - update our forward reference
         lastValidForwardRef.current.copy(forwardVector);
       }
+      // When joystick is active, keep using lastValidForwardRef (set by camera)
+      // This preserves the direction the user was looking
     }
     
     // Calculate right vector
     const rightVector = forwardVector.clone().cross(new THREE.Vector3(0, 1, 0)).normalize();
     
+    // Apply movement with smooth damping for mobile
+    const speedMultiplier = isMobileRef.current ? 1.2 : 1.0; // Slightly faster on mobile for responsiveness
+    
     // Calculate movement vector
     const moveVector = new THREE.Vector3();
-    moveVector.addScaledVector(forwardVector, forward * speed * delta);
-    moveVector.addScaledVector(rightVector, right * speed * delta);
+    moveVector.addScaledVector(forwardVector, forward * speed * speedMultiplier * delta);
+    moveVector.addScaledVector(rightVector, right * speed * speedMultiplier * delta);
     
     // Apply horizontal movement to position
     playerPos.x += moveVector.x;
@@ -164,7 +172,8 @@ const Player = forwardRef<THREE.Mesh, PlayerProps>(({
     
     // Apply vertical movement with constraints
     if (up !== 0) {
-      playerPos.y += up * verticalSpeed * delta;
+      const vertSpeedMultiplier = isMobileRef.current ? 1.2 : 1.0; // Also adjust vertical speed on mobile
+      playerPos.y += up * verticalSpeed * vertSpeedMultiplier * delta;
       // Apply height constraints
       playerPos.y = Math.max(minHeight, Math.min(maxHeight, playerPos.y));
     }

@@ -49,8 +49,6 @@ const ManagementScene = () => {
         <Canvas shadows orthographic>
             {/* The camera prop can be used for initial settings, but ColonyCameraSetup handles it now */}
             {/* <camera position={[0, 35, 15]} zoom={1} near={0.1} far={1000} /> */}
-            <color attach="background" args={['#502825']} /> {/* Slightly brighter Mars reddish-brown */}
-            <fog attach="fog" args={['#502825', 70, 180]} /> {/* Match background color, slightly increased visible range */}
             <HexGrid />
             <FloatingResourceNumbers />
             <RoundTransition />
