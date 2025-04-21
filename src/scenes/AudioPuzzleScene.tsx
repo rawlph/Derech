@@ -762,18 +762,28 @@ const AudioPuzzleScene: React.FC = () => {
 
       {/* Use our InteractiveSceneLayout with settings for the massive temple space */}
       <InteractiveSceneLayout
-        backgroundColor="#050c17" // Darker background for night sky
-        playerColor="#E91E63"
-        playerPosition={[0, 1, 0]}
-        playerSpeed={7} // Much faster for the massive space
-        // Camera settings optimized for the massive temple
-        cameraMinDistance={4}
-        cameraMaxDistance={12}
-        cameraFollowSpeed={0.1}
+        backgroundColor="#121016" // Dark purple background for audio theme
+        playerColor="#E91E63" // Pink player for audio theme
+        playerPosition={[0, 1, 15]} // Position player at the entrance
+        playerSpeed={5}
+        // Camera settings optimized for exploration
+        cameraMinDistance={3} 
+        cameraMaxDistance={7}
+        cameraFollowSpeed={0.15}
+        // Better camera angle settings
+        cameraMinPolarAngle={Math.PI * 0.2} // Higher angle from vertical (36 degrees)
+        cameraMaxPolarAngle={Math.PI * 0.75} // Limit how low camera can go
         // Selfie stick effect for better backward movement
         selfieStickEffect={true}
-        selfieStickMaxDistance={18}
-        selfieStickSpeed={0.01}
+        selfieStickMaxDistance={7}
+        selfieStickSpeed={0.05}
+        // No floor - we have our own floor in the scene
+        showFloor={false}
+        // Height limits for vertical movement
+        playerMinHeight={0.1}
+        playerMaxHeight={12}
+        initialLookDirection={new THREE.Vector3(0, 0, -1)}
+        minCameraHeight={1.2} // Prevent camera from going below the floor
       >
         <AudioPuzzleContent />
       </InteractiveSceneLayout>

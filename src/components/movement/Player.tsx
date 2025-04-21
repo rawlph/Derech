@@ -44,6 +44,23 @@ const Player = forwardRef<THREE.Mesh, PlayerProps>(({
   
   // Track if initialization has been done
   const initializedRef = useRef<boolean>(false);
+  
+  // Track if we're on a mobile device
+  const isMobileRef = useRef<boolean>(false);
+  
+  // Track the last movement input for detecting first movement
+  const lastMovementRef = useRef<{forward: number, right: number, up: number}>({
+    forward: 0, right: 0, up: 0
+  });
+
+  // Check if we're on a mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    };
+    
+    isMobileRef.current = checkMobile();
+  }, []);
 
   // Initialize lastValidForwardRef with initialLookDirection and sync camera on mount
   useEffect(() => {
@@ -74,10 +91,6 @@ const Player = forwardRef<THREE.Mesh, PlayerProps>(({
         const lookTarget = playerPos.clone();
         lookTarget.y += 0.5; // Look slightly above player center
         camera.lookAt(lookTarget);
-        
-        console.log('Initial player direction set to:', normalizedDirection);
-        console.log('Camera positioned at:', camera.position);
-        console.log('Camera looking at:', lookTarget);
       }
       
       initializedRef.current = true;
@@ -93,8 +106,22 @@ const Player = forwardRef<THREE.Mesh, PlayerProps>(({
     
     const { forward, right, up } = movementInput.current;
     
+    // Detect if this is the first movement after being stationary
+    const wasStationary = 
+      Math.abs(lastMovementRef.current.forward) < 0.01 && 
+      Math.abs(lastMovementRef.current.right) < 0.01 && 
+      Math.abs(lastMovementRef.current.up) < 0.01;
+    
+    const isMoving = 
+      Math.abs(forward) > 0.01 || 
+      Math.abs(right) > 0.01 || 
+      Math.abs(up) > 0.01;
+    
+    // Update last movement state
+    lastMovementRef.current = { forward, right, up };
+    
     // Early return if no movement
-    if (forward === 0 && right === 0 && up === 0) return;
+    if (!isMoving) return;
     
     // Get the position and player orientation
     const playerPos = sphereRef.current.position;
@@ -115,8 +142,12 @@ const Player = forwardRef<THREE.Mesh, PlayerProps>(({
       // Normal case - calculate based on camera position
       toCameraXZ.normalize();
       forwardVector = toCameraXZ.clone().negate();
+      
       // Save this as the last valid direction
-      lastValidForwardRef.current.copy(forwardVector);
+      // But don't update this if it's the first frame of movement on mobile (preserves camera direction)
+      if (!(isMobileRef.current && wasStationary && isMoving)) {
+        lastValidForwardRef.current.copy(forwardVector);
+      }
     }
     
     // Calculate right vector
