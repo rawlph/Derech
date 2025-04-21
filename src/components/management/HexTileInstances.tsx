@@ -11,7 +11,8 @@ import {
     worldToAxial,
     statusIndicatorGeometry,
     getStatusIndicatorMaterial,
-    getStatusIndicatorPosition
+    getStatusIndicatorPosition,
+    mountainLevel2Materials
 } from '@utils/hexUtils';
 import * as THREE from 'three';
 import { ThreeEvent, useFrame } from '@react-three/fiber';
@@ -256,10 +257,12 @@ const HexTileInstances = () => {
         return pillars;
     }, [allInstancesData, heightScaleFactor]);
 
-    const { basicInstances, iceDepositInstances, mountainInstances } = useMemo(() => {
+    // Separate mountain tiles by height for different materials
+    const { basicInstances, iceDepositInstances, mountainLevel1Instances, mountainLevel2Instances } = useMemo(() => {
         const basic: InstanceInfo[] = [];
         const iceDeposits: InstanceInfo[] = [];
-        const mountains: InstanceInfo[] = [];
+        const mountainsLevel1: InstanceInfo[] = [];
+        const mountainsLevel2: InstanceInfo[] = [];
         
         allInstancesData.forEach(instance => {
             if (selectedTileData && instance.q === selectedTileData.q && instance.r === selectedTileData.r) {
@@ -269,13 +272,22 @@ const HexTileInstances = () => {
             if (instance.type === 'Ice Deposit') {
                 iceDeposits.push(instance);
             } else if (instance.type === 'Mountain') {
-                mountains.push(instance);
+                if (instance.height >= 2) {
+                    mountainsLevel2.push(instance);
+                } else {
+                    mountainsLevel1.push(instance);
+                }
             } else {
                 basic.push(instance);
             }
         });
         
-        return { basicInstances: basic, iceDepositInstances: iceDeposits, mountainInstances: mountains };
+        return { 
+            basicInstances: basic, 
+            iceDepositInstances: iceDeposits, 
+            mountainLevel1Instances: mountainsLevel1,
+            mountainLevel2Instances: mountainsLevel2
+        };
     }, [allInstancesData, selectedTileData]);
 
     // Safely get selected instance with error handling
@@ -404,19 +416,37 @@ const HexTileInstances = () => {
                 </Instances>
             )}
 
-            {/* Render mountain tiles */}
-            {mountainInstances.length > 0 && (
+            {/* Render level 1 mountain tiles */}
+            {mountainLevel1Instances.length > 0 && (
                 <Instances
-                    limit={mountainInstances.length}
+                    limit={mountainLevel1Instances.length}
                     geometry={hexGeometry}
                     material={tileMaterials.Mountain}
                     onClick={handleTileClick}
                 >
-                    {mountainInstances.map((instance) => (
+                    {mountainLevel1Instances.map((instance) => (
                         <Instance
                             key={`${instance.key}-fill`}
                             position={[instance.position.x, instance.position.y, instance.position.z]}
                             color={(instance.material as THREE.MeshBasicMaterial).color}
+                            scale={[1.005, 1, 1.005]}
+                        />
+                    ))}
+                </Instances>
+            )}
+
+            {/* Render level 2 mountain tiles */}
+            {mountainLevel2Instances.length > 0 && (
+                <Instances
+                    limit={mountainLevel2Instances.length}
+                    geometry={hexGeometry}
+                    material={mountainLevel2Materials.main}
+                    onClick={handleTileClick}
+                >
+                    {mountainLevel2Instances.map((instance) => (
+                        <Instance
+                            key={`${instance.key}-fill`}
+                            position={[instance.position.x, instance.position.y, instance.position.z]}
                             scale={[1.005, 1, 1.005]}
                         />
                     ))}

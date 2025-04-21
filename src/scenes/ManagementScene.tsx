@@ -1,6 +1,6 @@
 import { Canvas, useThree } from '@react-three/fiber';
 import HexGrid from '@components/management/HexGrid';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import FloatingResourceNumbers from '@components/management/FloatingResourceNumbers';
@@ -18,21 +18,18 @@ const SceneCleanup = () => {
             useGLTF.clear([]);
             
             // Force context loss and restoration
-            // Access the underlying WebGL context
             const glContext = gl.getContext() as WebGLRenderingContext;
             if (glContext) {
                 const loseContext = glContext.getExtension('WEBGL_lose_context');
                 if (loseContext) {
                     console.log('ManagementScene: Forcing WebGL context reset');
-                    // Release resources immediately
                     loseContext.loseContext();
-                    // Restore after a short delay (optional)
                     setTimeout(() => {
                         try {
                             loseContext.restoreContext();
                             console.log('ManagementScene: WebGL context restored');
                         } catch (e) {
-                            // Ignore errors during restoration
+                            // Ignore errors
                         }
                     }, 100);
                 }
@@ -43,12 +40,35 @@ const SceneCleanup = () => {
     return null;
 };
 
+// Removed BackgroundFixer component
+
 const ManagementScene = () => {
+    // Removed containerRef and related useEffect
+    
     return (
-        // Ensure canvas allows shadows
-        <Canvas shadows orthographic>
-            {/* The camera prop can be used for initial settings, but ColonyCameraSetup handles it now */}
-            {/* <camera position={[0, 35, 15]} zoom={1} near={0.1} far={1000} /> */}
+        // Container div removed, rely on App.tsx container
+        <Canvas 
+            shadows 
+            orthographic
+            gl={{ 
+                alpha: true, // Enable transparency
+                antialias: true,
+                stencil: false,
+                depth: true,
+                premultipliedAlpha: false,
+                preserveDrawingBuffer: false,
+                powerPreference: 'high-performance'
+            }}
+            onCreated={({ gl, scene, camera }) => {
+                // Ensure scene background is null (transparent)
+                scene.background = null;
+                gl.setClearColor(0, 0); // Transparent clear color
+                gl.render(scene, camera);
+            }}
+            style={{ background: 'transparent' }} // Explicitly transparent
+        >
+            {/* <color attach="background" args={['#251210']} /> Removed */}
+            
             <HexGrid />
             <FloatingResourceNumbers />
             <RoundTransition />

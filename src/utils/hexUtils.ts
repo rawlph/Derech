@@ -449,6 +449,24 @@ plansCustomMaterial.onBeforeCompile = (shader) => {
     );
 };
 
+// Create a second mountain material for taller mountains
+const mountainLevel2Material = new THREE.MeshStandardMaterial({
+    color: 0x825342, // Darker brown for level 2 mountains
+    roughness: 0.9,
+    metalness: 0.1, // Less metallic
+    normalMap: mountainNormalMap,
+    normalScale: new THREE.Vector2(1.7, 1.7), // Stronger normal effect for more rugged appearance
+    name: 'MountainLevel2Material',
+});
+
+// Keep the snow material definition for compatibility but we won't use it
+const mountainSnowMaterial = new THREE.MeshStandardMaterial({
+    color: 0xEEEEE5, // Off-white snow color
+    roughness: 0.7,
+    metalness: 0.1,
+    name: 'MountainSnowMaterial',
+});
+
 export const tileMaterials: Record<TileData['type'], THREE.Material> = {
     // Use the enhanced custom material for Plains
     Plains: plansCustomMaterial,
@@ -465,15 +483,21 @@ export const tileMaterials: Record<TileData['type'], THREE.Material> = {
         name: 'IceDepositMaterial',
     }),
     
-    // Update Mountain with a lighter, more visible color and normal map
+    // Update Mountain with a lighter color for tier 1 mountains
     Mountain: new THREE.MeshStandardMaterial({
-        color: 0x9C6D51, // Lighter brown with reddish tint
-        roughness: 1.0, // Maximum roughness for rocky surface 
+        color: 0xB48D71, // Lighter brown with reddish tint
+        roughness: 0.9, // Slightly reduced roughness
         metalness: 0.1, // Low metalness
         normalMap: mountainNormalMap, // Apply the mountain normal map
-        normalScale: new THREE.Vector2(1.2, 1.2), // Stronger normal effect for mountains
+        normalScale: new THREE.Vector2(1.2, 1.2), // Normal effect for mountains
         name: 'MountainMaterial',
     }),
+};
+
+// Export our level 2 mountain materials for use in HexTileInstances
+export const mountainLevel2Materials = {
+    main: mountainLevel2Material,
+    snow: mountainSnowMaterial
 };
 
 // Update selectedMaterial for better visibility
