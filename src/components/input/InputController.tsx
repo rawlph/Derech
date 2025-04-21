@@ -6,11 +6,13 @@ interface MovementInput {
   forward: number;
   right: number;
   up: number;
+  isTouchActive: boolean;
+  joystickTouchId: number | null;
 }
 
 // Create a context for the movement input
 const MovementContext = createContext<React.MutableRefObject<MovementInput>>({
-  current: { forward: 0, right: 0, up: 0 }
+  current: { forward: 0, right: 0, up: 0, isTouchActive: false, joystickTouchId: null }
 });
 
 // Hook to consume the movement context
@@ -38,7 +40,9 @@ export const InputController: React.FC<InputControllerProps> = ({
   const movementInput = useRef<MovementInput>({
     forward: 0,
     right: 0,
-    up: 0
+    up: 0,
+    isTouchActive: false,
+    joystickTouchId: null
   });
   
   // Update the combined movement values on each render
@@ -55,11 +59,19 @@ export const InputController: React.FC<InputControllerProps> = ({
       // Prioritize vertical nipple for up/down if it's active
       const up = nipple.verticalActive ? nipple.up : keyboard.up;
       
+      // Get touch state from nipple
+      const isTouchActive = nipple.isTouchActive || false;
+      
+      // Get joystick touch ID
+      const joystickTouchId = nipple.joystickTouchId || null;
+      
       // Update movement values
       movementInput.current = {
         forward,
         right,
-        up
+        up,
+        isTouchActive,
+        joystickTouchId
       };
       
       // Request next frame update

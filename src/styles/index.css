@@ -5,7 +5,7 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* background-color: #180A08; Removed fallback */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -20,10 +20,34 @@
   padding: 0;
 }
 
-html, body, #root {
+/* Fixed background div with gradient - explicitly below canvas z-index */
+.fixed-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #251210; /* Solid dark reddish-brown color instead of gradient */
+  z-index: -1; /* Force below everything */
+  pointer-events: none;
+}
+
+html, body {
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
+  /* Remove forced gradient */
+  background-color: transparent !important;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+}
+
+canvas {
+  display: block; /* Prevent potential extra space below canvas */
 } 

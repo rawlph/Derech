@@ -1,4 +1,4 @@
-import { Environment, OrbitControls, useGLTF } from '@react-three/drei';
+import { Environment, OrbitControls, useGLTF, Preload, Stars } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useRef, useEffect, useMemo } from 'react';
 import ColonyCameraSetup from './ColonyCamera';
@@ -13,10 +13,11 @@ import FlowProjectSite from './FlowProjectSite';
 import StarterBuildingFloors from './StarterBuildingFloors';
 import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { taskConfigs } from '@config/tasks';
+import * as THREE from 'three';
 
 const HexGrid = () => {
     const controlsRef = useRef<OrbitControlsImpl>(null);
-    const { camera, gl } = useThree();
+    const { camera, gl, scene } = useThree();
 
     // Keep frame update for damping if needed
     useFrame(() => {
@@ -25,7 +26,7 @@ const HexGrid = () => {
         }
     });
 
-    // Preload task models (moved here as preloading hooks need to be called consistently)
+    // Preload task models
     useMemo(() => {
         const modelPaths = new Set<string>();
         Object.values(taskConfigs).forEach(config => {
@@ -34,21 +35,42 @@ const HexGrid = () => {
             }
         });
         modelPaths.forEach(path => useGLTF.preload(path));
-        // console.log("Preloading task models in HexGrid:", Array.from(modelPaths)); // Keep one log
     }, []);
+
+    // Add soft shadows setup
+    useEffect(() => {
+        if (gl) {
+            gl.shadowMap.enabled = true;
+            gl.shadowMap.type = THREE.PCFSoftShadowMap;
+            gl.toneMapping = THREE.ACESFilmicToneMapping;
+            gl.toneMappingExposure = 1.2;
+            
+            // Make scene background transparent to show CSS background
+            scene.background = null;
+        }
+    }, [gl, scene]);
 
     return (
         <>
             <ColonyCameraSetup />
-
-            {/* --- Enhanced Lighting --- */}
-            <ambientLight intensity={0.5} color={'#FFF8E8'} /> {/* Warmer ambient light */}
             
-            {/* Main directional light (sun) */}
+            {/* Add stars for space effect */}
+            <Stars 
+                radius={55}
+                depth={30}
+                count={5000}
+                factor={8}
+                saturation={2.0}
+                fade={true}
+                speed={0.6}
+            />
+            
+            {/* --- Enhanced Lighting --- */}
+            <ambientLight intensity={0.4} color={'#E8D9C5'} />
             <directionalLight
-                color={'#FFF5E0'}
-                position={[50, 80, 30]}
-                intensity={1.8}
+                color={'#FFE0B3'}
+                position={[50, 100, 30]}
+                intensity={1.6}
                 castShadow
                 shadow-mapSize={[2048, 2048]}
                 shadow-camera-near={0.5}
@@ -59,20 +81,34 @@ const HexGrid = () => {
                 shadow-camera-bottom={-50}
                 shadow-bias={-0.0001}
             />
-            
-            {/* Secondary fill light */}
             <directionalLight 
-                color={'#FDE8CD'} 
-                position={[-30, 40, -20]} 
-                intensity={0.7} 
+                color={'#F08C8C'} 
+                position={[-40, 20, -30]} 
+                intensity={0.4} 
                 castShadow={false} 
             />
-
-            {/* Add environment map for reflections (especially for ice) */}
+            <pointLight
+                position={[20, 15, 20]}
+                intensity={30}
+                color={'#FFC773'}
+                distance={100}
+                decay={2}
+            />
+            <pointLight
+                position={[-30, 10, -20]}
+                intensity={20}
+                color={'#A6CFFF'}
+                distance={80}
+                decay={2}
+            />
             <Environment 
                 preset="sunset" 
                 background={false}
+                resolution={256}
             />
+
+            {/* Fog for atmospheric depth */}
+            <fog attach="fog" args={['#3D1B18', 150, 400]} />
 
             <HexTileInstances />
             <BuildingInstances />
@@ -96,10 +132,12 @@ const HexGrid = () => {
                 dampingFactor={0.1}
                 target={[0, 0, 0]}
                 rotateSpeed={1.2}
+                // Limit zoom for Orthographic camera
+                minZoom={0.5} // Prevents zooming in too much (zoom < 1 zooms in)
+                maxZoom={4}   // Prevents zooming out too much (zoom > 1 zooms out)
             />
             
-            {/* Temporarily remove Environment */}
-            {/* <Environment preset="sunset" /> */}
+            <Preload all />
         </>
     );
 };

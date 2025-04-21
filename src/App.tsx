@@ -12,6 +12,7 @@ import ProductionDomeWindow from '@components/ui/ProductionDomeWindow'
 import BackgroundMusic from '@components/audio/BackgroundMusic' // Import the BackgroundMusic component
 import TutorialWindow from '@components/ui/TutorialWindow'
 import FlowWindowContainer from './components/ui/FlowWindowContainer' // Import FlowWindowContainer with relative path
+import SpaceBackground from '@components/effects/SpaceBackground' // Import the SpaceBackground component
 
 // Add a style block for the Vibe Jam link
 const vibeJamStyles: CSSProperties = {
@@ -29,6 +30,9 @@ const vibeJamStyles: CSSProperties = {
   zIndex: 10000,
   border: '1px solid #fff'
 };
+
+// Background color for the app and canvas
+const BACKGROUND_COLOR = '#251210';
 
 function App() {
   // Access game state needed at the App level
@@ -65,6 +69,16 @@ function App() {
     if (hasPortalParam) {
       useGameStore.getState().setGameView('welcome');
     }
+    
+    // Set background color at document level
+    document.body.style.backgroundColor = BACKGROUND_COLOR;
+    document.documentElement.style.backgroundColor = BACKGROUND_COLOR;
+    
+    // Try to find the root element and set its background
+    const root = document.getElementById('root');
+    if (root) {
+      root.style.backgroundColor = BACKGROUND_COLOR;
+    }
   }, []);
 
   // Handle transitions between views
@@ -83,86 +97,100 @@ function App() {
   }, [gameView])
 
   return (
-    <div className={styles.appContainer}>
-      {/* Audio */}
-      <BackgroundMusic />
+    <>
+      {/* Fixed position solid background */}
+      <div className="fixed-background"></div>
       
-      {/* Welcome view - new portal welcome scene */}
-      {gameView === 'welcome' && (
-        <WelcomeScene />
-      )}
-
-      {/* Conditional rendering based on game view */}
-      {gameView === 'management' && (
-        <>
-          {/* UI Layer */}
-          <ManagementUI />
-
-          {/* Canvas Layer with key for forced remounting */}
-          <div className={styles.canvasContainer}>
-            <ManagementScene key={`management-scene-${key}`} />
-          </div>
-        </>
-      )}
-
-      {gameView === 'puzzle' && (
-        <AudioPuzzleScene />
-      )}
-
-      {/* Render the Dialogue Popup using Zustand state */}
-      <DialoguePopup
-        isVisible={dialogueMessage?.isVisible ?? false}
-        message={dialogueMessage?.message ?? ''}
-        avatarSrc={dialogueMessage?.avatar}
-        speakerName={dialogueMessage?.speakerName}
-        choices={dialogueMessage?.choices}
-        onClose={hideDialogue} // Use hideDialogue action from the store
-      />
-
-      {/* --- Render the Research Window --- */}
-      <ResearchWindow
-        isVisible={isResearchWindowVisible}
-        onClose={hideResearchWindow}
-      />
-      {/* --- --- */}
-
-      {/* --- Render Dome Windows --- */}
-      <LivingDomeWindow
-        isVisible={isLivingDomeWindowVisible}
-        onClose={hideLivingDomeWindow}
-      />
-      <ProductionDomeWindow
-        isVisible={isProductionDomeWindowVisible}
-        onClose={hideProductionDomeWindow}
-      />
-      {/* --- --- */}
+      {/* Beautiful space effects with moons and shooting stars */}
+      <SpaceBackground />
       
-      {/* --- Render Tutorial Window --- */}
-      <TutorialWindow 
-        isVisible={isTutorialWindowVisible}
-        onClose={hideTutorialWindow}
-      />
-      {/* --- --- */}
-      
-      {/* Flow Window Container */}
-      <FlowWindowContainer />
-      
-      {/* Vibe Jam Link - Only show when no sidebar or windows are open */}
-      {!isResourceSidebarOpen && 
-       !isResearchWindowVisible && 
-       !isLivingDomeWindowVisible && 
-       !isProductionDomeWindowVisible && 
-       !isTutorialWindowVisible && 
-       !isFlowWindowVisible && (
-        <a 
-          target="_blank" 
-          href="https://jam.pieter.com" 
-          style={vibeJamStyles}
-        >
-          🕹️ Vibe Jam 2025
-        </a>
-      )}
-    </div>
+      <div 
+        className={styles.appContainer} 
+        style={{ backgroundColor: 'transparent' }}
+      >
+        {/* Audio */}
+        <BackgroundMusic />
+        
+        {/* Welcome view - new portal welcome scene */}
+        {gameView === 'welcome' && (
+          <WelcomeScene />
+        )}
+
+        {/* Conditional rendering based on game view */}
+        {gameView === 'management' && (
+          <>
+            {/* UI Layer */}
+            <ManagementUI />
+
+            {/* Canvas Layer with key for forced remounting */}
+            <div 
+              className={styles.canvasContainer} 
+              style={{ backgroundColor: BACKGROUND_COLOR }}
+            >
+              <ManagementScene key={`management-scene-${key}`} />
+            </div>
+          </>
+        )}
+
+        {gameView === 'puzzle' && (
+          <AudioPuzzleScene />
+        )}
+
+        {/* Render the Dialogue Popup using Zustand state */}
+        <DialoguePopup
+          isVisible={dialogueMessage?.isVisible ?? false}
+          message={dialogueMessage?.message ?? ''}
+          avatarSrc={dialogueMessage?.avatar}
+          speakerName={dialogueMessage?.speakerName}
+          choices={dialogueMessage?.choices}
+          onClose={hideDialogue} // Use hideDialogue action from the store
+        />
+
+        {/* --- Render the Research Window --- */}
+        <ResearchWindow
+          isVisible={isResearchWindowVisible}
+          onClose={hideResearchWindow}
+        />
+        {/* --- --- */}
+
+        {/* --- Render Dome Windows --- */}
+        <LivingDomeWindow
+          isVisible={isLivingDomeWindowVisible}
+          onClose={hideLivingDomeWindow}
+        />
+        <ProductionDomeWindow
+          isVisible={isProductionDomeWindowVisible}
+          onClose={hideProductionDomeWindow}
+        />
+        {/* --- --- */}
+        
+        {/* --- Render Tutorial Window --- */}
+        <TutorialWindow 
+          isVisible={isTutorialWindowVisible}
+          onClose={hideTutorialWindow}
+        />
+        {/* --- --- */}
+        
+        {/* Flow Window Container */}
+        <FlowWindowContainer />
+        
+        {/* Vibe Jam Link - Only show when no sidebar or windows are open */}
+        {!isResourceSidebarOpen && 
+         !isResearchWindowVisible && 
+         !isLivingDomeWindowVisible && 
+         !isProductionDomeWindowVisible && 
+         !isTutorialWindowVisible && 
+         !isFlowWindowVisible && (
+          <a 
+            target="_blank" 
+            href="https://jam.pieter.com" 
+            style={vibeJamStyles}
+          >
+            🕹️ Vibe Jam 2025
+          </a>
+        )}
+      </div>
+    </>
   )
 }
 

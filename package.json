@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "vite build",
     "build:ts": "tsc && vite build",
     "postbuild": "node -e \"const fs=require('fs'); try { fs.copyFileSync('changes.html', 'dist/changes.html'); console.log('Successfully copied changes.html'); } catch (e) { console.error('Error copying changes.html:', e); }\"",

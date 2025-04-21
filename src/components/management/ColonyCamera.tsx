@@ -51,6 +51,11 @@ const ColonyCameraSetup = () => {
             camera.position.set(0, 35, 15);
             camera.zoom = 1;
             camera.lookAt(0, 0, 0);
+            
+            // Set explicit near/far planes
+            camera.near = 0.1;
+            camera.far = 2000; // Increased far plane significantly
+            
             const initialAspect = size.width / size.height;
             const initialViewSize = (initialAspect > 1) ? landscapeViewSize : portraitViewSize;
             camera.left = (-initialAspect * initialViewSize) / 2;
@@ -58,7 +63,7 @@ const ColonyCameraSetup = () => {
             camera.top = initialViewSize / 2;
             camera.bottom = -initialViewSize / 2;
             camera.updateProjectionMatrix();
-            console.log("Initial Orthographic Camera properties set.");
+            console.log("Initial Orthographic Camera properties set (with far plane).");
             invalidate();
          }
     }, [camera, invalidate, size.width, size.height, landscapeViewSize, portraitViewSize]); // Added dependencies size, landscape/portraitViewSize
